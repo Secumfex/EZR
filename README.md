@@ -1,2 +1,2 @@
-# VolumeRaycasting
-Source code for an OpenGL volume raycasting framework, especially a Maximum Intensity Projection implementation
+# EZR - Real-Time Rendering Framework
+Source Code for a real-time rendering framework utilizing various efficience-enhanced real-time rendering related techniques.
