@@ -73,7 +73,7 @@ void RenderPass::uploadUniforms()
 	}
 }
 
-static glm::vec4 temp_viewport;
+// static glm::vec4 temp_viewport;
 void RenderPass::render()
 {
 	if (m_fbo)
@@ -110,10 +110,10 @@ void RenderPass::render()
 	postRender();
 
 	restoreStates();
-	if (m_viewport != glm::ivec4(-1))
-	{
-		glViewport( (GLint) temp_viewport.x, (GLint) temp_viewport.y, (GLsizei) temp_viewport.z, (GLsizei) temp_viewport.w);
-	}
+	// if (m_viewport != glm::ivec4(-1))
+	// {
+	// 	glViewport( (GLint) temp_viewport.x, (GLint) temp_viewport.y, (GLsizei) temp_viewport.z, (GLsizei) temp_viewport.w);
+	// }
 }
 
 void RenderPass::postRender()
