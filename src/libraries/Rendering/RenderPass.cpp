@@ -11,11 +11,11 @@ RenderPass::RenderPass(ShaderProgram* shaderProgram, FrameBufferObject* fbo)
 	m_clearColor = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 	if (fbo)
 	{
-		m_viewport.x = 0.0f;
-		m_viewport.y = 0.0f;
+		m_viewport.x = 0;
+		m_viewport.y = 0;
 		
-		m_viewport.z = (float) fbo->getWidth();
-		m_viewport.w = (float) fbo->getHeight();
+		m_viewport.z = fbo->getWidth();
+		m_viewport.w = fbo->getHeight();
 	}
 }
 
@@ -73,6 +73,7 @@ void RenderPass::uploadUniforms()
 	}
 }
 
+static glm::vec4 temp_viewport;
 void RenderPass::render()
 {
 	if (m_fbo)
@@ -84,7 +85,7 @@ void RenderPass::render()
 	}
 
 	m_shaderProgram->use();
-	if (m_viewport != glm::vec4(-1.0f))
+	if (m_viewport != glm::ivec4(-1))
 	{
 		glViewport( (GLint) m_viewport.x, (GLint) m_viewport.y, (GLsizei) m_viewport.z, (GLsizei) m_viewport.w);
 	}
@@ -109,11 +110,18 @@ void RenderPass::render()
 	postRender();
 
 	restoreStates();
+	if (m_viewport != glm::ivec4(-1))
+	{
+		glViewport( (GLint) temp_viewport.x, (GLint) temp_viewport.y, (GLsizei) temp_viewport.z, (GLsizei) temp_viewport.w);
+	}
 }
 
 void RenderPass::postRender()
 {
 }
+
+void RenderPass::setPerRenderableFunction(std::function<void(Renderable*)>* perRenderableFunction)
+{p_perRenderableFunction = perRenderableFunction;}
 
 void RenderPass::addRenderable(Renderable* renderable)
 {
@@ -127,10 +135,10 @@ std::vector< Renderable* > RenderPass::getRenderables()
 
 void RenderPass::setViewport(int x, int y, int width, int height)
 {
-	m_viewport.x = (float) x;
-	m_viewport.y = (float) y;
-	m_viewport.z = (float) width;
-	m_viewport.w = (float) height;
+	m_viewport.x = x;
+	m_viewport.y = y;
+	m_viewport.z = width;
+	m_viewport.w = height;
 }
 
 void RenderPass::addClearBit(GLbitfield clearBit)
