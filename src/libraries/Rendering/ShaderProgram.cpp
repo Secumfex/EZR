@@ -218,13 +218,6 @@ int ShaderProgram::addUniform(const std::string &uniformName)
 	return m_uniformMap[uniformName];
 }
 
-int ShaderProgram::addBuffer(const std::string &bufferName)
-{
-	m_bufferMap[bufferName] = static_cast<int>(m_bufferMap.size());
-	DEBUGLOG->log("ADD BUFFER: " + bufferName + " " + std::to_string(m_bufferMap[bufferName]));
-	return m_bufferMap[bufferName];
-}
-
 void ShaderProgram::addTexture(const std::string &textureName, GLuint textureHandle)
 {	
 	m_textureMap[textureName] = textureHandle;

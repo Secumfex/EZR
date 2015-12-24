@@ -188,23 +188,6 @@ public:
 	ShaderProgram* update(std::string name, const std::vector<glm::vec4>& vector);
 
 	/**
-	 * @brief Method to add a buffer to the shader and return the bound location
-	 * 
-	 * @param uniformName name of the uniform to add
-	 * 
-	 */
-	int addBuffer(const std::string &bufferName);
-
-	/**
-	 * @brief Method to add a texture to the shader and return the bound location
-	 * 
-	 * @param textureName name of the texture to add
-	 * @param path path to the texture
-	 *
-	 */
-	// int addTexture(const std::string &textureName, const std::string &path);
-
-	/**
 	 * @brief Method to add a already existing texture to the shader
 	 * 
 	 * @param textureName name of the texture to add
