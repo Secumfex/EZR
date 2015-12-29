@@ -14,7 +14,7 @@ Turntable::~Turntable()
 
 }
 
-void Turntable::dragBy(float phi, float theta, glm::mat4& view)
+void Turntable::dragBy(float phi, float theta, const glm::mat4& view)
 {
 	// first: rotate "turn vector" as proposed by view matrix
 	glm::mat4 transformMatrix = glm::inverse( view );
