@@ -254,7 +254,7 @@ int main()
 	render(window, [&](double dt)
 	{
 		elapsedTime += dt;
-		std::string window_header = "Screen Space Reflections - " + std::to_string( 1.0 / dt ) + " FPS";
+		std::string window_header = "Screen Space Reflections - " + DebugLog::to_string( 1.0 / dt ) + " FPS";
 		glfwSetWindowTitle(window, window_header.c_str() );
 
 		////////////////////////////////     GUI      ////////////////////////////////

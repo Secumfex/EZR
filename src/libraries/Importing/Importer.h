@@ -59,7 +59,7 @@ namespace Importer {
 		DEBUGLOG->indent();
 		for (unsigned int i = 1; i <= num_files; i++)
 		{
-			std::string current_file_path = path + "." + std::to_string(i);
+			std::string current_file_path = path + "." + DebugLog::to_string(i);
 
 			std::cout << ".";
 

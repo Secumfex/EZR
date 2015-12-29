@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 #include <map>
 #include <vector>
+#include <string>
 
 class FrameBufferObject
 {

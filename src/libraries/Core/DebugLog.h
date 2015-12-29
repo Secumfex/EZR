@@ -36,6 +36,19 @@ public:
 	void clear();
 
 	void setAutoPrint(bool to);
+
+    template <typename T>
+    static std::string to_string(T value)
+    {
+      //create an output string stream
+      std::ostringstream os ;
+
+      //throw the value into the string stream
+      os << value ;
+
+      //convert the string stream into a string and return
+      return os.str() ;
+    }
 };
 
 // for convenient access

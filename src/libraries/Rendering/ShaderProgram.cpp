@@ -136,7 +136,7 @@ void ShaderProgram::readOutputs(Shader& fragmentShader)
 	DEBUGLOG->log("Shader outputs: ", m_bufferMap.size()); DEBUGLOG->indent();
 	for (auto entry : m_bufferMap)
 	{
-		DEBUGLOG->log(std::to_string(entry.second) +": " + entry.first);
+		DEBUGLOG->log(DebugLog::to_string(entry.second) +": " + entry.first);
 	} 
 	DEBUGLOG->outdent();
 
@@ -160,7 +160,7 @@ void ShaderProgram::readUniforms()
 		uniformName[nameLength] = 0;
 		//add uniform variable to map
 		m_uniformMap[uniformName] = glGetUniformLocation(getShaderProgramHandle(), uniformName);
-		DEBUGLOG->log(std::to_string(i) +  " : " + uniformName);
+		DEBUGLOG->log(DebugLog::to_string(i) +  " : " + uniformName);
 	}
 	DEBUGLOG->outdent();
 }
@@ -197,7 +197,7 @@ void ShaderProgram::link()
 	}
 	else
 	{
-		DEBUGLOG->log("Can't link shaders - you need at least 2, but attached shader count is only: " + std::to_string(m_shaderCount));
+		DEBUGLOG->log("Can't link shaders - you need at least 2, but attached shader count is only: " + DebugLog::to_string(m_shaderCount));
 		glfwTerminate();
 	}
 }
@@ -212,7 +212,7 @@ int ShaderProgram::addUniform(const std::string &uniformName)
 	}
 	else
 	{
-		DEBUGLOG->log("Uniform " + uniformName + " bound to location: " + std::to_string(m_uniformMap[uniformName]));
+		DEBUGLOG->log("Uniform " + uniformName + " bound to location: " + DebugLog::to_string(m_uniformMap[uniformName]));
 	}
 	
 	return m_uniformMap[uniformName];

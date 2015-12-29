@@ -197,7 +197,7 @@ int main()
 	render(window, [&](double dt)
 	{
 		elapsedTime += dt;
-		std::string window_header = "Volume Renderer - " + std::to_string( 1.0 / dt ) + " FPS";
+		std::string window_header = "Volume Renderer - " + DebugLog::to_string( 1.0 / dt ) + " FPS";
 		glfwSetWindowTitle(window, window_header.c_str() );
 
 		////////////////////////////////     GUI      ////////////////////////////////
