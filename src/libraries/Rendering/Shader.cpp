@@ -52,8 +52,8 @@ void Shader::loadFromFile(const std::string &filename)
         
     if (!file.good() )
     {
-		DEBUGLOG->log("Failed to open file: " + filename);
-        exit(-1);
+		DEBUGLOG->log("ERROR: Failed to open file: " + filename);
+        // exit(-1);
     }
     
     // Create a string stream
