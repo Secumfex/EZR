@@ -25,6 +25,7 @@ void setCharCallback(GLFWwindow* window, std::function<void (unsigned int)> func
 void setCursorPosCallback(GLFWwindow* window, std::function<void (double, double)> func); //!< set callback function called when cursor position changes
 void setScrollCallback(GLFWwindow* window, std::function<void (double, double)> func); //!< set callback function called when scrolling
 void setCursorEnterCallback(GLFWwindow* window, std::function<void (int)> func); //!< set callback function called when cursor enters window
+void setWindowResizeCallback(GLFWwindow* window, std::function<void (int, int)> func); //!< set callback function called when cursor enters window
 
 glm::vec2 getResolution(GLFWwindow* window);
 float getRatio(GLFWwindow* window); //!< returns (width / height) of the window
