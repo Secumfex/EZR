@@ -24,6 +24,7 @@ else(MSVC)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif(MSVC)
 
+find_package(ASSIMP REQUIRED)
 find_package(OpenGL3 REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(GLFW3 REQUIRED)
