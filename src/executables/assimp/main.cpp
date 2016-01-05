@@ -6,8 +6,7 @@
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
-#include <assimp/scene.h>
-#include <assimp/mesh.h>
+#include <Importing/AssimpTools.h>
 
 #include <Rendering/GLTools.h>
 #include <Rendering/VertexArrayObjects.h>
@@ -101,105 +100,17 @@ int main()
 
 	/////////////////////     Upload assets (create Renderables / VAOs from data)    //////////////////////////
 	DEBUGLOG->log("Setup: creating VAOs from mesh data"); DEBUGLOG->indent();
-	for (unsigned int i = 0; i < scene->mNumMeshes; i++)
+	std::vector<AssimpTools::RenderableInfo> renderableInfoVector = AssimpTools::createSimpleRenderablesFromScene( scene );
+
+	for (auto r : renderableInfoVector)
 	{
-		aiMesh* m = scene->mMeshes[i];
-		
-		if(m->HasPositions())
-		{
-			// read info
-			std::vector<unsigned int> indices;
-			std::vector<float> vertices;
-			std::vector<float> normals;
-			std::vector<float> uvs;
-
-			for ( unsigned int v = 0; v < m->mNumVertices; v++)
-			{
-				aiVector3D vert = m->mVertices[v];
-				vertices.push_back(vert.x);
-				vertices.push_back(vert.y);
-				vertices.push_back(vert.z);
-			}
-
-			for ( unsigned int n = 0; n < m->mNumVertices; n++)
-			{
-				aiVector3D norm = m->mNormals[n];
-				normals.push_back(norm.x);
-				normals.push_back(norm.y);
-				normals.push_back(norm.z);
-			}
-
-			for (unsigned int u = 0; u < m->mNumVertices; u++)
-			{
-				aiVector3D uv = m->mTextureCoords[0][u];
-				uvs.push_back(uv.x);
-				uvs.push_back(uv.y);
-				
-				if(m->GetNumUVChannels() == 3)
-				{
-					uvs.push_back(uv.z);
-				}
-			}
-
-			for ( unsigned int f = 0; f < m->mNumFaces; f++)
-			{
-				aiFace face = m->mFaces[f];
-				for ( unsigned int idx = 0; idx < face.mNumIndices; idx++) 
-				{
-					indices.push_back(face.mIndices[idx]);
-				}
-			}
-
-			// method to upload data to GPU and set as vertex attribute
-			auto createVbo = [](std::vector<float>& content, GLuint dimensions, GLuint attributeIndex)
-			{
-				GLuint vbo = 0;
-				glGenBuffers(1, &vbo);
-				glBindBuffer(GL_ARRAY_BUFFER, vbo);
-				glBufferData(GL_ARRAY_BUFFER, content.size() * sizeof(float), &content[0], GL_STATIC_DRAW);
-				glVertexAttribPointer(attributeIndex, dimensions, GL_FLOAT, 0, 0, 0);
-				glEnableVertexAttribArray(attributeIndex);
-				return vbo;
-			};
-
-			auto createIndexVbo = [](std::vector<unsigned int>& content) 
-			{
-				GLuint vbo = 0;	
-				glGenBuffers(1, &vbo);
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo);
-				glBufferData(GL_ELEMENT_ARRAY_BUFFER, content.size() * sizeof(unsigned int), &content[0], GL_STATIC_DRAW);
-				return vbo;
-			};
-
-			// generate VAO
-			GLuint vao;
-		    glGenVertexArrays(1, &vao);
-			Renderable *renderable = new Renderable;
-			renderable->m_vao = vao;
-			glBindVertexArray(vao);
-
-			renderable->m_positions.m_vboHandle = createVbo(vertices, 3, 0);
-			renderable->m_positions.m_size = vertices.size() / 3;
-
-			renderable->m_uvs.m_vboHandle = createVbo(uvs, (m->GetNumUVChannels() == 3) ? 3 : 2, 1);
-			renderable->m_uvs.m_size = (m->GetNumUVChannels() == 3) ? uvs.size() / 3 : uvs.size() / 2;
-			
-			renderable->m_normals.m_vboHandle = createVbo(normals, 3, 2);
-			renderable->m_normals.m_size = normals.size() / 3;
-
-			renderable->m_indices.m_vboHandle = createIndexVbo(indices);
-			renderable->m_indices.m_size = indices.size();
-
-			renderable->setDrawMode(GL_TRIANGLES);
-
-			glBindVertexArray(0);
-
-			objects.push_back(renderable);
-		}
-
+		objects.push_back(r.renderable); // extract list of renderables
+		DEBUGLOG->log("corresponding aiScene mesh idx: ", r.meshIdx); DEBUGLOG->indent();
+		DEBUGLOG->log("name      : " + r.name);
+		DEBUGLOG->log("bbox size : " , r.boundingBox.max - r.boundingBox.min); DEBUGLOG->outdent();
 	}
+	DEBUGLOG->outdent();
 
-	
 	/////////////////////// 	Renderpasses     ///////////////////////////
 	 // regular GBuffer
 	 DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
@@ -207,12 +118,13 @@ int main()
 	 shaderProgram.update("model", model);
 	 shaderProgram.update("view", view);
 	 shaderProgram.update("projection", perspective);
+	 DEBUGLOG->outdent();
 
 	 DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
-	 FrameBufferObject fbo(getResolution(window).x, getResolution(window).y);
 	 FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
-	 fbo.addColorAttachments(4); DEBUGLOG->outdent();   // G-Buffer
+	 FrameBufferObject fbo(shaderProgram.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
 	 FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
+	 DEBUGLOG->outdent();
 
 	 DEBUGLOG->log("RenderPass Creation: GBuffer"); DEBUGLOG->indent();
 	 RenderPass renderPass(&shaderProgram, &fbo);
@@ -220,7 +132,8 @@ int main()
 	 // renderPass.addEnable(GL_BLEND);
 	 renderPass.setClearColor(0.0,0.0,0.0,0.0);
 	 renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	 for (auto r : objects){renderPass.addRenderable(r);}  DEBUGLOG->outdent();
+	 for (auto r : objects){renderPass.addRenderable(r);}  
+	 DEBUGLOG->outdent();
 
 	 // regular GBuffer compositing
 	 DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
@@ -228,7 +141,7 @@ int main()
 	 // set texture references
 	 compShader.bindTextureOnUse("colorMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	 compShader.bindTextureOnUse("normalMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
-	 compShader.bindTextureOnUse("positionMap", fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
+	 compShader.bindTextureOnUse("positionMap",  fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 
 	 DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
 	 Quad quad;
