@@ -15,16 +15,18 @@
 
 // #include "UI/imgui/imgui.h"
 // #include <UI/imguiTools.h>
-// #include <UI/Turntable.h>
+#include <UI/Turntable.h>
 
 // #include <Importing/TextureTools.h>
 
 #include <glm/gtc/matrix_transform.hpp>
-// #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 ////////////////////// PARAMETERS /////////////////////////////
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 
+static glm::vec4 s_color = glm::vec4(0.45 * 0.3f, 0.44f * 0.3f, 0.87f * 0.3f, 1.0f); // far : blueish
+static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -49,7 +51,7 @@ int main()
 
 	// import using ASSIMP and check for errors
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile( file, aiPostProcessSteps::aiProcess_ValidateDataStructure);
+	const aiScene* scene = importer.ReadFile( file, aiProcessPreset_TargetRealtime_MaxQuality);
 	if (scene == NULL)
 	{
 		std::string errorString = importer.GetErrorString();
@@ -96,7 +98,7 @@ int main()
 	glm::mat4 model = glm::mat4(1.0f); DEBUGLOG->outdent();
 
 	/////////////////////     Upload assets (create Renderables / VAOs from data)    //////////////////////////
-	DEBUGLOG->log("Setup: "); DEBUGLOG->indent();
+	DEBUGLOG->log("Setup: creating VAOs from mesh data"); DEBUGLOG->indent();
 	for (unsigned int i = 0; i < scene->mNumMeshes; i++)
 	{
 		aiMesh* m = scene->mMeshes[i];
@@ -147,14 +149,14 @@ int main()
 			}
 
 			// method to upload data to GPU and set as vertex attribute
-			auto createVbo = [](std::vector<float>& content, GLuint dimensions, GLuint vertexAttributePointer)
+			auto createVbo = [](std::vector<float>& content, GLuint dimensions, GLuint attributeIndex)
 			{
 				GLuint vbo = 0;
 				glGenBuffers(1, &vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, vbo);
 				glBufferData(GL_ARRAY_BUFFER, content.size() * sizeof(float), &content[0], GL_STATIC_DRAW);
-				glVertexAttribPointer(vertexAttributePointer, dimensions, GL_FLOAT, 0, 0, 0);
-				glEnableVertexAttribArray(vertexAttributePointer);
+				glVertexAttribPointer(attributeIndex, dimensions, GL_FLOAT, 0, 0, 0);
+				glEnableVertexAttribArray(attributeIndex);
 				return vbo;
 			};
 
@@ -188,6 +190,8 @@ int main()
 
 			renderable->setDrawMode(GL_TRIANGLES);
 
+			glBindVertexArray(0);
+
 			objects.push_back(renderable);
 		}
 
@@ -214,7 +218,7 @@ int main()
 	 // renderPass.addEnable(GL_BLEND);
 	 renderPass.setClearColor(0.0,0.0,0.0,0.0);
 	 renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	 for (auto r : objects){renderPass.addRenderable(r);}
+	 for (auto r : objects){renderPass.addRenderable(r);}  DEBUGLOG->outdent();
 
 	 // regular GBuffer compositing
 	 DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
@@ -230,6 +234,7 @@ int main()
 	 compositing.addClearBit(GL_COLOR_BUFFER_BIT);
 	 compositing.setClearColor(0.25,0.25,0.35,0.0);
 	 // compositing.addEnable(GL_BLEND);
+	 compositing.addDisable(GL_DEPTH_TEST);
 	 compositing.addRenderable(&quad);
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -239,46 +244,46 @@ int main()
 	// Setup ImGui binding
  //    ImGui_ImplGlfwGL3_Init(window, true);
 
-	// Turntable turntable;
-	// double old_x;
- //    double old_y;
-	// glfwGetCursorPos(window, &old_x, &old_y);
+	Turntable turntable;
+	double old_x;
+    double old_y;
+	glfwGetCursorPos(window, &old_x, &old_y);
 	
-	// auto cursorPosCB = [&](double x, double y)
-	// {
 	// 	ImGuiIO& io = ImGui::GetIO();
 	// 	if ( io.WantCaptureMouse )
 	// 	{ return; } // ImGUI is handling this
+	auto cursorPosCB = [&](double x, double y)
+	{
 
-	// 	double d_x = x - old_x;
-	// 	double d_y = y - old_y;
+		double d_x = x - old_x;
+		double d_y = y - old_y;
 
-	// 	if ( turntable.getDragActive() )
-	// 	{
-	// 		turntable.dragBy(d_x, d_y, view);
-	// 	}
+		if ( turntable.getDragActive() )
+		{
+			turntable.dragBy(d_x, d_y, view);
+		}
 
-	// 	old_x = x;
-	// 	old_y = y;
-	// };
+		old_x = x;
+		old_y = y;
+	};
 
-	// auto mouseButtonCB = [&](int b, int a, int m)
-	// {
-	// 	if (b == GLFW_MOUSE_BUTTON_LEFT && a == GLFW_PRESS)
-	// 	{
-	// 		turntable.setDragActive(true);
-	// 	}
-	// 	if (b == GLFW_MOUSE_BUTTON_LEFT && a == GLFW_RELEASE)
-	// 	{
-	// 		turntable.setDragActive(false);
-	// 	}
+	auto mouseButtonCB = [&](int b, int a, int m)
+	{
+		if (b == GLFW_MOUSE_BUTTON_LEFT && a == GLFW_PRESS)
+		{
+			turntable.setDragActive(true);
+		}
+		if (b == GLFW_MOUSE_BUTTON_LEFT && a == GLFW_RELEASE)
+		{
+			turntable.setDragActive(false);
+		}
 
 	// 	ImGui_ImplGlfwGL3_MouseButtonCallback(window, b, a, m);
-	// };
+	};
 
-	// auto keyboardCB = [&](int k, int s, int a, int m)
-	// {
-	// 	if (a == GLFW_RELEASE) {return;} 
+	 auto keyboardCB = [&](int k, int s, int a, int m)
+	 {
+	 	if (a == GLFW_RELEASE) {return;} 
 	// 	switch (k)
 	// 	{
 	// 		case GLFW_KEY_W:
@@ -301,11 +306,11 @@ int main()
 	// 			break;
 	// 	}
 	// 	ImGui_ImplGlfwGL3_KeyCallback(window,k,s,a,m);
-	// };
+	 };
 
-	// setCursorPosCallback(window, cursorPosCB);
-	// setMouseButtonCallback(window, mouseButtonCB);
-	// setKeyCallback(window, keyboardCB);
+	setCursorPosCallback(window, cursorPosCB);
+	setMouseButtonCallback(window, mouseButtonCB);
+	setKeyCallback(window, keyboardCB);
 
 	// model matrices / texture update function
 	// std::function<void(Renderable*)> perRenderableFunction = [&](Renderable* r){ 
@@ -343,20 +348,22 @@ int main()
         //////////////////////////////////////////////////////////////////////////////
 
 		///////////////////////////// MATRIX UPDATING ///////////////////////////////
-		// view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0.0f, 1.0f, 0.0f));
+		view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0.0f, 1.0f, 0.0f));
 		//////////////////////////////////////////////////////////////////////////////
 				
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
 		// update view related uniforms
-		// shaderProgram.update( "view", view);
+		shaderProgram.update( "view", view);
+		shaderProgram.update( "color", s_color);
+		shaderProgram.update( "model", turntable.getRotationMatrix() * model);
 
-		// compShader.update("vLightPos", view * turntable.getRotationMatrix() * s_lightPos);
+		compShader.update("vLightPos", view * s_lightPos);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
-		// renderPass.render();
+		renderPass.render();
 
-		// compositing.render();
+		compositing.render();
 
 		// ImGui::Render();
 		// glDisable(GL_BLEND);
