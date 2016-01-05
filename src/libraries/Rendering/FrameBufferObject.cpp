@@ -95,7 +95,7 @@ void FrameBufferObject::setColorAttachmentTextureHandle( GLenum attachment, GLui
 	glBindTexture(GL_TEXTURE_2D, textureHandle);
 	int width, height;
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &height);
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
 
 	if (  width != m_width || height != m_height )
 	{
