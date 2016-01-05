@@ -56,6 +56,8 @@ int main()
 	{
 		std::string errorString = importer.GetErrorString();
 		DEBUGLOG->log("ERROR: " + errorString);
+		cout << "ENTER ANYTHING TO EXIT" << endl; cin >> errorString;
+		exit(-1);
 	} else {
 		DEBUGLOG->log("Asset has been loaded successfully");
 	}
