@@ -7,6 +7,9 @@
 #include <vector>
 #include <string>
 
+// forward declaration
+#include <Rendering/ShaderProgram.h>
+
 class FrameBufferObject
 {
 protected:
@@ -35,7 +38,7 @@ public:
 	* @details the outputmap should contain pairs of an output name and layout location of fragment shader outputs.
 	* Using this, the corresponding texture handles may be retrieved using getBuffer() in addition to getColorAttachmentTextureHandle().
 	*/
-	FrameBufferObject(std::map<std::string, int>* outputMap, int width, int height, GLint internalFormat = GL_RGBA);
+	FrameBufferObject(std::map<std::string, ShaderProgram::Info>* outputMap, int width, int height);
 	~FrameBufferObject();
 
 	void createDepthTexture();
@@ -66,6 +69,7 @@ public:
 	void bind(); //!< binds the fbo and sets the viewport to its size
 	void unbind(); //!< unbinds the fbo (binds screen, i.e. 0)
 
+	void mapColorAttachmentToBufferName(GLenum colorAttachment, std::string bufferName);
 	GLuint getBuffer(std::string name); //!< Get the texture handle corresponding to a certain buffer name.
 
 	void setFrameBufferObject(const GLuint& frameBufferObjectHandle, const int& width, const int& height, const std::map<std::string, GLuint>& textureMap, GLuint depthTexture);

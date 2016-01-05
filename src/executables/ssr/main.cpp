@@ -92,9 +92,13 @@ int main()
 	shaderProgram.update("projection", perspective);
 
 	DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
-	FrameBufferObject fbo(getResolution(window).x, getResolution(window).y);
+	//FrameBufferObject fbo(getResolution(window).x, getResolution(window).y);
+	//FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
+	//fbo.addColorAttachments(4); DEBUGLOG->outdent();   // G-Buffer
+	//FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
+
 	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
-	fbo.addColorAttachments(4); DEBUGLOG->outdent();   // G-Buffer
+	FrameBufferObject fbo(shaderProgram.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
 	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
 
 	DEBUGLOG->log("RenderPass Creation: GBuffer"); DEBUGLOG->indent();
@@ -109,9 +113,9 @@ int main()
 	DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
 	ShaderProgram compShader("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing.frag"); DEBUGLOG->outdent();
 	// set texture references
-	compShader.bindTextureOnUse("colorMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+	compShader.bindTextureOnUse("colorMap", 	 fbo.getBuffer("fragColor"));
 	compShader.bindTextureOnUse("normalMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
-	compShader.bindTextureOnUse("positionMap", fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
+	compShader.bindTextureOnUse("positionMap",   fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 
 	DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
 	Quad quad;

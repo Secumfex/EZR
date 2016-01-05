@@ -200,7 +200,7 @@ int FrameBufferObject::getHeight()
 	return m_height;
 }
 
-FrameBufferObject::FrameBufferObject(std::map<std::string, int>* outputMap, int width, int height, GLint internalFormat) 
+FrameBufferObject::FrameBufferObject(std::map<std::string, ShaderProgram::Info>* outputMap, int width, int height) 
 	: m_width(width), m_height(height)
 {
 	//Generate FBO
@@ -218,7 +218,7 @@ FrameBufferObject::FrameBufferObject(std::map<std::string, int>* outputMap, int 
     	GLuint handle;
     	glGenTextures(1, &handle);
 	    glBindTexture(GL_TEXTURE_2D, handle);
-	    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, m_width, m_height, 0, s_format, s_type, 0);
+	    glTexImage2D(GL_TEXTURE_2D, 0, s_internalFormat, m_width, m_height, 0, s_format, s_type, 0);
 	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -226,7 +226,12 @@ FrameBufferObject::FrameBufferObject(std::map<std::string, int>* outputMap, int 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 
-	    GLuint currentAttachment = GL_COLOR_ATTACHMENT0 + static_cast<unsigned int>(i); //e.second;
+		GLuint currentAttachment = GL_COLOR_ATTACHMENT0 + static_cast<unsigned int>(e.second.location); //e.second;
+		// DEBUGLOG->log("buffer    : " + e.first);
+		// DEBUGLOG->log("tex handle: ", handle);
+		// DEBUGLOG->log("attachment: ", currentAttachment - GL_COLOR_ATTACHMENT0);
+		// DEBUGLOG->log("output loc: ", e.second.location);
+		// DEBUGLOG->log("------------------------");
 
 	    glFramebufferTexture2D(GL_FRAMEBUFFER, currentAttachment, GL_TEXTURE_2D, handle, 0);
 
@@ -262,8 +267,22 @@ void FrameBufferObject::unbind() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+
+void FrameBufferObject::mapColorAttachmentToBufferName(GLenum colorAttachment, std::string bufferName)
+{
+	GLuint handle = getColorAttachmentTextureHandle(colorAttachment);
+	if ( handle != 0)
+	{
+		m_textureMap[bufferName] = handle;
+	}
+}
+
 GLuint FrameBufferObject::getBuffer(std::string name) {
-	
+	if (m_textureMap.size() == 0)
+	{
+		DEBUGLOG->log("ERROR: buffer map has not been associated with names or fbo is empty");
+		return 0;
+	}
 	if (m_textureMap.find(name) != m_textureMap.end())
 	{
 		return m_textureMap[name]; // safe access to map
