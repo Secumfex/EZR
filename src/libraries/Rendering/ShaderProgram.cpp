@@ -145,7 +145,7 @@ void ShaderProgram::printShaderProgramInfoLog() {
     }
 }
 
-void ShaderProgram::addTexture(const std::string &textureName, GLuint textureHandle)
+void ShaderProgram::bindTextureOnUse(const std::string &textureName, GLuint textureHandle)
 {	
 	m_textureMap[textureName] = textureHandle;
 }

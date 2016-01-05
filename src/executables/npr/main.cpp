@@ -245,11 +245,11 @@ int main()
 			if ( i > 0)
 			{
 				FrameBufferObject* beforeFBO = depthPeelingBuffers.m_fbos[i-1];
-				depthPeelingShader.addTexture("lastDepth", beforeFBO->getDepthTextureHandle() );
+				depthPeelingShader.bindTextureOnUse("lastDepth", beforeFBO->getDepthTextureHandle() );
 			}
 			else
 			{
-				depthPeelingShader.addTexture("lastDepth", currentFBO->getDepthTextureHandle() );
+				depthPeelingShader.bindTextureOnUse("lastDepth", currentFBO->getDepthTextureHandle() );
 			}
 			depthPeelingShader.update("peel_level",i);
 
@@ -275,9 +275,9 @@ int main()
 			auto buffer = depthPeelingBuffers.m_fbos[i];
 
 			// set texture references, execute compositing
-			compShader.addTexture("colorMap", buffer->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
-			compShader.addTexture("normalMap", buffer->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
-			compShader.addTexture("positionMap", buffer->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
+			compShader.bindTextureOnUse("colorMap", buffer->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+			compShader.bindTextureOnUse("normalMap", buffer->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
+			compShader.bindTextureOnUse("positionMap", buffer->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 
 			compositing.render();
 		}

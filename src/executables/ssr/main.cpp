@@ -81,6 +81,7 @@ int main()
 	modelMatrices[3] = glm::translate( glm::mat4(1.0f), glm::vec3(0.5f, 0.4f,1.1f) ); // sphere 
 	modelMatrices[4] = glm::translate( glm::mat4(1.0f), glm::vec3(-1.0f, 0.5f,-0.5f) ) * glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f,1.0,0.0) ); // sphere 
 	glm::mat4 model = modelMatrices[0];
+	DEBUGLOG->outdent();
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
 	// regular GBuffer
@@ -108,9 +109,9 @@ int main()
 	DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
 	ShaderProgram compShader("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing.frag"); DEBUGLOG->outdent();
 	// set texture references
-	compShader.addTexture("colorMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
-	compShader.addTexture("normalMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
-	compShader.addTexture("positionMap", fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
+	compShader.bindTextureOnUse("colorMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+	compShader.bindTextureOnUse("normalMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
+	compShader.bindTextureOnUse("positionMap", fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 
 	DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
 	Quad quad;
@@ -128,12 +129,12 @@ int main()
 	ssrShader.update("bbModel",   modelMatrices[2]);
 	ssrShader.update("bbWidth",   bb_width);
 	ssrShader.update("bbHeight",  bb_height);
-	ssrShader.addTexture("bbTex", bbTexture);
-	ssrShader.addTexture("distortionTex", distortionTex);
+	ssrShader.bindTextureOnUse("bbTex", bbTexture);
+	ssrShader.bindTextureOnUse("distortionTex", distortionTex);
 
-	ssrShader.addTexture("positionMap", fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
-	ssrShader.addTexture("normalMap",   fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
-	ssrShader.addTexture("uvMap", 		fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT3));
+	ssrShader.bindTextureOnUse("positionMap", fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
+	ssrShader.bindTextureOnUse("normalMap",   fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
+	ssrShader.bindTextureOnUse("uvMap", 		fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT3));
 
 	DEBUGLOG->log("FrameBufferObject Creation: SSR"); DEBUGLOG->indent();
 	FrameBufferObject ssrFBO(getResolution(window).x, getResolution(window).y);
@@ -148,7 +149,7 @@ int main()
 
 	DEBUGLOG->log("Shader Compilation: Simple Alpha Texture"); DEBUGLOG->indent();
 	ShaderProgram texShader("/screenSpace/fullscreen.vert", "/screenSpace/simpleAlphaTexture.frag");	DEBUGLOG->outdent();
-	texShader.addTexture("tex", ssrFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0) );
+	texShader.bindTextureOnUse("tex", ssrFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0) );
 
 	DEBUGLOG->log("RenderPass Creation: Simple Alpha Texture"); DEBUGLOG->indent();
 	RenderPass simpleTexture( &texShader, 0 );
@@ -239,7 +240,7 @@ int main()
 		if (i == 2) // is billboard
 		{
 			shaderProgram.update("mixTexture", 1.0f);
-			shaderProgram.addTexture("tex", bbTexture);
+			shaderProgram.bindTextureOnUse("tex", bbTexture);
 		}
 
 		i = (i+1)%modelMatrices.size();

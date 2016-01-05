@@ -186,13 +186,13 @@ public:
 	ShaderProgram* update(std::string name, const std::vector<glm::vec4>& vector);
 
 	/**
-	 * @brief Method to add a already existing texture to the shader
+	 * @brief Method to add an already existing texture to the shader, which will be bound automatically wenn use() is called
 	 * 
 	 * @param textureName name of the texture to add
 	 * @param textureHandle texture handle
 	 *
 	 */
-	void addTexture(const std::string &textureName, GLuint textureHandle);
+	void bindTextureOnUse(const std::string &textureName, GLuint textureHandle);
 
 	/**
 	 * @brief Method to enable the shader program

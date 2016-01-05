@@ -224,9 +224,9 @@ int main()
 	 DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
 	 ShaderProgram compShader("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing.frag"); DEBUGLOG->outdent();
 	 // set texture references
-	 compShader.addTexture("colorMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
-	 compShader.addTexture("normalMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
-	 compShader.addTexture("positionMap", fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
+	 compShader.bindTextureOnUse("colorMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+	 compShader.bindTextureOnUse("normalMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
+	 compShader.bindTextureOnUse("positionMap", fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 
 	 DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
 	 Quad quad;
