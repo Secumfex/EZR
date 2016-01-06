@@ -9,6 +9,7 @@ string(REPLACE " " "_" ProjectId ${ProjectId})
 project(${ProjectId})
 
 include_directories(
+    ${ASSIMP_INCLUDE_PATH}
     ${OpenGL3_INCLUDE_PATH}
     ${GLEW_INCLUDE_PATH}
     ${GLFW3_INCLUDE_PATH}
@@ -32,6 +33,7 @@ add_executable(${ProjectId} ${SOURCES} ${HEADER})
 target_link_libraries(
     ${ProjectId}
     ${ALL_LIBRARIES}
+    ${ASSIMP_LIBRARIES}
     ${GLFW3_LIBRARIES}
     ${GLEW_LIBRARIES}
 #    ${IMGUI_LIBARRIES}

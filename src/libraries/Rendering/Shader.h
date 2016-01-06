@@ -12,7 +12,7 @@ public:
     /**
     * @brief Constructor
     * 
-    * @param type type of the shader (GL_VERTEX_SHADER, GL_FRAGMENT_SHADER, GL_GEOMETRY_SHADER)
+    * @param type type of the shader (GL_VERTEX_SHADER, GL_FRAGMENT_SHADER, GL_GEOMETRY_SHADER, ...)
     */
     Shader(const GLuint &type);
 

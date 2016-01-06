@@ -19,7 +19,7 @@ public:
 	inline bool getDragActive(){return m_dragActive;}
 	inline void setSensitivity(float sensitivity){m_sensitivity = sensitivity;}
 
-	void dragBy(float phi, float theta, glm::mat4& view = glm::mat4(1.0f));
+	void dragBy(float phi, float theta, const glm::mat4& view = glm::mat4(1.0f));
 };
 
 

@@ -20,6 +20,15 @@ Shader::Shader(const GLuint &type)
         case GL_GEOMETRY_SHADER:
             m_typeString = "Geometry";
             break;
+        case GL_COMPUTE_SHADER:
+            m_typeString = "Compute";
+            break;
+        case GL_TESS_CONTROL_SHADER:
+            m_typeString = "Tesselation Control";
+            break;
+        case GL_TESS_EVALUATION_SHADER:
+            m_typeString = "Tesselation Evaluation";
+            break;
     }
         
     // Create the vertex shader id / handle
@@ -52,8 +61,8 @@ void Shader::loadFromFile(const std::string &filename)
         
     if (!file.good() )
     {
-		DEBUGLOG->log("Failed to open file: " + filename);
-        exit(-1);
+		DEBUGLOG->log("ERROR: Failed to open file: " + filename);
+        // exit(-1);
     }
     
     // Create a string stream

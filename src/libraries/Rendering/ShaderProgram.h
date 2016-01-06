@@ -38,8 +38,6 @@ public:
 	 */
 	~ShaderProgram();
 
-
-
 	GLint getShaderProgramHandle(); //!< returns the program handle
 
 	/**
@@ -188,38 +186,13 @@ public:
 	ShaderProgram* update(std::string name, const std::vector<glm::vec4>& vector);
 
 	/**
-	 * @brief Method to add a buffer to the shader and return the bound location
-	 * 
-	 * @param uniformName name of the uniform to add
-	 * 
-	 */
-	int addBuffer(const std::string &bufferName);
-
-	/**
-	 * @brief Method to add a texture to the shader and return the bound location
-	 * 
-	 * @param textureName name of the texture to add
-	 * @param path path to the texture
-	 *
-	 */
-	// int addTexture(const std::string &textureName, const std::string &path);
-
-	/**
-	 * @brief Method to add a already existing texture to the shader
+	 * @brief Method to add an already existing texture to the shader, which will be bound automatically wenn use() is called
 	 * 
 	 * @param textureName name of the texture to add
 	 * @param textureHandle texture handle
 	 *
 	 */
-	void addTexture(const std::string &textureName, GLuint textureHandle);
-
-	/**
-	 * @brief Method to add a uniform to the shader and return the bound location
-	 * 
-	 * @param uniformName name of the uniform to add
-	 * 
-	 */
-	int addUniform(const std::string &uniformName);
+	void bindTextureOnUse(const std::string &textureName, GLuint textureHandle);
 
 	/**
 	 * @brief Method to enable the shader program
@@ -232,41 +205,41 @@ public:
 	 * 
 	 */
 	void disable();
-
-
-	inline std::map<std::string,int>* getUniformMap()	{return &m_uniformMap;} //!< returns the Uniformmap
-	inline std::map<std::string,int>* getBufferMap()	{return &m_bufferMap;} //!< returns the Buffermap
-	inline std::map<std::string,int>* getTextureMap()	{return &m_textureMap;} //!< returns the Texturemap
-	
-private:
-
-	/**
-	*@brief Method that reads out all uniform variables from vertex- and fragmentshader
-	*@details Method gets called when creating the shaderprogram
-	*/
-	void readUniforms();
 	
 	/**
-	*@brief Method that reads out all outputs of the fragmentshader
-	*@details Method gets called when creating the shaderprogram
+	* @brief Struct for possible GLSL bindings
 	*/
-	void readOutputs(Shader& fragmentShader);
+	struct Info{
+		GLenum type;
+		GLuint location;
+	};
+
+	inline std::map<std::string, Info>* getUniformInfoMap(){return &m_uniformMap;} //!< returns the Texturemap
+	inline std::map<std::string, Info>* getOutputInfoMap(){return &m_outputMap;} //!< returns the Texturemap
+	inline std::map<std::string, Info>* getInputInfoMap(){return &m_inputMap;} //!< returns the Texturemap
+	inline std::map<std::string, GLuint>* getTextureMap()	{return &m_textureMap;} //!< returns the Texturemap
+	
+	/**
+	 * @brief Logs all active bound uniforms to the console
+	 */
+	void printUniformInfo();
+	/**
+	 * @brief Logs all active bound input buffers to the console
+	 */
+	void printInputInfo();
+	/**
+	 * @brief Logs all active bound output buffers to the console
+	 */
+	void printOutputInfo();
+
+
+	void printInfo(std::map<std::string, Info>* map);
 
 	/**
-	 * @brief Method to attach a shader to the shader program
-	 * 
-	 * @param shader shader to attach
-	 * 
+	 * @brief Prints informations of the shader programs compile and link status
+	 *        to the console
 	 */
-	void attachShader(Shader shader);
-
-	/**
-	 * @brief Method to link the shader program and display the link status
-	 * 
-	 * @param shader shader to attach
-	 * 
-	 */
-	void link();
+	void printShaderProgramInfoLog();
 
 	/**
 	 * @brief Method to returns the bound location of a named uniform
@@ -285,12 +258,40 @@ private:
 	GLuint buffer(const std::string &buffer);
 
 	/**
-	 * @brief Method to returns the bound location of a named texture
+	 * @brief Method to returns the texture handle that is bound to the provided (sampler-)name when use() is called 
 	 * 
 	 * @param texture name of the texture
 	 * 
 	 */
 	GLuint texture(const std::string &texture);
+
+protected:
+
+	/**
+	 * @brief maps the shader properties of an interface (i.e. all Uniforms) 
+	 * to their locations and names so they can be accessed from outside.
+	 * @details Possible through glGetProgramInterfaceiv which is quite awesome.
+	 * 
+	 * @param interface GL_UNIFORM, GL_PROGRAM_INPUT or GL_PROGRAM_OUTPUT
+	 * @param map target to write retrieved information to
+	 */
+	void mapShaderProperties(GLenum interface, std::map<std::string, Info>* map);
+
+	/**
+	 * @brief Method to attach a shader to the shader program
+	 * 
+	 * @param shader shader to attach
+	 * 
+	 */
+	void attachShader(Shader shader);
+
+	/**
+	 * @brief Method to link the shader program and display the link status
+	 * 
+	 * @param shader shader to attach
+	 * 
+	 */
+	void link();
 
 	// Handle of the shader program
 	GLuint m_shaderProgramHandle;
@@ -298,15 +299,23 @@ private:
 	// Number of attached shader
 	int m_shaderCount;
 
-	// Map of uniforms and their binding locations
-	std::map<std::string,int> m_uniformMap;
+	/**
+	 * @brief Maintains all used and bound uniform locations
+	 */
+	std::map<std::string, Info> m_uniformMap;
+	/**
+	 * @brief Maintains all used input buffers
+	 */
+	std::map<std::string, Info> m_inputMap;
+	/**
+	 * @brief Maintains all used output buffers
+	 */
+	std::map<std::string, Info> m_outputMap;
 
-	// Map of uniforms and their binding locations
-	std::map<std::string,int> m_bufferMap;
+	// Map of texture handles that will be bound to the associated (sampler-) name when use() is called
+	std::map<std::string, GLuint> m_textureMap;
 
-	// Map of textures and their binding locations
-	std::map<std::string,int> m_textureMap;
-
+	std::string getTypeString(GLenum type);
 };
 
 #endif // SHADER_PROGRAM_H

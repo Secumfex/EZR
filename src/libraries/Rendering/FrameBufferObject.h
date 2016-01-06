@@ -5,6 +5,10 @@
 #include <GLFW/glfw3.h>
 #include <map>
 #include <vector>
+#include <string>
+
+// forward declaration
+#include <Rendering/ShaderProgram.h>
 
 class FrameBufferObject
 {
@@ -23,23 +27,27 @@ protected:
 	std::vector<GLenum > m_drawBuffers;
 public:
 
-	static GLenum s_internalFormat;
-	static GLenum s_format;
-	static bool s_useTexStorage2D;
-	static GLenum s_type;
+	static GLenum s_internalFormat; //!< used as parameter to allocate color attachment texture memory
+	static GLenum s_format; //!< used as parameter to allocate color attachment texture memory using glTexImage2D
+	static bool s_useTexStorage2D; //!< describes whether glTexStorage2D is used in favor of glTexImage2D (default: false)
+	static GLenum s_type; //!< used as parameter to allocate color attachment texture memory using glTexImage2D
 
-	FrameBufferObject(int width = 800, int height = 600);
+	FrameBufferObject(int width = 800, int height = 600); //!< creates a fbo containing a depth buffer but no color attachments
 
-	FrameBufferObject(std::map<std::string, int>* outputMap, int width, int height, GLint internalFormat = GL_RGBA);
+	/** @brief creates a fbo containing a depth buffer and as many color attachments as there are entries in the 'outputMap'
+	* @details the outputmap should contain pairs of an output name and layout location of fragment shader outputs.
+	* Using this, the corresponding texture handles may be retrieved using getBuffer() in addition to getColorAttachmentTextureHandle().
+	*/
+	FrameBufferObject(std::map<std::string, ShaderProgram::Info>* outputMap, int width, int height);
 	~FrameBufferObject();
 
 	void createDepthTexture();
 
 	GLuint createFramebufferTexture();
-	void addColorAttachments(int amount);
+	void addColorAttachments(int amount); //!< adds the provided amount of color attachment textures to the fbo, should correspond to the amount of outputs of the shader writing to this fbo
 
-	GLuint getColorAttachmentTextureHandle(GLenum attachment);
-	void setColorAttachmentTextureHandle(GLenum attachment, GLuint textureHandle);
+	GLuint getColorAttachmentTextureHandle(GLenum attachment); //!< retrieve the texture handle of the provided color attachment, e.g. GL_COLOR_ATTACHMENT0, if existing (else: 0)
+	void setColorAttachmentTextureHandle(GLenum attachment, GLuint textureHandle); //!< may be used to share a texture between multiple fbos (of equal size) (untested)
 
 	GLuint getFramebufferHandle();
 
@@ -58,13 +66,13 @@ public:
 	void setNumColorAttachments(int numColorAttachments);
 	void setWidth(int width);
 
-	void bind();
-	void unbind();
+	void bind(); //!< binds the fbo and sets the viewport to its size
+	void unbind(); //!< unbinds the fbo (binds screen, i.e. 0)
 
+	void mapColorAttachmentToBufferName(GLenum colorAttachment, std::string bufferName);
 	GLuint getBuffer(std::string name); //!< Get the texture handle corresponding to a certain buffer name.
 
 	void setFrameBufferObject(const GLuint& frameBufferObjectHandle, const int& width, const int& height, const std::map<std::string, GLuint>& textureMap, GLuint depthTexture);
-
 };
 
 #endif

@@ -14,7 +14,7 @@
 
 class RenderPass{
 protected:
-	glm::vec4 m_viewport;
+	glm::ivec4 m_viewport;
 	glm::vec4 m_clearColor;
 	
 	FrameBufferObject* m_fbo;
@@ -34,41 +34,45 @@ protected:
 	std::function<void(Renderable* ) >* p_perRenderableFunction;
 
 public:
+	/**
+	 * @param shader ShaderProgram to be used with this RenderPass
+	 * @param fbo (optional) leave empty or 0 to render to screen
+	 */
 	RenderPass(ShaderProgram* shader = 0, FrameBufferObject* fbo = 0);
 	virtual ~RenderPass();
 
-	virtual void clearBits();
-	virtual void enableStates();
-	virtual void disableStates();
+	virtual void clearBits(); //!< uses glClear to clear all Bitfields omitted using addClearBit, e.g. GL_CLEAR_COLOR
+	virtual void enableStates(); //!< uses glEnable to enable all states omitted using addEnable (if currently not enabled), e.g. GL_DEPTH_TEST
+	virtual void disableStates(); //!< uses glDisable to disable all states omitted using addDisable (if currently enabled), e.g. GL_DEPTH_TEST
 
-	virtual void preRender();
-	virtual void uploadUniforms();
-	virtual void render();
-	virtual void postRender();
-	virtual void restoreStates();
+	virtual void preRender(); //!< executed before looping over all added Renderables, virtual method that may be overridden in a derived class  
+	virtual void uploadUniforms(); //!< @deprecated calls all Uniform objects omitted using addUniform to upload their values, executed per Renderable. Currently kinda outdated/deprecated, should be revised
+	virtual void render(); //!< execute this renderpass
+	virtual void postRender(); //!< executed after looping over all Renderables, virtual method that may be overridden in a derived class
+	virtual void restoreStates(); //!< resores all OpenGL states that were altered by enableStates and disableStates
 
-	inline void setPerRenderableFunction(std::function<void(Renderable*)>* perRenderableFunction){p_perRenderableFunction = perRenderableFunction;}
+	void setPerRenderableFunction(std::function<void(Renderable*)>* perRenderableFunction); //!< set pointer to a std::function object that will be called with each Renderable before calling its draw() method
 
-	void setViewport(int x, int y, int width, int height);
-	void setClearColor(float r, float g, float b, float a = 1.0f);
+	void setViewport(int x, int y, int width, int height); //!< if set, glViewport will be called with these values before rendering (if RenderPass is constructed with a FBO, it is initialized to the FBO's dimensions)
+	void setClearColor(float r, float g, float b, float a = 1.0f); //!< if GL_COLOR_BUFFER_BIT is omitted to addClearBit, this color is omitted to glClearColor before glClear is called
 
 	void setFrameBufferObject(FrameBufferObject* fbo);
 	void setShaderProgram(ShaderProgram* shaderProgram);
 
-	void addRenderable(Renderable* renderable);
+	void addRenderable(Renderable* renderable); //!< add a pointer to a Renderable that should be drawn within this RenderPass
 	void removeRenderable( Renderable* renderable );
-	void clearRenderables();
+	void clearRenderables(); //!< clear the list of pointers of Renderables
 
-	std::vector< Renderable* > getRenderables();
+	std::vector< Renderable* > getRenderables(); //!< retrieve set of all Renderables that should be drawn within this RenderPass
 
 	FrameBufferObject* getFrameBufferObject();
 	ShaderProgram* getShaderProgram();
 
-	void addClearBit(GLbitfield clearBit);
-	void addEnable(GLenum state);
-	void addDisable(GLenum state);
+	void addClearBit(GLbitfield clearBit); //!< add a bitfield that should be cleared before drawing the Renderables, e.g. GL_COLOR_BUFFER_BIT
+	void addEnable(GLenum state); //!< add an OpenGL state that should be enabled  before drawing the Renderables, e.g. GL_BLEND or GL_DEPTH_TEST
+	void addDisable(GLenum state);//!< add an OpenGL state that should be disabled before drawing the Renderables, e.g. GL_BLEND or GL_DEPTH_TEST
 
-	void addUniform(Uploadable* uniform);
+	void addUniform(Uploadable* uniform); //!< @deprecated add an Uploadable that should be called before drawing a Renderable 
 
 	void removeEnable(GLenum state);
 	void removeDisable(GLenum state);

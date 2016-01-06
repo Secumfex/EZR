@@ -163,6 +163,13 @@ void setCursorEnterCallback(GLFWwindow* window, std::function<void (int)> func) 
 	});
 }
 
+void setWindowResizeCallback(GLFWwindow* window, std::function<void (int,int)> func) {
+	static std::function<void (int,int)> func_bounce = func;
+	glfwSetWindowSizeCallback(window, [] (GLFWwindow* w, int wid, int hei) {
+		func_bounce(wid, hei);
+	});
+}
+
 glm::vec2 getResolution(GLFWwindow* window) {
     int w, h;
     glfwGetFramebufferSize(window, &w, &h);

@@ -11,24 +11,26 @@
 #include <glm/glm.hpp>
 
 
-GLFWwindow* generateWindow(int width = 1280, int height = 720, int posX = 100, int posY = 100);
+GLFWwindow* generateWindow(int width = 1280, int height = 720, int posX = 100, int posY = 100); //!< initialize OpenGL (if not yet initialized) and create a GLFW window
 bool shouldClose(GLFWwindow* window);
 void swapBuffers(GLFWwindow* window);
 void destroyWindow(GLFWwindow* window);
-void render(GLFWwindow* window, std::function<void (double)> loop);
-GLenum checkGLError(bool printIfNoError = false);
-std::string decodeGLError(GLenum error);
+void render(GLFWwindow* window, std::function<void (double)> loop); //!< keep executing the provided loop function until the window is closed, swapping buffers and computing frame time (passed as argument to loop function)
+GLenum checkGLError(bool printIfNoError = false); //!< check for OpenGL errors and also print it to the console (optionally even if no error occured)
+std::string decodeGLError(GLenum error); //!< return string corresponding to an OpenGL error code (use with checkGLError)
 
-void setKeyCallback(GLFWwindow* window, std::function<void (int, int, int, int)> func);
-void setMouseButtonCallback(GLFWwindow* window, std::function<void (int, int, int)> func);
-void setCharCallback(GLFWwindow* window, std::function<void (unsigned int)> func);
-void setCursorPosCallback(GLFWwindow* window, std::function<void (double, double)> func);
-void setScrollCallback(GLFWwindow* window, std::function<void (double, double)> func);
-void setCursorEnterCallback(GLFWwindow* window, std::function<void (int)> func);
+void setKeyCallback(GLFWwindow* window, std::function<void (int, int, int, int)> func); //!< set callback function called when a key is pressed
+void setMouseButtonCallback(GLFWwindow* window, std::function<void (int, int, int)> func); //!< set callback function called when a mouse button is pressed
+void setCharCallback(GLFWwindow* window, std::function<void (unsigned int)> func); //!< set callback function called when a unicode character is put in
+void setCursorPosCallback(GLFWwindow* window, std::function<void (double, double)> func); //!< set callback function called when cursor position changes
+void setScrollCallback(GLFWwindow* window, std::function<void (double, double)> func); //!< set callback function called when scrolling
+void setCursorEnterCallback(GLFWwindow* window, std::function<void (int)> func); //!< set callback function called when cursor enters window
+void setWindowResizeCallback(GLFWwindow* window, std::function<void (int, int)> func); //!< set callback function called when cursor enters window
 
 glm::vec2 getResolution(GLFWwindow* window);
-float getRatio(GLFWwindow* window);
+float getRatio(GLFWwindow* window); //!< returns (width / height) of the window
 
+/** upload the provided volume data to a 3D OpenGL texture object, i.e. CT-Data*/
 template <typename T>
 GLuint loadTo3DTexture(VolumeData<T>& volumeData, GLenum internalFormat = GL_R16I, GLenum format = GL_RED_INTEGER, GLenum type = GL_SHORT)
 {
@@ -48,7 +50,7 @@ GLuint loadTo3DTexture(VolumeData<T>& volumeData, GLenum internalFormat = GL_R16
 	// allocate GPU memory
 	glTexStorage3D(GL_TEXTURE_3D
 		, 1
-		, GL_R16I
+		, internalFormat
 		, volumeData.size_x
 		, volumeData.size_y
 		, volumeData.size_z
@@ -63,8 +65,8 @@ GLuint loadTo3DTexture(VolumeData<T>& volumeData, GLenum internalFormat = GL_R16
 		, volumeData.size_x
 		, volumeData.size_y
 		, volumeData.size_z
-		, GL_RED_INTEGER
-		, GL_SHORT
+		, format
+		, type
 		, &(volumeData.data[0])
 	);
 

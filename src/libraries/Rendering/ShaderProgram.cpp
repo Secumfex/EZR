@@ -2,10 +2,13 @@
 
 #include "Core/DebugLog.h"
 
+#include <stdlib.h>
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <glm/gtc/type_ptr.hpp>
+
+using namespace std;
 
 ShaderProgram::ShaderProgram(std::string vertexshader, std::string fragmentshader) 
 {
@@ -27,13 +30,18 @@ ShaderProgram::ShaderProgram(std::string vertexshader, std::string fragmentshade
 	fragmentShader.loadFromFile(SHADERS_PATH + fragmentshader);
 	fragmentShader.compile();
 
-	readOutputs(fragmentShader);
+	//readOutputs(fragmentShader);
 
 	// Set up shader program
 	attachShader(vertexShader);
 	attachShader(fragmentShader);
 	link();
-	readUniforms();
+
+    mapShaderProperties(GL_UNIFORM, &m_uniformMap);
+    mapShaderProperties(GL_PROGRAM_INPUT, &m_inputMap);
+    mapShaderProperties(GL_PROGRAM_OUTPUT, &m_outputMap);
+
+	// readUniforms();
 }
 
 
@@ -57,7 +65,7 @@ ShaderProgram::ShaderProgram(std::string vertexshader, std::string fragmentshade
 	fragmentShader.loadFromFile(SHADERS_PATH + fragmentshader);
 	fragmentShader.compile();
 
-	readOutputs(fragmentShader);
+	//readOutputs(fragmentShader);
 
 	Shader geometryShader(GL_GEOMETRY_SHADER);
 	geometryShader.loadFromFile(SHADERS_PATH + geometryshader);
@@ -68,7 +76,11 @@ ShaderProgram::ShaderProgram(std::string vertexshader, std::string fragmentshade
 	attachShader(fragmentShader);
 	attachShader(geometryShader);
     link();
-	readUniforms();
+
+    mapShaderProperties(GL_UNIFORM, &m_uniformMap);
+    mapShaderProperties(GL_PROGRAM_INPUT, &m_inputMap);
+    mapShaderProperties(GL_PROGRAM_OUTPUT, &m_outputMap);
+	//readUniforms();
 }
 
 ShaderProgram::~ShaderProgram()
@@ -81,88 +93,6 @@ ShaderProgram::~ShaderProgram()
 GLint ShaderProgram::getShaderProgramHandle()
 {
 	return m_shaderProgramHandle;
-}
-
-void ShaderProgram::readOutputs(Shader& fragmentShader)
-{
-	// retrieve source Code of fragmentShader
-	std::string source = fragmentShader.getSource();
-
-	//read shader line per line
-	std::istringstream stream(source);
-	std::string instruction;
-	
-	// define a state machine
-	enum Outputfinding{SEARCHING, OUT, TYPENAME};
-	Outputfinding outputfinder = SEARCHING;
-	int outputIndex = 0;
-	// read each line
-	while (std::getline( stream, instruction))
-	{
-		std::istringstream instrStream(instruction);
-		while ( std::getline( instrStream, instruction, ';')) // remove semicolons from lines
-		{
-			std::string word;
-			std::istringstream wordStream(instruction);
-			while ( std::getline( wordStream, word, ' ')) // delimit words by whitespace
-			{
-				
-				//print("word: '" + word + "'" );
-				
-				switch (outputfinder)
-				{
-				case SEARCHING:	// last state was searching, now out was found
-					if (word == "out") outputfinder = OUT;
-					break;
-				case OUT:		// last state was out, next word must be a type name
-					if (word != "") outputfinder = TYPENAME;
-					break;
-				case TYPENAME:
-					if (word != "") // last state was a typename, so this is the buffer name
-					{
-						//add to buffer list, then return to searching mode
-						m_bufferMap[word] = outputIndex;
-						outputIndex++;
-						outputfinder = SEARCHING;
-					}
-					break;
-				}
-			}
-		}
-	}
-
-	// take note that outputs are assumed to be in order of appearance. 
-	// optional layout modifiers are not considered
-	DEBUGLOG->log("Shader outputs: ", m_bufferMap.size()); DEBUGLOG->indent();
-	for (auto entry : m_bufferMap)
-	{
-		DEBUGLOG->log(std::to_string(entry.second) +": " + entry.first);
-	} 
-	DEBUGLOG->outdent();
-
-}
-
-void ShaderProgram::readUniforms()
-{
-	GLint numUniforms = -1;
-	glGetProgramiv(getShaderProgramHandle(), GL_ACTIVE_UNIFORMS, &numUniforms);
-
-	DEBUGLOG->log("Number of uniforms ", numUniforms);	DEBUGLOG->indent();
-	for (int i = 0; i < numUniforms; i++)
-	{
-		//passive variables for glGetActiveUniform
-		int nameLength=-1;
-		int uniformSize=-1;
-		GLenum type = GL_ZERO;
-		//string that saves uniformName
-		char uniformName[50];
-		glGetActiveUniform(getShaderProgramHandle(), GLint(i), sizeof(uniformName)-1, &nameLength, &uniformSize, &type, uniformName);
-		uniformName[nameLength] = 0;
-		//add uniform variable to map
-		m_uniformMap[uniformName] = glGetUniformLocation(getShaderProgramHandle(), uniformName);
-		DEBUGLOG->log(std::to_string(i) +  " : " + uniformName);
-	}
-	DEBUGLOG->outdent();
 }
 
 void ShaderProgram::attachShader(Shader shader)
@@ -187,7 +117,8 @@ void ShaderProgram::link()
 		glGetProgramiv(m_shaderProgramHandle, GL_LINK_STATUS, &linkStatus);
 		if (linkStatus == GL_FALSE)
 		{
-			DEBUGLOG->log("Shader program linking failed.");
+			DEBUGLOG->log("ERROR: Shader program linking failed.");
+			printShaderProgramInfoLog();
 			glfwTerminate();
 		}
 		else
@@ -197,35 +128,24 @@ void ShaderProgram::link()
 	}
 	else
 	{
-		DEBUGLOG->log("Can't link shaders - you need at least 2, but attached shader count is only: " + std::to_string(m_shaderCount));
+		DEBUGLOG->log("Can't link shaders - you need at least 2, but attached shader count is only: " + DebugLog::to_string(m_shaderCount));
 		glfwTerminate();
 	}
 }
 
-int ShaderProgram::addUniform(const std::string &uniformName)
-{	
-	m_uniformMap[uniformName] = glGetUniformLocation(m_shaderProgramHandle, uniformName.c_str());
-	// Check to ensure that the shader contains a uniform with this name
-	if (m_uniformMap[uniformName] == -1)
-	{
-		DEBUGLOG->log("Could not add uniform: " + uniformName + " - location returned -1!");
-	}
-	else
-	{
-		DEBUGLOG->log("Uniform " + uniformName + " bound to location: " + std::to_string(m_uniformMap[uniformName]));
-	}
-	
-	return m_uniformMap[uniformName];
+void ShaderProgram::printShaderProgramInfoLog() {
+    GLint logLength;
+    glGetProgramiv(m_shaderProgramHandle, GL_INFO_LOG_LENGTH, &logLength);
+    if(logLength > 0){
+        char* log = (char*) malloc(logLength);
+        GLsizei written;
+        glGetProgramInfoLog(m_shaderProgramHandle, logLength, &written, log);
+		DEBUGLOG->log(std::string( log ));
+        free(log);
+    }
 }
 
-int ShaderProgram::addBuffer(const std::string &bufferName)
-{
-	m_bufferMap[bufferName] = static_cast<int>(m_bufferMap.size());
-	DEBUGLOG->log("ADD BUFFER: " + bufferName + " " + std::to_string(m_bufferMap[bufferName]));
-	return m_bufferMap[bufferName];
-}
-
-void ShaderProgram::addTexture(const std::string &textureName, GLuint textureHandle)
+void ShaderProgram::bindTextureOnUse(const std::string &textureName, GLuint textureHandle)
 {	
 	m_textureMap[textureName] = textureHandle;
 }
@@ -238,15 +158,15 @@ GLuint ShaderProgram::uniform(const std::string &uniform)
 	//
 	// But we're not doing that. Explanation in the attribute() method above
 	// Create an iterator to look through our uniform map and try to find the named uniform
-	std::map<std::string, int>::iterator it = m_uniformMap.find(uniform);
+	std::map<std::string, Info>::iterator it = m_uniformMap.find(uniform);
 	// Found it? Great - pass it back! Didn't find it? Alert user and halt.
 	if ( it != m_uniformMap.end() )
 	{
-		return m_uniformMap[uniform];
+		return m_uniformMap[uniform].location;
 	}
 	else
 	{
-		DEBUGLOG->log("Could not find uniform in shader program: " + uniform);
+		DEBUGLOG->log("ERROR: Could not find uniform in shader program: " + uniform);
 		return 0;
 	}
 }
@@ -259,15 +179,15 @@ GLuint ShaderProgram::buffer(const std::string &buffer)
 	//
 	// But we're not doing that. Explanation in the attribute() method above
 	// Create an iterator to look through our uniform map and try to find the named uniform
-	std::map<std::string, int>::iterator it = m_bufferMap.find(buffer);
+	std::map<std::string, Info>::iterator it = m_outputMap.find(buffer);
 	// Found it? Great - pass it back! Didn't find it? Alert user and halt.
-	if ( it != m_bufferMap.end() )
+	if ( it != m_outputMap.end() )
 	{
-		return m_bufferMap[buffer];
+		return m_outputMap[buffer].location;
 	}
 	else
 	{
-		DEBUGLOG->log("Could not find buffer in shader program: " + buffer);
+		DEBUGLOG->log("ERROR: Could not find buffer in shader program: " + buffer);
 		return 0;
 	}
 }
@@ -280,7 +200,7 @@ GLuint ShaderProgram::texture(const std::string &texture)
 	//
 	// But we're not doing that. Explanation in the attribute() method above
 	// Create an iterator to look through our uniform map and try to find the named uniform
-	std::map<std::string, int>::iterator it = m_textureMap.find(texture);
+	std::map<std::string, GLuint>::iterator it = m_textureMap.find(texture);
 	// Found it? Great - pass it back! Didn't find it? Alert user and halt.
 	if ( it != m_textureMap.end() )
 	{
@@ -288,7 +208,7 @@ GLuint ShaderProgram::texture(const std::string &texture)
 	}
 	else
 	{
-		DEBUGLOG->log("Could not find texture in shader program: " +texture);
+		DEBUGLOG->log("ERROR: Could not find texture in shader program: " +texture);
 		return 0;
 	}
 }
@@ -428,3 +348,97 @@ void ShaderProgram::disable()
 	glUseProgram(0);
 }
 
+void ShaderProgram::mapShaderProperties(GLenum interface, std::map<std::string, Info>* map) {
+	GLint numAttrib = 0;
+	glGetProgramInterfaceiv(m_shaderProgramHandle, interface, GL_ACTIVE_RESOURCES, &numAttrib);
+
+	std::vector<GLenum> properties;
+	properties.push_back(GL_NAME_LENGTH);
+	properties.push_back(GL_TYPE);
+	properties.push_back(GL_ARRAY_SIZE);
+	properties.push_back(GL_LOCATION);
+	std::vector<GLint> values(properties.size());
+
+	for(int attrib = 0; attrib < numAttrib; ++attrib)
+	{
+		glGetProgramResourceiv(m_shaderProgramHandle, interface, attrib, properties.size(),
+		&properties[0], values.size(), NULL, &values[0]);
+		
+		Info info;
+		info.type = values[1];
+		info.location = values[3];
+
+		std::vector<GLchar> nameData(256);
+		nameData.resize(properties[0]); //The length of the name.
+		glGetProgramResourceName(m_shaderProgramHandle, interface, attrib, nameData.size(), NULL, &nameData[0]);
+		std::string name = std::string((char*)&nameData[0], nameData.size() - 1);
+		name = std::string(name.c_str());
+		(*map)[name] = info;
+	}
+}
+
+void ShaderProgram::printUniformInfo() {
+	DEBUGLOG->log("Shader Program " + DebugLog::to_string( m_shaderProgramHandle) + " Uniform info:" ); DEBUGLOG->indent();
+		printInfo(&m_uniformMap);
+	DEBUGLOG->outdent();
+}
+void ShaderProgram::printInputInfo() {
+	DEBUGLOG->log("Shader Program " + DebugLog::to_string( m_shaderProgramHandle) + " Input info:" ); DEBUGLOG->indent();
+		printInfo(&m_inputMap);
+	DEBUGLOG->outdent();
+}
+
+void ShaderProgram::printOutputInfo() {
+	DEBUGLOG->log("Shader Program " + DebugLog::to_string( m_shaderProgramHandle) + " Output info:" ); DEBUGLOG->indent();
+		printInfo(&m_outputMap);
+	DEBUGLOG->outdent();
+}
+
+void ShaderProgram::printInfo(std::map<std::string, Info>* map) {
+	for(auto e : *map) {
+		DEBUGLOG->log( "name: " + e.first ); 
+		DEBUGLOG->indent();
+			DEBUGLOG->log( "type: " + getTypeString(e.second.type) );
+			DEBUGLOG->log( "location: " + DebugLog::to_string(e.second.location));
+		DEBUGLOG->outdent();
+	}
+}
+
+std::string ShaderProgram::getTypeString(GLenum type) {
+	switch (type) {
+	case 35670: 
+		return "bool";
+	case 5124: 
+		return "int";
+	case 5125: 
+		return "unsigned int";
+	case 5126: 
+		return "float";
+	case 35667: 
+		return "ivec2";
+	case 35668: 
+		return "ivec3";
+	case 35669: 
+		return "ivec4";
+	case 35664: 
+		return "vec2";
+	case 35665: 
+		return "vec3";
+	case 35666: 
+		return "vec4";
+	case 35674: 
+		return "mat2";
+	case 35675: 
+		return "mat3";
+	case 35676: 
+		return "mat4";
+	case 35677: 
+		return "sampler1D";
+	case 35678: 
+		return "sampler2D";
+	case 35679: 
+		return "sampler3D";
+	}
+	return "unknown";
+	//std::to_string(type);
+}
