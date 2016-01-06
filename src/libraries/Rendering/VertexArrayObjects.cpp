@@ -41,7 +41,7 @@ void Renderable::draw()
     unbind();
 }
 
-GLuint Renderable::createIndexVbo(std::vector<unsigned int> content, GLuint vertexAttributePointer) 
+GLuint Renderable::createIndexVbo(std::vector<unsigned int> content) 
 {
     
 	GLuint vbo = 0;

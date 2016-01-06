@@ -30,10 +30,10 @@ public:
 
     void setDrawMode(GLenum type); //!< sets the mode the Renderable will be drawn with (e.g. GL_TRIANLGES)
 
-private:
+public:
 
-    GLuint createVbo(std::vector<float> content, GLuint dimensions, GLuint vertexAttributePointer);
-	GLuint createIndexVbo(std::vector<unsigned int> content, GLuint vertexAttributePointer);
+    static GLuint createVbo(std::vector<float> content, GLuint dimensions, GLuint vertexAttributePointer);
+	static GLuint createIndexVbo(std::vector<unsigned int> content);
 
 public:
 
