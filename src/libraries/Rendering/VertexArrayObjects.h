@@ -103,4 +103,17 @@ public:
 protected:
 };
 
+class TruncatedCone : public Renderable {
+public:
+    /** @brief default Constructor*/
+    TruncatedCone(float height = 1.0f, float radius_bottom = 1.0f, float radius_top = 0.0f, int resolution = 20, float offset_y = 0.0f);
+    
+    /**@brief Deconstructor*/
+    ~TruncatedCone();
+
+    void draw() override; //!< draws the sphere
+
+protected:
+};
+
 #endif
