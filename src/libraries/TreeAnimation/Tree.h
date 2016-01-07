@@ -6,7 +6,11 @@
 
 namespace TreeAnimation
 {
-
+// some elastic modulus constants
+static const float E_RED_OAK = 12.5f; // GPa
+static const float E_SOFTWOOD_TIMBER = 7.0f; // GPa
+static const float E_BEECH = 14.3f; // GPa
+static const float E_APPLE = 8.76; // GPa
 
 class Tree
 {
