@@ -45,8 +45,10 @@ int main()
 	/////////////////////    create Tree data    //////////////////////////
 	DEBUGLOG->log("Setup: generating trees"); DEBUGLOG->indent();
 
-	float tree_size = 4.0f; // tree size
-	TreeAnimation::Tree tree(1.0f, tree_size, 1.0f);
+	float tree_height = 4.0f;
+	float tree_width = 1.0f;
+	float tree_stiffness = TreeAnimation::Tree::computeStiffness(tree_width, tree_width, tree_height, TreeAnimation::E_RED_OAK);
+	TreeAnimation::Tree tree( tree_width, tree_height, tree_stiffness );
 	
 	// generate a tree randomly
 	srand (time(NULL));	
@@ -68,7 +70,12 @@ int main()
 			rPos,
 			rPos * parent->thickness,
 			rLength,
-			TreeAnimation::Tree::computeStiffness( rPos * parent->thickness, (1.0f - rPos) * parent->thickness, rLength, tree->m_E)); 
+			TreeAnimation::Tree::computeStiffness( 
+				rPos * parent->thickness,
+				(1.0f - rPos) * parent->thickness,
+				rLength,
+				tree->m_E)
+			); 
 	};
 
 	for ( int i = 0; i < 5; i++)
@@ -127,8 +134,11 @@ int main()
 	};
 
 	printTree(tree);
-
+	
+	DEBUGLOG->outdent();
 	/////////////////////    generate Tree Renderable    //////////////////////////
+	DEBUGLOG->log("Setup: generating renderables"); DEBUGLOG->indent();
+
 	auto generateRenderableFromTree = []( TreeAnimation::Tree& tree)
 	{
 		Renderable* renderable = new Renderable();
@@ -177,8 +187,10 @@ int main()
 
 	std::vector<Renderable*> objects;
 	Renderable* renderable = generateRenderableFromTree(tree);
+	//Renderable* renderable = new TruncatedCone( 1.0f, 1.0f, 0.2f);
 	objects.push_back(renderable);
-
+	
+	DEBUGLOG->outdent();
 	//////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////// RENDERING  ///////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
@@ -191,7 +203,9 @@ int main()
 	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 10.f);
 	
 	DEBUGLOG->log("Setup: model matrices"); DEBUGLOG->indent();
-	glm::mat4 model = glm::translate(glm::vec3(0.0f, - tree_size / 2.0f, 0.0f)); DEBUGLOG->outdent();
+	glm::mat4 model = glm::translate(glm::vec3(0.0f, - tree_height / 2.0f, 0.0f)); 
+	//glm::mat4 model = glm::mat4(1.0f);
+	DEBUGLOG->outdent();
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
 	 // regular GBuffer
