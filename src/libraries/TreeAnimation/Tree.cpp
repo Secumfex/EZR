@@ -13,6 +13,8 @@ namespace TreeAnimation
 
 	Tree::Tree(float thickness, float length, float stiffness)
 	{
+		m_trunk.idx = 0;
+		m_nextBranchIdx = 1;
 		m_trunk.origin = glm::vec3(0.0f, 0.0f, 0.0f);
 		m_trunk.direction = glm::vec3(0.0f, 1.0f, 0.0f); //!< direction of the branch 
 		m_trunk.thickness = thickness;
@@ -50,6 +52,9 @@ namespace TreeAnimation
 		branch->thickness = thickness;
 		branch->stiffness = stiffness;
 		branch->parent = parent;
+
+		branch->idx = m_nextBranchIdx;
+		m_nextBranchIdx++;
 
 		parent->children.push_back(branch);
 

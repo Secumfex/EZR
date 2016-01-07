@@ -21,11 +21,12 @@ public:
 	{
 		glm::vec3 origin;
 		glm::vec3 direction; //!< direction of the branch 
-		float thickness;
+		float thickness; //!< base_width - top_width (implicitly)
 		float length;
 		float stiffness; //!< computed by thickness, length and the tree-specific elastic-modulus-constant E
 		Branch* parent;
 		std::vector<Branch* > children;
+		unsigned int idx; //!< an unique index identifying this branch
 	} m_trunk; 
 
 	float m_E; //!< elastic modulus of this tree species
@@ -34,6 +35,9 @@ public:
 	~Tree();
 
 	Branch* addBranch(Branch* parent, glm::vec3 direction, float posOnParent, float thickness, float length, float stiffness);
+
+protected:
+	unsigned int m_nextBranchIdx;
 };
 
 } // TreeAnimation
