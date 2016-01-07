@@ -21,8 +21,8 @@ struct Tree
 layout(location = 0) in vec4 positionAttribute;
 layout(location = 1) in vec2 uvCoordAttribute;
 layout(location = 2) in vec4 normalAttribute;
-layout(location = 4) in int[3] hierarchyAttribute; //!< contains the indices of this and the parent branches
-// layout(location = 5) in vec2 branchWeights; //!< ToDo: should contain the weights of the vertex' branch and the parent's branch
+layout(location = 4) in uvec3 hierarchyAttribute;//!< contains the indices of this and the parent branches
+ //layout(location = 5) in vec2 branchWeights; //!< ToDo: should contain the weights of the vertex' branch and the parent's branch
 
 //!< uniforms
 uniform mat4 model;
@@ -49,6 +49,13 @@ out vec3 passPosition;
 out vec2 passUVCoord;
 out vec3 passWorldNormal;
 out vec3 passNormal;
+
+out VertexData {
+	vec2 texCoord;
+	vec3 position;
+	vec3 normal;
+} VertexOut;
+
 
 vec4 quatAxisAngle(vec3 axis, float angle)
 {
@@ -104,26 +111,38 @@ vec4 bendBranch(vec3 pos,
 void main(){
     passUVCoord = uvCoordAttribute;
 
-    Branch thisBranch = tree.branches[ hierarchyAttribute[0] ];
-    bool isTrunk = ( hierarchyAttribute[0] == 0 );
+    //Branch thisBranch = tree.branches[ hierarchyAttribute[0] ];
+    //bool isTrunk = ( hierarchyAttribute[0] == 0 );
 
     //bend vertex
-    vec4 branchOrientation = bendBranch(
-    	positionAttribute.xyz,
-    	thisBranch.origin,
-    	thisBranch.direction,
-    	1.0,
-    	windDirection,
-    	windPower);
+    //vec4 branchOrientation = bendBranch(
+    //	positionAttribute.xyz,
+    //	thisBranch.origin,
+    //	thisBranch.direction,
+    //	1.0,
+    //	windDirection,
+    //	windPower);
 
-    vec4 pos = applyQuat(positionAttribute, branchOrientation);
-    vec4 worldPos = (model * pos);
+    //vec4 pos = applyQuat(positionAttribute, branchOrientation);
+
+	// for testing purposes
+	float h0 = float(hierarchyAttribute.x);
+	float h1 = float(hierarchyAttribute.y);
+	float h2 = float(hierarchyAttribute.z);
+	vec4 pos = vec4( h0, h1, h2, 1.0);
+	vec4 worldPos = (model * pos);
 
     passWorldPosition = worldPos.xyz;
     passPosition = (view * worldPos).xyz;
     
-    gl_Position =  projection * view * model * positionAttribute;
+    //gl_Position =  projection * view * model * positionAttribute;
+    gl_Position =  projection * view * model * pos;
+
 
     passWorldNormal = normalize( ( transpose( inverse( model ) ) * normalAttribute).xyz );
 	passNormal = normalize( ( transpose( inverse( view * model ) ) * normalAttribute ).xyz );
+
+	VertexOut.texCoord = passUVCoord;	
+	VertexOut.normal = passNormal;
+	VertexOut.position = passPosition;
 }

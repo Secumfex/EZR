@@ -26,6 +26,8 @@ const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 static glm::vec4 s_color = glm::vec4(0.45 * 0.3f, 0.44f * 0.3f, 0.87f * 0.3f, 1.0f); // far : blueish
 static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
 
+static glm::vec3 s_wind_direction = glm::normalize(glm::vec3(1.0f, 0.0f, -1.0f));
+
 static float s_strength = 1.0f;
 static bool  s_isRotating = false;
 
@@ -60,7 +62,7 @@ int main()
 		float rPitchAngle = ( r2 * (rPitchMax - rPitchMin) )+ rPitchMin;
 		float rYawAngle = ((float) rand()) / ((float) RAND_MAX) * 2.f * glm::pi<float>();
 		float rPos = (((float) rand()) / ((float) RAND_MAX) * (1.0f - rPosMin)) + rPosMin ;
-		DEBUGLOG->log("rPos: ", rPos);
+		//DEBUGLOG->log("rPos: ", rPos);
 		
 		glm::vec3 rDirection = glm::rotateY(glm::rotateZ(glm::vec3(1.0f, 0.0f, 0.0f), rPitchAngle), rYawAngle);
 
@@ -111,9 +113,10 @@ int main()
 		{
 			DEBUGLOG->log("branch " + DebugLog::to_string(i) + ": ");
 			DEBUGLOG->indent();
-			    DEBUGLOG->log("direction: ", tree.m_trunk.children[i]->direction );
-				DEBUGLOG->log("length   : ", tree.m_trunk.children[i]->length);
-				DEBUGLOG->log("origin   : ", tree.m_trunk.children[i]->origin);
+			    DEBUGLOG->log("idx: ", tree.m_trunk.children[i]->idx );
+			 //   DEBUGLOG->log("direction: ", tree.m_trunk.children[i]->direction );
+				//DEBUGLOG->log("length   : ", tree.m_trunk.children[i]->length);
+				//DEBUGLOG->log("origin   : ", tree.m_trunk.children[i]->origin);
 
 				DEBUGLOG->log("num sub branches: ", tree.m_trunk.children[i]->children.size());
 				int k = 0;
@@ -121,9 +124,10 @@ int main()
 				{
 					DEBUGLOG->log("sub branch "+ DebugLog::to_string(k));
 					DEBUGLOG->indent();
-					DEBUGLOG->log(" direction: ", b->direction );
-					DEBUGLOG->log(" length   : ", b->length);
-					DEBUGLOG->log(" origin   : ", b->origin);
+					DEBUGLOG->log("idx: ", b->idx);
+					//DEBUGLOG->log("direction: ", b->direction );
+					//DEBUGLOG->log("length   : ", b->length);
+					//DEBUGLOG->log("origin   : ", b->origin);
 					DEBUGLOG->outdent();
 					k++;
 				}
@@ -145,6 +149,7 @@ int main()
 		
 		std::vector<unsigned int> indices;
 		std::vector<float> vertices;
+		std::vector<unsigned int> hierarchy;
 
 		auto addVert = [&]( glm::vec3& vert)
 		{
@@ -155,11 +160,47 @@ int main()
 			indices.push_back(indices.size());
 		};
 
+		auto addHierarchy = [&] (TreeAnimation::Tree::Branch* b) // wow this is ugly
+		{
+			// first index is always this branch's index
+			hierarchy.push_back(b->idx);
+		
+			if ( b->parent != nullptr )
+			{
+				hierarchy.push_back(b->parent->idx); // parent branch
+				if ( b->parent->parent != nullptr)
+				{
+					hierarchy.push_back(0); // trunk
+				}
+				else
+				{
+					hierarchy.push_back(0); // trunk
+				}
+			}
+			else
+			{
+				hierarchy.push_back(0); // trunk
+				hierarchy.push_back(0); // trunk
+			}
+		};
+
 		std::function<void(TreeAnimation::Tree::Branch*)> addBranchRecursively = [&](TreeAnimation::Tree::Branch* b)
 		{
 			addVert(b->origin);
 			glm::vec3 end = b->origin + b->direction * b->length;
 			addVert(end);
+
+			// add hierarchy twice (once for each vertex)
+			addHierarchy(b);
+			addHierarchy(b);
+
+			//DEBUGLOG->log("h0 :", hierarchy[ hierarchy.size() - 6 ]);
+			//DEBUGLOG->log("h1 :", hierarchy[ hierarchy.size() - 5 ]);
+			//DEBUGLOG->log("h2 :", hierarchy[ hierarchy.size() - 4 ]);
+			//DEBUGLOG->log("h0 :", hierarchy[ hierarchy.size() - 3 ]);
+			//DEBUGLOG->log("h1 :", hierarchy[ hierarchy.size() - 2 ]);
+			//DEBUGLOG->log("h2 :", hierarchy[ hierarchy.size() - 1 ]);
+
 			for ( auto subB : b->children)
 			{
 				addBranchRecursively(subB);
@@ -176,7 +217,13 @@ int main()
 		renderable->m_indices.m_vboHandle = Renderable::createIndexVbo(indices);
 		renderable->m_indices.m_size = indices.size();
 
-		renderable->setDrawMode(GL_LINES);
+		// add another vertex attribute which contains the tree hierarchy
+		Renderable::createVbo<unsigned int>(hierarchy, 3, 4, GL_UNSIGNED_INT, true); 
+
+		glPointSize(5.0f);
+		renderable->setDrawMode(GL_POINTS);
+
+		//renderable->setDrawMode(GL_LINES);
 		
 		glBindVertexArray(0); 
 
@@ -210,7 +257,8 @@ int main()
 	/////////////////////// 	Renderpasses     ///////////////////////////
 	 // regular GBuffer
 	 DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
-	 ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
+	 //ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
+	 ShaderProgram shaderProgram("/treeAnim/tree.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
 	 shaderProgram.update("model", model);
 	 shaderProgram.update("view", view);
 	 shaderProgram.update("projection", perspective);
@@ -341,31 +389,6 @@ int main()
         
 		ImGui::Checkbox("auto-rotate", &s_isRotating); // enable/disable rotating volume
 		ImGui::PopItemWidth();
-
-	   {
-			static bool pause;
-			static ImVector<float> values; if (values.empty()) { values.resize(90); memset(values.Data, 0, values.Size*sizeof(float)); } 
-			static int values_offset = 0; 
-			if (!pause) 
-			{
-				static float refresh_time = ImGui::GetTime(); // Create dummy data at fixed 60 hz rate for the demo
-				for (; ImGui::GetTime() > refresh_time + 1.0f/60.0f; refresh_time += 1.0f/60.0f)
-				{
-					static const float pi = 3.1415926535f;
-					static float x = 0.0f;
-					values[values_offset] = cos(x*pi) * cos(x * 3 * pi) * cos( x * 5 * pi) * cos( x * 7 * pi) + sin (x * 25 * pi) * 0.1 ; 
-					values_offset = (values_offset+1)%values.Size; 
-					x += 0.10f*values_offset; 
-				}
-			}
-			ImGui::PlotLines("##Graph", values.Data, values.Size, values_offset, "avg 0.0", -1.0f, 1.0f, ImVec2(0,80));
-			ImGui::SameLine(0, ImGui::GetStyle().ItemInnerSpacing.x); 
-			ImGui::BeginGroup();
-			ImGui::Text("Graph");
-			ImGui::Checkbox("pause", &pause);
-			ImGui::EndGroup();
-		}
-
         //////////////////////////////////////////////////////////////////////////////
 
 		///////////////////////////// MATRIX UPDATING ///////////////////////////////
@@ -377,6 +400,7 @@ int main()
 		shaderProgram.update( "view", view);
 		shaderProgram.update( "color", s_color);
 		shaderProgram.update( "model", turntable.getRotationMatrix() * model);
+		//shaderProgram.update( "windDirection", s_wind_direction);
 
 		compShader.update("vLightPos", view * s_lightPos);
 		//////////////////////////////////////////////////////////////////////////////
