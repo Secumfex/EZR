@@ -31,6 +31,8 @@ static glm::vec3 s_wind_direction = glm::normalize(glm::vec3(1.0f, 0.0f, -1.0f))
 static float s_strength = 1.0f;
 static bool  s_isRotating = false;
 
+static float s_simulationTime = 0.0f;
+
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -80,6 +82,9 @@ int main()
 			); 
 	};
 
+	std::vector<TreeAnimation::Tree::Branch* > branches; // branches, indexed
+	branches.push_back(&tree.m_trunk);
+	
 	for ( int i = 0; i < 5; i++)
 	{
 		auto branch = addRandomBranch(
@@ -90,6 +95,7 @@ int main()
 			tree.m_trunk.length / 4.0f, 
 			glm::radians( -20.0f),
 			glm::radians( 20.0f));
+		branches.push_back(branch);
 
 		for ( int j = 0; j < 5; j++)
 		{
@@ -101,6 +107,7 @@ int main()
 				branch->length / 8.0f,
 				glm::radians(-20.f),
 				glm::radians(45.0f));
+				branches.push_back(subBranch);
 		}
 	}
 
@@ -220,10 +227,10 @@ int main()
 		// add another vertex attribute which contains the tree hierarchy
 		Renderable::createVbo<unsigned int>(hierarchy, 3, 4, GL_UNSIGNED_INT, true); 
 
-		glPointSize(5.0f);
-		renderable->setDrawMode(GL_POINTS);
+		//glPointSize(5.0f);
+		//renderable->setDrawMode(GL_POINTS);
 
-		//renderable->setDrawMode(GL_LINES);
+		renderable->setDrawMode(GL_LINES);
 		
 		glBindVertexArray(0); 
 
@@ -262,6 +269,9 @@ int main()
 	 shaderProgram.update("model", model);
 	 shaderProgram.update("view", view);
 	 shaderProgram.update("projection", perspective);
+	 
+	 shaderProgram.printUniformInfo();
+	 shaderProgram.printInputInfo();
 	 DEBUGLOG->outdent();
 
 	 DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
@@ -375,6 +385,7 @@ int main()
 	render(window, [&](double dt)
 	{
 		elapsedTime += dt;
+		s_simulationTime = elapsedTime;
 		std::string window_header = "Tree Animation Test - " + DebugLog::to_string( 1.0 / dt ) + " FPS";
 		glfwSetWindowTitle(window, window_header.c_str() );
 
@@ -400,6 +411,32 @@ int main()
 		shaderProgram.update( "view", view);
 		shaderProgram.update( "color", s_color);
 		shaderProgram.update( "model", turntable.getRotationMatrix() * model);
+
+		shaderProgram.update("simTime", s_simulationTime);
+		shaderProgram.update("simTimeWithDelay", s_simulationTime);
+		shaderProgram.update("strength", s_strength);
+
+		// upload tree uniforms
+		for (int i = 0; i < branches.size(); i++)
+		{
+			std::string prefix = "tree.branches[" + DebugLog::to_string(i) + "].";
+
+			shaderProgram.update(prefix + "origin", branches[i]->origin);
+			shaderProgram.update(prefix + "direction", branches[i]->direction);
+			glm::vec3 tangent = glm::vec3(1.0,0.0,0.0);
+			if (branches[i]->parent != nullptr)
+			{
+				tangent = glm::normalize(glm::cross(
+					branches[i]->direction,
+					branches[i]->parent->direction));
+			}
+			shaderProgram.update(prefix + "tangent", tangent); //TODO
+			shaderProgram.update(prefix + "stiffness", branches[i]->stiffness);
+			int parentIdx = 0; if ( branches[i]->parent != nullptr) {parentIdx = branches[i]->parent->idx;}
+			shaderProgram.update(prefix + "parentIdx", parentIdx);
+		}
+
+		
 		//shaderProgram.update( "windDirection", s_wind_direction);
 
 		compShader.update("vLightPos", view * s_lightPos);
