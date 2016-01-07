@@ -31,6 +31,8 @@ public:
     void setDrawMode(GLenum type); //!< sets the mode the Renderable will be drawn with (e.g. GL_TRIANLGES)
 
 public:
+	template <class T>
+	static GLuint createVbo(std::vector<T> content, GLuint dimensions, GLuint vertexAttributePointer, GLenum type, bool isIntegerAttribute = false); //!< implementation at end of file
 
     static GLuint createVbo(std::vector<float> content, GLuint dimensions, GLuint vertexAttributePointer);
 	static GLuint createIndexVbo(std::vector<unsigned int> content);
@@ -115,5 +117,26 @@ public:
 
 protected:
 };
+
+template <class T>
+GLuint Renderable::createVbo(std::vector<T> content, GLuint dimensions, GLuint vertexAttributePointer, GLenum type, bool isIntegerAttribute)
+{
+    GLuint vbo = 0;
+	if ( content.size() != 0 )// && content.size() % dimensions == 0 )
+	{
+		glGenBuffers(1, &vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glBufferData(GL_ARRAY_BUFFER, content.size() * sizeof(T), &content[0], GL_STATIC_DRAW);
+		if ( isIntegerAttribute)
+		{
+			glVertexAttribIPointer( vertexAttributePointer, dimensions, type, 0,0); // will be left as integer values in shader
+		}else
+		{
+	        glVertexAttribPointer(vertexAttributePointer, dimensions, type, 0, 0, 0);
+		}
+		glEnableVertexAttribArray(vertexAttributePointer);
+	}
+    return vbo;
+}
 
 #endif
