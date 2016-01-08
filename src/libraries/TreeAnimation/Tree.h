@@ -19,12 +19,15 @@ public:
 
 	struct Branch
 	{
-		glm::vec3 origin;
-		glm::vec3 direction; //!< direction of the branch 
+		glm::vec3 origin; //!< in branch-space of parent
+		glm::vec3 direction; //!< direction of the branch in branch-space of parent
+
 		float thickness; //!< base_width - top_width (implicitly)
 		float length;
 		float stiffness; //!< computed by thickness, length and the tree-specific elastic-modulus-constant E
-		Branch* parent;
+		
+		Branch* parent; //!< nullptr if trunk
+		
 		std::vector<Branch* > children;
 		unsigned int idx; //!< an unique index identifying this branch
 	} m_trunk; 

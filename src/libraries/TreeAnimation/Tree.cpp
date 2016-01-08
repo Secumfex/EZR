@@ -47,7 +47,8 @@ namespace TreeAnimation
 	{
 		Tree::Branch* branch = new Tree::Branch;
 		branch->length = length;
-		branch->origin = parent->origin + (posOnParent * parent->length) * parent->direction;
+		branch->origin = (posOnParent * parent->length) * glm::vec3(0.0f,1.0f,0.0f); // branch space of parent
+		//branch->origin = parent->origin + (posOnParent * parent->length) * parent->direction; // object space of tree
 		branch->direction = direction;
 		branch->thickness = thickness;
 		branch->stiffness = stiffness;

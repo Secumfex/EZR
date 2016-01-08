@@ -14,13 +14,14 @@
 #include <UI/imguiTools.h>
 #include <UI/Turntable.h>
 
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/rotate_vector.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/vector_angle.hpp>
 
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include <glm/gtx/rotate_vector.hpp>
+#include <glm/gtc/type_ptr.hpp>
+//#include <glm/gtx/vector_angle.hpp>
 
 #include <TreeAnimation/Tree.h>
 
@@ -58,16 +59,16 @@ int main()
 	float tree_stiffness = TreeAnimation::Tree::computeStiffness(tree_width, tree_width, tree_height, TreeAnimation::E_RED_OAK);
 	TreeAnimation::Tree tree( tree_width, tree_height, tree_stiffness );
 	
-	std::function<glm::quat(TreeAnimation::Tree::Branch*)> getRotationRecursively = [&](TreeAnimation::Tree::Branch* branch)
+	std::function<glm::quat(TreeAnimation::Tree::Branch*, glm::vec3)> getRotationRecursively = [&](TreeAnimation::Tree::Branch* branch, glm::vec3 branchUp)
 	{
-		glm::quat quat = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), branch->direction);
+		glm::quat quat = glm::rotation(branchUp, branch->direction);
 		
 		//DEBUGLOG->log("quat    : ", glm::vec4(quat.w, quat.x,quat.y,quat.z));
 		//DEBUGLOG->log("applied : ", glm::rotate(quat, glm::vec4(0.0f,1.0f,0.0f,0.0)));
 
 		if ( branch->parent != nullptr )
 		{
-			return quat * getRotationRecursively(branch->parent);
+			return quat * getRotationRecursively(branch->parent, branch->direction);
 		}
 
 		return quat;
@@ -80,18 +81,18 @@ int main()
 		float r1 = ((float) rand()) / ((float) RAND_MAX);
 		float r2 = ((float) rand()) / ((float) RAND_MAX);
 		float rLength = ( r1 * (rLengthMax - rLengthMin)) + rLengthMin;
-		float rPitchAngle = ( r2 * (rPitchMax - rPitchMin) )+ rPitchMin;
-		float rYawAngle = ((float) rand()) / ((float) RAND_MAX) * 2.f * glm::pi<float>() - glm::pi<float>();
+		float rPitchAngle = ( r2 * (rPitchMax - rPitchMin) ) + rPitchMin; // should be between 0° and 180°
+		float rYawAngle = ((float) rand()) / ((float) RAND_MAX) * 2.f * glm::pi<float>() - glm::pi<float>(); //between -180° and 180°
 		float rPos = (((float) rand()) / ((float) RAND_MAX) * (1.0f - rPosMin)) + rPosMin ;
 
-		glm::vec3 rDirection = glm::normalize(glm::rotateY(glm::rotateZ(glm::vec3(1.0f, 0.0f, 0.0f), rPitchAngle), rYawAngle));
-
+		glm::vec3 rDirection = glm::normalize( glm::rotateY( glm::rotateZ( glm::vec3(1.0f, 0.0f, 0.0f), rPitchAngle), rYawAngle));
+		
 		//glm::quat tempQuat = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), rDirection);
 		//DEBUGLOG->log("dir     : ", rDirection);
 		//DEBUGLOG->log("tempQuat: ", glm::vec4(tempQuat.w, tempQuat.x,tempQuat.y,tempQuat.z));
 		//DEBUGLOG->log("tempRot : ", glm::rotate(tempQuat, glm::vec4(0.0f,1.0f,0.0f,0.0)));
 
-		glm::quat parentRotation = getRotationRecursively(parent);
+		glm::quat parentRotation = getRotationRecursively(parent, glm::vec3(0,1,0));
 		
 		rDirection = glm::rotate(parentRotation, rDirection); // rotate direction by parent rotation
 
@@ -119,9 +120,9 @@ int main()
 			&tree.m_trunk,
 			0.50f,
 			tree.m_trunk.length / 2.0f,
-			tree.m_trunk.length / 4.0f, 
-			glm::radians( -20.0f),
-			glm::radians( 20.0f));
+			tree.m_trunk.length / 4.0f,
+			glm::radians(0.0f),
+			glm::radians(55.1f));
 		branches.push_back(branch);
 
 		for ( int j = 0; j < 5; j++)
@@ -132,8 +133,8 @@ int main()
 				0.1f,
 				branch->length / 2.0f,
 				branch->length / 8.0f,
-				glm::radians(-20.f),
-				glm::radians(45.0f));
+				glm::radians(-25.0f),
+				glm::radians(0.0f));
 				branches.push_back(subBranch);
 		}
 	}
@@ -220,8 +221,12 @@ int main()
 
 		std::function<void(TreeAnimation::Tree::Branch*)> addBranchRecursively = [&](TreeAnimation::Tree::Branch* b)
 		{
-			addVert(b->origin);
-			glm::vec3 end = b->origin + b->direction * b->length;
+			//addVert(b->origin);
+			//glm::vec3 end = b->origin + b->direction * b->length;
+			//addVert(end);
+			
+			addVert(glm::vec3(0.0f, 0.0f, 0.0f));
+			glm::vec3 end = glm::vec3(0.0f, b->length, 0.0f);
 			addVert(end);
 
 			// add hierarchy twice (once for each vertex)
@@ -448,7 +453,7 @@ int main()
 		{
 			std::string prefix = "tree.branches[" + DebugLog::to_string(i) + "].";
 
-			//shaderProgram.update(prefix + "origin", branches[i]->origin);
+			shaderProgram.update(prefix + "origin", branches[i]->origin);
 			glm::quat orientation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), branches[i]->direction);
 			glm::vec4 quatAsVec4 = glm::vec4(orientation.x, orientation.y, orientation.z, orientation.w);
 
@@ -463,7 +468,7 @@ int main()
 			//shaderProgram.update(prefix + "tangent", tangent); //TODO
 			//shaderProgram.update(prefix + "stiffness", branches[i]->stiffness);
 			int parentIdx = 0; if ( branches[i]->parent != nullptr) {parentIdx = branches[i]->parent->idx;}
-			shaderProgram.update(prefix + "parentIdx", parentIdx);
+			//shaderProgram.update(prefix + "parentIdx", parentIdx);
 		}
 
 		

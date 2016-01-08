@@ -11,7 +11,7 @@ struct Branch
 	vec4  orientation;
 	vec3  tangent;
 	float stiffness;
-	int   parentIdx;
+	uint   parentIdx;
 };
 
 struct Tree 
@@ -122,11 +122,11 @@ vec4 rotation(vec3 orig, vec3 dest)
 		rotationAxis.z * invs);
 }
 
-vec4 bendBranch( vec3 pos,  
-                 vec3 branchOrigin,  
-                 vec3 branchUp,  
+vec4 bendBranch( vec3 pos,  // object space
+                 vec3 branchOrigin,  // object space
+                 vec3 branchUp,  //object space
                  float  branchNoise,  
-                 vec3 windDir,  
+                 vec3 windDir,  //object space
                  float  windPow)  
 {  
 	vec3 posInBranchSpace = pos - branchOrigin.xyz;  
@@ -155,35 +155,46 @@ vec4 bendBranch( vec3 pos,
 	return mix(rotation1, rotation2, 1.0 - abs(facingWind));  
 } 
 
-vec4 getOrientation(unsigned int idx)
+int countNonZero(uvec3 hierarchy)
 {
-	vec4 thisQuat = tree.branches[idx].orientation;
-
-	unsigned int parentIdx = tree.branches[idx].parentIdx;
-	if (branchIdx != parentIdx) // isn't trunk
-	{
-		//TODO bend branch according to wind
-		vec4 accumulatedQuat = multQuat(thisQuat, getOrientation(parentIdx));
-
-		return accumulatedQuat;
-	}
-
-	return thisQuat; // is trunk
+	int result = 0;
+	result += int( (hierarchy.x != 0) );
+	result += int( (hierarchy.y != 0) );
+	result += int( (hierarchy.z != 0) );
+	//result += int( (hierarchy.w != 0) );
+	return result;
 }
+
 
 void main(){
     passUVCoord = uvCoordAttribute;
 
-    Branch thisBranch = tree.branches[ hierarchyAttribute.x ];
-
 	// retrieve (wind manipulation simulated) orientation up until parent branch
-	vec4 parentOrientation = getOrientation( thisBranch.parentIdx );
+	int numParents  = countNonZero(hierarchyAttribute); // amount of branch indices that are not root
 
-    vec3 pos = applyQuat(positionAttribute.xyz, parentOrientation);
-	pos = applyQuat( thisBranch.orientation, pos.xyz );
+	vec4 object_space_rotation = vec4(0,0,0,1); // identity quaternion object space rotation of branch
+	vec3 object_space_origin = vec3(0,0,0);     // object space position of branch origin
+	
+	for ( int i = numParents; i >= 0; i--)  // begin at root, traverse down to branch
+	{
+		vec4 branch_orientation = tree.branches[hierarchyAttribute[i]].orientation;
+		vec3 branch_origin      = tree.branches[hierarchyAttribute[i]].origin;
+
+		// TODO run simulation
+
+		object_space_origin   = object_space_origin + applyQuat(branch_origin, object_space_rotation);
+		object_space_rotation = multQuat(branch_orientation, object_space_rotation);
+	}
+
+	//// move vertex to final position
+	//vec4 orientation = tree.branches[ hierarchyAttribute.x ].orientation; // rotation relative to parent branch
+	//orientation = multQuat( orientation, object_space_rotation );
+
+	vec3 object_space_pos = object_space_origin + applyQuat(positionAttribute.xyz, object_space_rotation);
+	vec4 pos = vec4( object_space_pos ,1.0);
 	
 	//vec4 pos = positionAttribute;
-	vec4 worldPos = (model * vec4(pos,1.0));
+	vec4 worldPos = model * pos;
 
     passWorldPosition = worldPos.xyz;
     passPosition = (view * worldPos).xyz;
