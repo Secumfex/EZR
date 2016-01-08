@@ -17,6 +17,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/vector_angle.hpp>
+
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #include <TreeAnimation/Tree.h>
 
@@ -54,19 +58,42 @@ int main()
 	float tree_stiffness = TreeAnimation::Tree::computeStiffness(tree_width, tree_width, tree_height, TreeAnimation::E_RED_OAK);
 	TreeAnimation::Tree tree( tree_width, tree_height, tree_stiffness );
 	
+	std::function<glm::quat(TreeAnimation::Tree::Branch*)> getRotationRecursively = [&](TreeAnimation::Tree::Branch* branch)
+	{
+		glm::quat quat = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), branch->direction);
+		
+		//DEBUGLOG->log("quat    : ", glm::vec4(quat.w, quat.x,quat.y,quat.z));
+		//DEBUGLOG->log("applied : ", glm::rotate(quat, glm::vec4(0.0f,1.0f,0.0f,0.0)));
+
+		if ( branch->parent != nullptr )
+		{
+			return quat * getRotationRecursively(branch->parent);
+		}
+
+		return quat;
+	};
+
 	// generate a tree randomly
 	srand (time(NULL));	
-	auto addRandomBranch = [](TreeAnimation::Tree* tree, TreeAnimation::Tree::Branch* parent, float rPosMin, float rLengthMax, float rLengthMin, float rPitchMin, float rPitchMax)
+	auto addRandomBranch = [&](TreeAnimation::Tree* tree, TreeAnimation::Tree::Branch* parent, float rPosMin, float rLengthMax, float rLengthMin, float rPitchMin, float rPitchMax)
 	{
 		float r1 = ((float) rand()) / ((float) RAND_MAX);
 		float r2 = ((float) rand()) / ((float) RAND_MAX);
 		float rLength = ( r1 * (rLengthMax - rLengthMin)) + rLengthMin;
 		float rPitchAngle = ( r2 * (rPitchMax - rPitchMin) )+ rPitchMin;
-		float rYawAngle = ((float) rand()) / ((float) RAND_MAX) * 2.f * glm::pi<float>();
+		float rYawAngle = ((float) rand()) / ((float) RAND_MAX) * 2.f * glm::pi<float>() - glm::pi<float>();
 		float rPos = (((float) rand()) / ((float) RAND_MAX) * (1.0f - rPosMin)) + rPosMin ;
-		//DEBUGLOG->log("rPos: ", rPos);
+
+		glm::vec3 rDirection = glm::normalize(glm::rotateY(glm::rotateZ(glm::vec3(1.0f, 0.0f, 0.0f), rPitchAngle), rYawAngle));
+
+		//glm::quat tempQuat = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), rDirection);
+		//DEBUGLOG->log("dir     : ", rDirection);
+		//DEBUGLOG->log("tempQuat: ", glm::vec4(tempQuat.w, tempQuat.x,tempQuat.y,tempQuat.z));
+		//DEBUGLOG->log("tempRot : ", glm::rotate(tempQuat, glm::vec4(0.0f,1.0f,0.0f,0.0)));
+
+		glm::quat parentRotation = getRotationRecursively(parent);
 		
-		glm::vec3 rDirection = glm::rotateY(glm::rotateZ(glm::vec3(1.0f, 0.0f, 0.0f), rPitchAngle), rYawAngle);
+		rDirection = glm::rotate(parentRotation, rDirection); // rotate direction by parent rotation
 
 		return tree->addBranch(
 			parent,
@@ -79,7 +106,7 @@ int main()
 				(1.0f - rPos) * parent->thickness,
 				rLength,
 				tree->m_E)
-			); 
+			); ;
 	};
 
 	std::vector<TreeAnimation::Tree::Branch* > branches; // branches, indexed
@@ -412,26 +439,29 @@ int main()
 		shaderProgram.update( "color", s_color);
 		shaderProgram.update( "model", turntable.getRotationMatrix() * model);
 
-		shaderProgram.update("simTime", s_simulationTime);
-		shaderProgram.update("simTimeWithDelay", s_simulationTime);
-		shaderProgram.update("strength", s_strength);
+		//shaderProgram.update("simTime", s_simulationTime);
+		//shaderProgram.update("simTimeWithDelay", s_simulationTime);
+		//shaderProgram.update("strength", s_strength);
 
 		// upload tree uniforms
 		for (int i = 0; i < branches.size(); i++)
 		{
 			std::string prefix = "tree.branches[" + DebugLog::to_string(i) + "].";
 
-			shaderProgram.update(prefix + "origin", branches[i]->origin);
-			shaderProgram.update(prefix + "direction", branches[i]->direction);
-			glm::vec3 tangent = glm::vec3(1.0,0.0,0.0);
-			if (branches[i]->parent != nullptr)
-			{
-				tangent = glm::normalize(glm::cross(
-					branches[i]->direction,
-					branches[i]->parent->direction));
-			}
-			shaderProgram.update(prefix + "tangent", tangent); //TODO
-			shaderProgram.update(prefix + "stiffness", branches[i]->stiffness);
+			//shaderProgram.update(prefix + "origin", branches[i]->origin);
+			glm::quat orientation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), branches[i]->direction);
+			glm::vec4 quatAsVec4 = glm::vec4(orientation.x, orientation.y, orientation.z, orientation.w);
+
+			shaderProgram.update(prefix + "orientation", quatAsVec4);
+			//glm::vec3 tangent = glm::vec3(1.0,0.0,0.0);
+			//if (branches[i]->parent != nullptr)
+			//{
+			//	tangent = glm::normalize(glm::cross(
+			//		branches[i]->direction,
+			//		branches[i]->parent->direction));
+			//}
+			//shaderProgram.update(prefix + "tangent", tangent); //TODO
+			//shaderProgram.update(prefix + "stiffness", branches[i]->stiffness);
 			int parentIdx = 0; if ( branches[i]->parent != nullptr) {parentIdx = branches[i]->parent->idx;}
 			shaderProgram.update(prefix + "parentIdx", parentIdx);
 		}
