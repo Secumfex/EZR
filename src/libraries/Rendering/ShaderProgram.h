@@ -32,6 +32,17 @@ public:
 	 */
 	ShaderProgram(std::string vertexshader, std::string fragmentshader, std::string geometryshader);
 
+		/**
+	 * @brief Constructor
+	 * 
+	 * @param vertexshader path to the vertexshader
+	 * @param fragmentshader path to the fragmentshader
+	 * @param geometryshader path to the geometryshader
+	 * 
+	 */
+	ShaderProgram(std::string vertexshader, std::string fragmentshader, std::string tessellationcontrollshader, std::string tessellationevaluationshader);
+
+
 	/**
 	 * @brief Destructor
 	 * 
