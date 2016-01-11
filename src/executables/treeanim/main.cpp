@@ -58,44 +58,36 @@ int main()
 	float tree_width = 1.0f;
 	float tree_stiffness = TreeAnimation::Tree::computeStiffness(tree_width, tree_width, tree_height, TreeAnimation::E_RED_OAK);
 	TreeAnimation::Tree tree( tree_width, tree_height, tree_stiffness );
-	
-	std::function<glm::quat(TreeAnimation::Tree::Branch*, glm::vec3)> getRotationRecursively = [&](TreeAnimation::Tree::Branch* branch, glm::vec3 branchUp)
-	{
-		glm::quat quat = glm::rotation(branchUp, branch->direction);
-		
-		//DEBUGLOG->log("quat    : ", glm::vec4(quat.w, quat.x,quat.y,quat.z));
-		//DEBUGLOG->log("applied : ", glm::rotate(quat, glm::vec4(0.0f,1.0f,0.0f,0.0)));
-
-		if ( branch->parent != nullptr )
-		{
-			return quat * getRotationRecursively(branch->parent, branch->direction);
-		}
-
-		return quat;
-	};
 
 	// generate a tree randomly
 	srand (time(NULL));	
 	auto addRandomBranch = [&](TreeAnimation::Tree* tree, TreeAnimation::Tree::Branch* parent, float rPosMin, float rLengthMax, float rLengthMin, float rPitchMin, float rPitchMax)
 	{
+		// randomization values
 		float r1 = ((float) rand()) / ((float) RAND_MAX);
 		float r2 = ((float) rand()) / ((float) RAND_MAX);
 		float rLength = ( r1 * (rLengthMax - rLengthMin)) + rLengthMin;
 		float rPitchAngle = ( r2 * (rPitchMax - rPitchMin) ) + rPitchMin; // should be between 0° and 180°
-		float rYawAngle = ((float) rand()) / ((float) RAND_MAX) * 2.f * glm::pi<float>() - glm::pi<float>(); //between -180° and 180°
+		//float rYawAngle = ((float) rand()) / ((float) RAND_MAX) * 2.f * glm::pi<float>() - glm::pi<float>(); //between -180° and 180°
+		float rYawAngle = 0.0f;
 		float rPos = (((float) rand()) / ((float) RAND_MAX) * (1.0f - rPosMin)) + rPosMin ;
 
-		glm::vec3 rDirection = glm::normalize( glm::rotateY( glm::rotateZ( glm::vec3(1.0f, 0.0f, 0.0f), rPitchAngle), rYawAngle));
+		// optimal: 90° to parent, assuming parent is pointing in (0,1,0) in object space
+		glm::vec3 optimalDirection = glm::vec3(1.0f,0.0f,0.0f);
+		glm::vec3 rDirection = glm::normalize( glm::rotateY( glm::rotateZ( optimalDirection, rPitchAngle), rYawAngle)); // apply randomization
 		
-		//glm::quat tempQuat = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), rDirection);
-		//DEBUGLOG->log("dir     : ", rDirection);
-		//DEBUGLOG->log("tempQuat: ", glm::vec4(tempQuat.w, tempQuat.x,tempQuat.y,tempQuat.z));
-		//DEBUGLOG->log("tempRot : ", glm::rotate(tempQuat, glm::vec4(0.0f,1.0f,0.0f,0.0)));
-
-		glm::quat parentRotation = getRotationRecursively(parent, glm::vec3(0,1,0));
+		// retrieve object-space orientation of parent
+		glm::vec3 parentDirection= parent->direction;
+		glm::quat parentRotation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), parent->direction);
+		glm::vec3 rot = glm::rotate(parentRotation,glm::vec3(0.0,1.0,0.0));
+		//DEBUGLOG->log("rotation", glm::vec4(parentRotation.x, parentRotation.y, parentRotation.z,parentRotation.w));
 		
-		rDirection = glm::rotate(parentRotation, rDirection); // rotate direction by parent rotation
+		// apply parent orientation to this branch direction
+		rDirection = (glm::rotate(parentRotation, rDirection));
 
+		DEBUGLOG->log("applied  : ", parentRotation * glm::vec4(1.0,0.0,0.0,0.0));
+	
+		// add branch
 		return tree->addBranch(
 			parent,
 			rDirection,
@@ -121,8 +113,8 @@ int main()
 			0.50f,
 			tree.m_trunk.length / 2.0f,
 			tree.m_trunk.length / 4.0f,
-			glm::radians(0.0f),
-			glm::radians(55.1f));
+			glm::radians(45.0f),
+			glm::radians(45.0f));
 		branches.push_back(branch);
 
 		for ( int j = 0; j < 5; j++)
@@ -133,8 +125,8 @@ int main()
 				0.1f,
 				branch->length / 2.0f,
 				branch->length / 8.0f,
-				glm::radians(-25.0f),
-				glm::radians(0.0f));
+				glm::radians(45.0f),
+				glm::radians(45.0f));
 				branches.push_back(subBranch);
 		}
 	}
@@ -149,10 +141,6 @@ int main()
 			DEBUGLOG->log("branch " + DebugLog::to_string(i) + ": ");
 			DEBUGLOG->indent();
 			    DEBUGLOG->log("idx: ", tree.m_trunk.children[i]->idx );
-			 //   DEBUGLOG->log("direction: ", tree.m_trunk.children[i]->direction );
-				//DEBUGLOG->log("length   : ", tree.m_trunk.children[i]->length);
-				//DEBUGLOG->log("origin   : ", tree.m_trunk.children[i]->origin);
-
 				DEBUGLOG->log("num sub branches: ", tree.m_trunk.children[i]->children.size());
 				int k = 0;
 				for ( auto b : tree.m_trunk.children[i]->children)
@@ -160,9 +148,6 @@ int main()
 					DEBUGLOG->log("sub branch "+ DebugLog::to_string(k));
 					DEBUGLOG->indent();
 					DEBUGLOG->log("idx: ", b->idx);
-					//DEBUGLOG->log("direction: ", b->direction );
-					//DEBUGLOG->log("length   : ", b->length);
-					//DEBUGLOG->log("origin   : ", b->origin);
 					DEBUGLOG->outdent();
 					k++;
 				}
@@ -296,14 +281,13 @@ int main()
 	/////////////////////// 	Renderpasses     ///////////////////////////
 	 // regular GBuffer
 	 DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
-	 //ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
 	 ShaderProgram shaderProgram("/treeAnim/tree.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
 	 shaderProgram.update("model", model);
 	 shaderProgram.update("view", view);
 	 shaderProgram.update("projection", perspective);
 	 
-	 shaderProgram.printUniformInfo();
-	 shaderProgram.printInputInfo();
+	 //shaderProgram.printUniformInfo();
+	 //shaderProgram.printInputInfo();
 	 DEBUGLOG->outdent();
 
 	 DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
@@ -454,10 +438,14 @@ int main()
 			std::string prefix = "tree.branches[" + DebugLog::to_string(i) + "].";
 
 			shaderProgram.update(prefix + "origin", branches[i]->origin);
+
+			// orientation is computed from object space direction relative to optimal branch axis
 			glm::quat orientation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), branches[i]->direction);
 			glm::vec4 quatAsVec4 = glm::vec4(orientation.x, orientation.y, orientation.z, orientation.w);
+			DEBUGLOG->log("recovered: ", quatAsVec4);
 
 			shaderProgram.update(prefix + "orientation", quatAsVec4);
+
 			//glm::vec3 tangent = glm::vec3(1.0,0.0,0.0);
 			//if (branches[i]->parent != nullptr)
 			//{

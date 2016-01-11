@@ -76,9 +76,18 @@ vec4 quatAroundY(float angle)
 	return quatAxisAngle(vec3(0.0,1.0,0.0),angle);
 }
 
-vec3 applyQuat(vec3 v, vec4 q)
-{ 
-	return v + 2.0*cross(cross(v, q.xyz ) + q.w*v, q.xyz);
+//vec3 applyQuat(vec4 q, vec3 v)
+//{ 
+//	return v + 2.0*cross(cross(v, q.xyz ) + q.w*v, q.xyz);
+//}
+
+vec3 applyQuat(vec4 q, vec3 v)
+{
+	vec3 QuatVector = vec3(q.x, q.y, q.z);
+	vec3 uv = cross(QuatVector, v);
+	vec3 uuv = cross(QuatVector, uv);
+
+	return v + ((uv * q.w) + uuv) * 2.0;
 }
 
 vec4 multQuat(vec4 q, vec4 p) // p first, then q
@@ -122,7 +131,7 @@ vec4 rotation(vec3 orig, vec3 dest)
 		rotationAxis.z * invs);
 }
 
-vec4 bendBranch( vec3 pos,  // object space
+vec4 bendBranch( vec3 pos,  // branch space
                  vec3 branchOrigin,  // object space
                  vec3 branchUp,  //object space
                  float  branchNoise,  
@@ -175,22 +184,31 @@ void main(){
 	vec4 object_space_rotation = vec4(0,0,0,1); // identity quaternion object space rotation of branch
 	vec3 object_space_origin = vec3(0,0,0);     // object space position of branch origin
 	
-	for ( int i = numParents; i >= 0; i--)  // begin at root, traverse down to branch
-	{
-		vec4 branch_orientation = tree.branches[hierarchyAttribute[i]].orientation;
-		vec3 branch_origin      = tree.branches[hierarchyAttribute[i]].origin;
+	//for ( int i = numParents; i >= 0; i--)  // begin at root, traverse down to branch
+	//{
+	//	vec4 branch_orientation = tree.branches[hierarchyAttribute[i]].orientation;
+	//	vec3 branch_origin      = tree.branches[hierarchyAttribute[i]].origin;
 
-		// TODO run simulation
+	//	// TODO run simulation
 
-		object_space_origin   = object_space_origin + applyQuat(branch_origin, object_space_rotation);
-		object_space_rotation = multQuat(branch_orientation, object_space_rotation);
-	}
+	//	//object_space_origin   = object_space_origin + applyQuat(branch_origin, object_space_rotation);
+	//	//object_space_rotation = multQuat(branch_orientation, object_space_rotation);
+
+	//	object_space_origin   = object_space_origin;
+	//	object_space_rotation = multQuat(branch_orientation, object_space_rotation);
+	//}
 
 	//// move vertex to final position
 	//vec4 orientation = tree.branches[ hierarchyAttribute.x ].orientation; // rotation relative to parent branch
 	//orientation = multQuat( orientation, object_space_rotation );
 
-	vec3 object_space_pos = object_space_origin + applyQuat(positionAttribute.xyz, object_space_rotation);
+	//vec3 object_space_pos = object_space_origin + applyQuat(positionAttribute.xyz, object_space_rotation);
+	
+	object_space_rotation = tree.branches[hierarchyAttribute[0]].orientation;
+	object_space_origin   = tree.branches[hierarchyAttribute[0]].origin;
+	vec3 object_space_pos = object_space_origin + applyQuat(object_space_rotation, positionAttribute.xyz);
+	//vec3 object_space_pos = object_space_origin + positionAttribute.xyz;
+
 	vec4 pos = vec4( object_space_pos ,1.0);
 	
 	//vec4 pos = positionAttribute;

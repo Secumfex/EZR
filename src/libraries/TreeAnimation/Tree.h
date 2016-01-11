@@ -19,8 +19,8 @@ public:
 
 	struct Branch
 	{
-		glm::vec3 origin; //!< in branch-space of parent
-		glm::vec3 direction; //!< direction of the branch in branch-space of parent
+		glm::vec3 origin; //!< in branch-space of in object-space
+		glm::vec3 direction; //!< direction of the branch in object-space
 
 		float thickness; //!< base_width - top_width (implicitly)
 		float length;
