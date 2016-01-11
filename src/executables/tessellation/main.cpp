@@ -50,7 +50,7 @@ int main()
 	glm::vec4 center(0.0f,0.0f,0.0f,1.0f);
 	glm::mat4 view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0,1,0));
 
-	// glm::mat4 perspective = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, -1.0f, 6.0f);
+	 //glm::mat4 perspective = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, -1.0f, 6.0f);
 	/// perspective projection is experimental; yields weird warping effects due to vertex interpolation of uv-coordinates
 	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 10.f);
 
@@ -93,12 +93,13 @@ int main()
 	// regular GBuffer
 	DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
 	// Maybe use other shaders here?
-	ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag", "/tessellation/tc.tesc", "/tessellation/te.tese"); DEBUGLOG->outdent();
+	//ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag", "/tessellation/tc.tesc", "/tessellation/te.tese"); DEBUGLOG->outdent();
+	ShaderProgram shaderProgram("/modelSpace/modelViewProjection.vert", "/modelSpace/simpleLighting.frag", "/tessellation/tc.tesc", "/tessellation/te.tese"); DEBUGLOG->outdent();
 	shaderProgram.update("model", model);
 	shaderProgram.update("view", view);
-	shaderProgram.update("projection", perspective);
+	//shaderProgram.update("projection", perspective);
 
-	DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
+	//DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
 	//FrameBufferObject fbo(getResolution(window).x, getResolution(window).y);
 	//FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
 	//fbo.addColorAttachments(4); DEBUGLOG->outdent();   // G-Buffer
@@ -108,29 +109,35 @@ int main()
 	FrameBufferObject fbo(shaderProgram.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
 	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
 
+	Quad quad;
+
+
 	DEBUGLOG->log("RenderPass Creation: GBuffer"); DEBUGLOG->indent();
-	RenderPass renderPass(&shaderProgram, &fbo);
+	//RenderPass renderPass(&shaderProgram, &fbo);
+	RenderPass renderPass(&shaderProgram, 0);
 	renderPass.addEnable(GL_DEPTH_TEST);
 	// renderPass.addEnable(GL_BLEND);
-	renderPass.setClearColor(0.0,0.0,0.0,0.0);
 	renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	renderPass.setClearColor(0.40,0.0,0.0,0.0);
+	renderPass.addRenderable(&quad);
 	for (auto r : objects){renderPass.addRenderable(r);}
 
-	// regular GBuffer compositing
-	DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
-	ShaderProgram compShader("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing.frag"); DEBUGLOG->outdent();
-	// set texture references
-	compShader.bindTextureOnUse("colorMap", 	 fbo.getBuffer("fragColor"));
-	compShader.bindTextureOnUse("normalMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
-	compShader.bindTextureOnUse("positionMap",   fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 
-	DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
-	Quad quad;
-	RenderPass compositing(&compShader, 0);
-	compositing.addClearBit(GL_COLOR_BUFFER_BIT);
-	compositing.setClearColor(0.25,0.25,0.35,0.0);
-	// compositing.addEnable(GL_BLEND);
-	compositing.addRenderable(&quad);
+	// regular GBuffer compositing
+	//DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
+	//ShaderProgram compShader("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing.frag"); DEBUGLOG->outdent();
+	//// set texture references
+	//compShader.bindTextureOnUse("colorMap", 	 fbo.getBuffer("fragColor"));
+	//compShader.bindTextureOnUse("normalMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
+	//compShader.bindTextureOnUse("positionMap",   fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
+	//
+	//DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
+	//Quad quad;
+	//RenderPass compositing(&compShader, 0);
+	//compositing.addClearBit(GL_COLOR_BUFFER_BIT);
+	//compositing.setClearColor(0.45,0.0,0.0,0.0);
+	//// compositing.addEnable(GL_BLEND);
+	//compositing.addRenderable(&quad);
 
 	//DEBUGLOG->log("Shader Compilation: Tessellation"); DEBUGLOG->indent();
 	//ShaderProgram tessShader("/tessellation/tc.tesc", "/tessellation/te.tese"); DEBUGLOG->indent();
@@ -163,14 +170,14 @@ int main()
 	//ssrRenderPass.addRenderable(&quad);
 	//DEBUGLOG->outdent();
 
-	DEBUGLOG->log("Shader Compilation: Simple Alpha Texture"); DEBUGLOG->indent();
-	ShaderProgram texShader("/screenSpace/fullscreen.vert", "/screenSpace/simpleAlphaTexture.frag");	DEBUGLOG->outdent();
-	//texShader.bindTextureOnUse("tex", ssrFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0) );
-
-	DEBUGLOG->log("RenderPass Creation: Simple Alpha Texture"); DEBUGLOG->indent();
-	RenderPass simpleTexture( &texShader, 0 );
-	simpleTexture.addEnable(GL_BLEND);
-	simpleTexture.addRenderable(&quad);
+	//DEBUGLOG->log("Shader Compilation: Simple Alpha Texture"); DEBUGLOG->indent();
+	//ShaderProgram texShader("/screenSpace/fullscreen.vert", "/screenSpace/simpleAlphaTexture.frag");	DEBUGLOG->outdent();
+	////texShader.bindTextureOnUse("tex", ssrFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0) );
+	//
+	//DEBUGLOG->log("RenderPass Creation: Simple Alpha Texture"); DEBUGLOG->indent();
+	//RenderPass simpleTexture( &texShader, 0 );
+	//simpleTexture.addEnable(GL_BLEND);
+	//simpleTexture.addRenderable(&quad);
 
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
@@ -251,11 +258,11 @@ int main()
 	std::function<void(Renderable*)> perRenderableFunction = [&](Renderable* r){ 
 		static int i = 0;
 		shaderProgram.update("model", turntable.getRotationMatrix() * modelMatrices[i]);
-		shaderProgram.update("mixTexture", 0.0);
+		//shaderProgram.update("mixTexture", 0.0);
 
 		if (i == 2) // is billboard
 		{
-			shaderProgram.update("mixTexture", 1.0f);
+			//shaderProgram.update("mixTexture", 1.0f);
 			//shaderProgram.bindTextureOnUse("tex", bbTexture);
 		}
 
@@ -271,7 +278,7 @@ int main()
 	render(window, [&](double dt)
 	{
 		elapsedTime += dt;
-		std::string window_header = "Screen Space Reflections - " + DebugLog::to_string( 1.0 / dt ) + " FPS";
+		std::string window_header = "Tessellation - " + DebugLog::to_string( 1.0 / dt ) + " FPS";
 		glfwSetWindowTitle(window, window_header.c_str() );
 
 		////////////////////////////////     GUI      ////////////////////////////////
@@ -301,21 +308,22 @@ int main()
 		// update view related uniforms
 		shaderProgram.update( "color", s_color);
 		shaderProgram.update( "view", view);
+
 		//ssrShader.update( "view", view);
 		//ssrShader.update( "strength", s_strength);
 		//ssrShader.update("bbModel", turntable.getRotationMatrix() * modelMatrices[2]);
 
-		compShader.update("vLightPos", view * turntable.getRotationMatrix() * s_lightPos);
+		//compShader.update("vLightPos", view * turntable.getRotationMatrix() * s_lightPos);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
 		renderPass.render();
 
-		compositing.render();
+		//compositing.render();
 
 		//ssrRenderPass.render();
 
-		simpleTexture.render();
+		//simpleTexture.render();
 
 		ImGui::Render();
 		glDisable(GL_BLEND);

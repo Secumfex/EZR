@@ -5,8 +5,8 @@ in vec3 tcPosition[];
 out vec3 tePosition;
 out vec3 tePatchDistance;
 
-uniform mat4 Projection;
-uniform mat4 Modelview;
+uniform mat4 projection;
+uniform mat4 model;
 
 void main()
 {
@@ -15,5 +15,5 @@ void main()
     vec3 p2 = gl_TessCoord.z * tcPosition[2];
     tePatchDistance = gl_TessCoord;
     tePosition = normalize(p0 + p1 + p2);
-    gl_Position = Projection * Modelview * vec4(tePosition, 1);
+    gl_Position = projection * model * vec4(tePosition, 1);
 }
