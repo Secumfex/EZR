@@ -32,9 +32,14 @@ static glm::vec4 s_color = glm::vec4(0.45 * 0.3f, 0.44f * 0.3f, 0.87f * 0.3f, 1.
 static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
 
 static glm::vec3 s_wind_direction = glm::normalize(glm::vec3(1.0f, 0.0f, -1.0f));
+static float s_wind_power = 1.0f;
 
 static float s_strength = 1.0f;
 static bool  s_isRotating = false;
+
+static float s_branchSuppressPower = 0.5f;
+static float s_branchSwayPowerA	   = 1.0f; 
+static float s_branchSwayPowerB    = 1.0f; 
 
 static float s_simulationTime = 0.0f;
 
@@ -68,8 +73,8 @@ int main()
 		float r2 = ((float) rand()) / ((float) RAND_MAX);
 		float rLength = ( r1 * (rLengthMax - rLengthMin)) + rLengthMin;
 		float rPitchAngle = ( r2 * (rPitchMax - rPitchMin) ) + rPitchMin; // should be between 0° and 180°
-		//float rYawAngle = ((float) rand()) / ((float) RAND_MAX) * 2.f * glm::pi<float>() - glm::pi<float>(); //between -180° and 180°
-		float rYawAngle = 0.0f;
+		float rYawAngle = ((float) rand()) / ((float) RAND_MAX) * 2.f * glm::pi<float>() - glm::pi<float>(); //between -180° and 180°
+		// float rYawAngle = 0.0f;
 		float rPos = (((float) rand()) / ((float) RAND_MAX) * (1.0f - rPosMin)) + rPosMin ;
 
 		// optimal: 90° to parent, assuming parent is pointing in (0,1,0) in object space
@@ -79,14 +84,10 @@ int main()
 		// retrieve object-space orientation of parent
 		glm::vec3 parentDirection= parent->direction;
 		glm::quat parentRotation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), parent->direction);
-		glm::vec3 rot = glm::rotate(parentRotation,glm::vec3(0.0,1.0,0.0));
-		//DEBUGLOG->log("rotation", glm::vec4(parentRotation.x, parentRotation.y, parentRotation.z,parentRotation.w));
 		
 		// apply parent orientation to this branch direction
 		rDirection = (glm::rotate(parentRotation, rDirection));
 
-		DEBUGLOG->log("applied  : ", parentRotation * glm::vec4(1.0,0.0,0.0,0.0));
-	
 		// add branch
 		return tree->addBranch(
 			parent,
@@ -113,8 +114,8 @@ int main()
 			0.50f,
 			tree.m_trunk.length / 2.0f,
 			tree.m_trunk.length / 4.0f,
-			glm::radians(45.0f),
-			glm::radians(45.0f));
+			glm::radians(-25.0f),
+			glm::radians(25.0f));
 		branches.push_back(branch);
 
 		for ( int j = 0; j < 5; j++)
@@ -125,8 +126,8 @@ int main()
 				0.1f,
 				branch->length / 2.0f,
 				branch->length / 8.0f,
-				glm::radians(45.0f),
-				glm::radians(45.0f));
+				glm::radians(-25.0f),
+				glm::radians(25.0f));
 				branches.push_back(subBranch);
 		}
 	}
@@ -210,7 +211,7 @@ int main()
 			//glm::vec3 end = b->origin + b->direction * b->length;
 			//addVert(end);
 			
-			addVert(glm::vec3(0.0f, 0.0f, 0.0f));
+			addVert(glm::vec3(0.0f, 0.01f, 0.0f));
 			glm::vec3 end = glm::vec3(0.0f, b->length, 0.0f);
 			addVert(end);
 
@@ -409,12 +410,18 @@ int main()
         ImGuiIO& io = ImGui::GetIO();
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
 		
-		ImGui::PushItemWidth(-100);
+		ImGui::PushItemWidth(-125);
 
 		ImGui::ColorEdit4( "color", glm::value_ptr( s_color)); // color mixed at max distance
         ImGui::SliderFloat("strength", &s_strength, 0.0f, 2.0f); // influence of color shift
         
-		ImGui::Checkbox("auto-rotate", &s_isRotating); // enable/disable rotating volume
+        ImGui::SliderFloat("windPower", &s_wind_power, 0.0f, 100.0f); // influence of color shift
+
+		// ImGui::SliderFloat("branchSuppressPower", &s_branchSuppressPower, 0.0f, 100.0f); // influence of color shift
+        ImGui::SliderFloat("branchSwayPowerA", &s_branchSwayPowerA, 0.0f, 100.0f); // influence of color shift
+        ImGui::SliderFloat("branchSwayPowerB", &s_branchSwayPowerB, 0.0f, 2.0f); // influence of color shift
+        
+		// ImGui::Checkbox("auto-rotate", &s_isRotating); // enable/disable rotating volume
 		ImGui::PopItemWidth();
         //////////////////////////////////////////////////////////////////////////////
 
@@ -428,8 +435,16 @@ int main()
 		shaderProgram.update( "color", s_color);
 		shaderProgram.update( "model", turntable.getRotationMatrix() * model);
 
-		//shaderProgram.update("simTime", s_simulationTime);
-		//shaderProgram.update("simTimeWithDelay", s_simulationTime);
+		shaderProgram.update("simTime", s_simulationTime);
+		shaderProgram.update("simTimeWithDelay", s_simulationTime - 0.3f);
+		shaderProgram.update( "windDirection", s_wind_direction);
+		shaderProgram.update( "windPower", s_wind_power);
+		//shaderProgram.update( "delayedWindPower", s_wind_power);
+
+		// shaderProgram.update("branchSuppressPower", s_branchSuppressPower);
+		shaderProgram.update("branchSwayPowerA",  s_branchSwayPowerA);
+		shaderProgram.update("branchSwayPowerB",  s_branchSwayPowerB);
+		
 		//shaderProgram.update("strength", s_strength);
 
 		// upload tree uniforms
@@ -442,7 +457,7 @@ int main()
 			// orientation is computed from object space direction relative to optimal branch axis
 			glm::quat orientation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), branches[i]->direction);
 			glm::vec4 quatAsVec4 = glm::vec4(orientation.x, orientation.y, orientation.z, orientation.w);
-			DEBUGLOG->log("recovered: ", quatAsVec4);
+			//DEBUGLOG->log("recovered: ", quatAsVec4);
 
 			shaderProgram.update(prefix + "orientation", quatAsVec4);
 
@@ -460,7 +475,6 @@ int main()
 		}
 
 		
-		//shaderProgram.update( "windDirection", s_wind_direction);
 
 		compShader.update("vLightPos", view * s_lightPos);
 		//////////////////////////////////////////////////////////////////////////////

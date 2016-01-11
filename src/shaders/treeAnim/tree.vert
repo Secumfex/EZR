@@ -62,18 +62,54 @@ out VertexData {
 
 vec4 quatAxisAngle(vec3 axis, float angle)
 { 
-	vec4 qr;
-	float half_angle = (angle * 0.5) * PI / 180.0;
-	qr.x = axis.x * sin(half_angle);
-	qr.y = axis.y * sin(half_angle);
-	qr.z = axis.z * sin(half_angle);
-	qr.w = cos(half_angle);
-	return qr;
+	// vec4 qr;
+	// float half_angle = (angle * 0.5) * PI / 180.0;
+	// qr.x = axis.x * sin(half_angle);
+	// qr.y = axis.y * sin(half_angle);
+	// qr.z = axis.z * sin(half_angle);
+	// qr.w = cos(half_angle);
+	// return qr;
+
+	float sinha = sin(angle * 0.5);
+	float cosha = cos(angle * 0.5);
+
+	return	vec4(
+		axis * sinha,
+		cosha );
+
 }
 
 vec4 quatAroundY(float angle)
 {
-	return quatAxisAngle(vec3(0.0,1.0,0.0),angle);
+	float sinha = sin(angle * 0.5);
+	float cosha = cos(angle * 0.5);
+	return vec4(0, sinha, 0, cosha);
+}
+
+
+mat3 quatToMatrix( vec4 q)
+{
+	// add: 15 = 6 + 9
+	// mul: 16 = 12 + 4
+	// div:	 1
+
+	float dxy = q.x * q.y * 2.0f;
+	float dxz = q.x * q.z * 2.0f;
+	float dyz = q.y * q.z * 2.0f;
+	float dwx = q.w * q.x * 2.0f;
+	float dwy = q.w * q.y * 2.0f;
+	float dwz = q.w * q.z * 2.0f;
+	
+	float x2 = q.x * q.x;
+	float y2 = q.y * q.y;
+	float z2 = q.z * q.z;
+	float w2 = q.w * q.w;
+	
+	mat3 r = mat3(
+			w2+x2-y2-z2,	dxy+dwz,		dxz-dwy,
+			dxy-dwz,		w2-x2+y2-z2,	dyz+dwz,
+			dxz-dwy,		dyz-dwx,		w2-x2-y2+z2 );				
+	return r;
 }
 
 //vec3 applyQuat(vec4 q, vec3 v)
@@ -133,35 +169,38 @@ vec4 rotation(vec3 orig, vec3 dest)
 
 vec4 bendBranch( vec3 pos,  // branch space
                  vec3 branchOrigin,  // object space
-                 vec3 branchUp,  //object space
+                 // vec3 branchUp,  //object space // what is this for??
                  float  branchNoise,  
                  vec3 windDir,  //object space
                  float  windPow)  
 {  
 	vec3 posInBranchSpace = pos - branchOrigin.xyz;  
 
-	float towardsX = dot(normalize(vec3(posInBranchSpace.x, 0, posInBranchSpace.z)), vec3(1, 0, 0));  
+	// what is this for??
+	// float towardsX = dot(normalize(vec3(posInBranchSpace.x, 0, posInBranchSpace.z)), vec3(1, 0, 0));  
 	
-	float facingWind = dot(normalize(vec3(posInBranchSpace.x, 0, posInBranchSpace.z)), windDir);  
+	// describes how much branch and wind are aligned (mind the sign)
+	 float facingWind = dot(normalize(vec3(posInBranchSpace.x, 0, posInBranchSpace.z)), windDir); 
 	
+	// compute two values describing the simulation state (aka. fake movement state)
 	float a = branchSwayPowerA * cos(simTime + branchNoise * branchMovementRandomization);          // amp 1 (around branch origin)
 	float b = branchSwayPowerB * cos(simTimeWithDelay + branchNoise * branchMovementRandomization); // amp 2 (around Y-axis)
 	
-	float oldA = a; // save temp (full sway power in wind)
-	a = -0.5 * a + branchSuppressPower * branchSwayPowerA; // suppress amp1 (reduced sway power in wind)
+	// float oldA = a; // save temp (full sway power in wind)
+	// a = -0.5 * a + branchSuppressPower * branchSwayPowerA; // suppress amp1 (reduced sway power in wind)
 	
-	// final amplitudes, dependent on actual current wind power
-	b *= windPower;
-	// interpolate between full power and suppressed power
-	a = mix(oldA * windPow, a * windPow, delayedWindPower * clamp(1 - facingWind, 0.0, 1.0));
+	// // final amplitudes, dependent on actual current wind power
+	// b *= windPower;
+	// // interpolate between full power and suppressed power
+	// a = mix(oldA * windPow, a * windPow, delayedWindPower * clamp(1 - facingWind, 0.0, 1.0));
 	
 	// compute orientations
 	vec3 windTangent = vec3(-windDir.z, windDir.y, windDir.x); 
 	vec4 rotation1 = quatAxisAngle(windTangent, a); // rotation away from wind
 	vec4 rotation2 = quatAroundY(b); // rotation around parent
-
-	// mix 'em (TODO is this sufficient or do we need SLERP?)
-	return mix(rotation1, rotation2, 1.0 - abs(facingWind));  
+	
+	// mix 'em 
+	 return normalize(mix(rotation1, rotation2, 1.0 - abs(facingWind)));  
 } 
 
 int countNonZero(uvec3 hierarchy)
@@ -181,43 +220,60 @@ void main(){
 	// retrieve (wind manipulation simulated) orientation up until parent branch
 	int numParents  = countNonZero(hierarchyAttribute); // amount of branch indices that are not root
 
-	vec4 object_space_rotation = vec4(0,0,0,1); // identity quaternion object space rotation of branch
-	vec3 object_space_origin = vec3(0,0,0);     // object space position of branch origin
-	
-	//for ( int i = numParents; i >= 0; i--)  // begin at root, traverse down to branch
-	//{
-	//	vec4 branch_orientation = tree.branches[hierarchyAttribute[i]].orientation;
-	//	vec3 branch_origin      = tree.branches[hierarchyAttribute[i]].origin;
+	// initial properties of branch
+	vec3 branch_origin   = tree.branches[hierarchyAttribute[0]].origin;
+	vec4 branch_orientation = tree.branches[hierarchyAttribute[0]].orientation;
 
-	//	// TODO run simulation
+	float vertex_dist = length(positionAttribute.xyz);
+	vec3  vertex_dir = normalize(positionAttribute.xyz);
+	vec3  vertex_pos = branch_origin + applyQuat(branch_orientation, positionAttribute.xyz);
 
-	//	//object_space_origin   = object_space_origin + applyQuat(branch_origin, object_space_rotation);
-	//	//object_space_rotation = multQuat(branch_orientation, object_space_rotation);
+	// vec4 branch_orientation_offset = bendBranch(
+	// 	vertex_pos,
+	// 	branch_origin,
+	// 	0.0,
+	// 	windDirection,
+	// 	windPower
+	// 	);
 
-	//	object_space_origin   = object_space_origin;
-	//	object_space_rotation = multQuat(branch_orientation, object_space_rotation);
-	//}
+	// // vec4 branch_orientation_offset = quatAxisAngle( vec3(0,0,1), branchSwayPowerA * cos(simTime));
 
-	//// move vertex to final position
-	//vec4 orientation = tree.branches[ hierarchyAttribute.x ].orientation; // rotation relative to parent branch
-	//orientation = multQuat( orientation, object_space_rotation );
+	// vertex_pos = applyQuat( branch_orientation_offset , vertex_pos - branch_origin) + branch_origin;
 
-	//vec3 object_space_pos = object_space_origin + applyQuat(positionAttribute.xyz, object_space_rotation);
-	
-	object_space_rotation = tree.branches[hierarchyAttribute[0]].orientation;
-	object_space_origin   = tree.branches[hierarchyAttribute[0]].origin;
-	vec3 object_space_pos = object_space_origin + applyQuat(object_space_rotation, positionAttribute.xyz);
-	//vec3 object_space_pos = object_space_origin + positionAttribute.xyz;
+	for (int i = 0; i <= numParents; i++) //not trunk
+	{	
+		//simulated properties of parent
+		vec4 parent_orientation_offset = vec4(0,0,0,1);
+		vec4 parent_orientation = vec4(0,0,0,1);
+		vec3 parent_origin = vec3(0,0,0);
 
-	vec4 pos = vec4( object_space_pos ,1.0);
-	
+		if ( hierarchyAttribute[i] != 0 && i != numParents )
+		
+		{
+			parent_origin      = tree.branches[hierarchyAttribute[i]].origin;
+
+		parent_orientation_offset = bendBranch(
+			vertex_pos,
+			parent_origin,
+			0.0,
+			windDirection,
+			windPower
+			);
+		}
+		// vec4 parent_orientation_offset = quatAxisAngle( vec3(0,0,1), branchSwayPowerA *  cos(simTime));
+		
+		vertex_pos = applyQuat(parent_orientation_offset, vertex_pos - parent_origin) + parent_origin;
+	}
+		
+	vec4 final_pos = vec4(vertex_pos, 1.0);
+
 	//vec4 pos = positionAttribute;
-	vec4 worldPos = model * pos;
+	vec4 worldPos = model * final_pos;
 
     passWorldPosition = worldPos.xyz;
     passPosition = (view * worldPos).xyz;
     
-    gl_Position =  projection * view * model * pos;
+    gl_Position =  projection * view * model * final_pos;
 
     passWorldNormal = normalize( ( transpose( inverse( model ) ) * normalAttribute).xyz );
 	passNormal = normalize( ( transpose( inverse( view * model ) ) * normalAttribute ).xyz );
