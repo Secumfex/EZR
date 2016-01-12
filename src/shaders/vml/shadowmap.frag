@@ -1,6 +1,6 @@
 #version 330
 
-layout(location = 0) out float fragmentdepth;
+layout(location = 1) out float fragmentdepth;
 
 void main() {
     // just take the depth of the fragment
