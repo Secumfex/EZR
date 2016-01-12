@@ -113,6 +113,16 @@ public:
     /**@brief Deconstructor*/
     ~TruncatedCone();
 
+    struct VertexData
+    { 
+        std::vector<unsigned int> indices;
+        std::vector<float> positions;
+        std::vector<float> uv_coords;
+        std::vector<float> normals;
+    };
+	static VertexData generateVertexData(float height, float radius_bottom, float radius_top, int resolution, float offset_y, GLenum drawMode = GL_TRIANGLE_STRIP);
+
+
     void draw() override; //!< draws the sphere
 
 protected:

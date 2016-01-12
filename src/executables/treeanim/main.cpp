@@ -28,7 +28,7 @@
 ////////////////////// PARAMETERS /////////////////////////////
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 
-static glm::vec4 s_color = glm::vec4(0.45 * 0.3f, 0.44f * 0.3f, 0.87f * 0.3f, 1.0f); // far : blueish
+static glm::vec4 s_color = glm::vec4(107.0f / 255.0f , 68.0f / 255.0f , 35.0f /255.0f, 1.0f); // far : brown
 static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
 
 static float s_wind_angle = 45.0f;
@@ -38,10 +38,6 @@ static float s_wind_power = 1.0f;
 
 static float s_strength = 1.0f;
 static bool  s_isRotating = false;
-
-static float s_branchSuppressPower = 0.5f;
-static float s_branchSwayPowerA	   = 1.0f; 
-static float s_branchSwayPowerB    = 1.0f; 
 
 static float s_simulationTime = 0.0f;
 
@@ -172,16 +168,19 @@ int main()
 		
 		std::vector<unsigned int> indices;
 		std::vector<float> vertices;
+		std::vector<float> normals;
+		std::vector<float> uv_coords;
+
 		std::vector<unsigned int> hierarchy;
 
-		auto addVert = [&]( glm::vec3& vert)
-		{
-			vertices.push_back(vert.x);
-			vertices.push_back(vert.y);
-			vertices.push_back(vert.z);
+		//auto addVert = [&]( glm::vec3& vert)
+		//{
+		//	vertices.push_back(vert.x);
+		//	vertices.push_back(vert.y);
+		//	vertices.push_back(vert.z);
 
-			indices.push_back(indices.size());
-		};
+		//	indices.push_back(indices.size());
+		//};
 
 		auto addHierarchy = [&] (TreeAnimation::Tree::Branch* b) // wow this is ugly
 		{
@@ -209,25 +208,25 @@ int main()
 
 		std::function<void(TreeAnimation::Tree::Branch*)> addBranchRecursively = [&](TreeAnimation::Tree::Branch* b)
 		{
-			//addVert(b->origin);
-			//glm::vec3 end = b->origin + b->direction * b->length;
-			//addVert(end);
+			TruncatedCone::VertexData coneVertexData = TruncatedCone::generateVertexData(b->length, b->thickness / 2.0f, 0.0f, 5, 0.1f, GL_TRIANGLES);
+
+			for ( int i = 0; i < coneVertexData.positions.size() / 3; i++)
+			{
+				// add hierarchy for each vertex
+				addHierarchy(b);
+			}
+
+			// adjust indices by adding offset of all vertex indices up until now
+			for (int i = 0; i < coneVertexData.indices.size(); i++)
+			{
+				coneVertexData.indices[i] += vertices.size() / 3 + 1;
+			}
+
+			indices.insert(indices.end(), coneVertexData.indices.begin(), coneVertexData.indices.end());
+			vertices.insert(vertices.end(), coneVertexData.positions.begin(), coneVertexData.positions.end());
+			uv_coords.insert(uv_coords.end(), coneVertexData.uv_coords.begin(), coneVertexData.uv_coords.end());
+			normals.insert(normals.end(), coneVertexData.normals.begin(), coneVertexData.normals.end());
 			
-			addVert(glm::vec3(0.0f, 0.01f, 0.0f));
-			glm::vec3 end = glm::vec3(0.0f, b->length, 0.0f);
-			addVert(end);
-
-			// add hierarchy twice (once for each vertex)
-			addHierarchy(b);
-			addHierarchy(b);
-
-			//DEBUGLOG->log("h0 :", hierarchy[ hierarchy.size() - 6 ]);
-			//DEBUGLOG->log("h1 :", hierarchy[ hierarchy.size() - 5 ]);
-			//DEBUGLOG->log("h2 :", hierarchy[ hierarchy.size() - 4 ]);
-			//DEBUGLOG->log("h0 :", hierarchy[ hierarchy.size() - 3 ]);
-			//DEBUGLOG->log("h1 :", hierarchy[ hierarchy.size() - 2 ]);
-			//DEBUGLOG->log("h2 :", hierarchy[ hierarchy.size() - 1 ]);
-
 			for ( auto subB : b->children)
 			{
 				addBranchRecursively(subB);
@@ -241,16 +240,20 @@ int main()
 
 		renderable->m_positions.m_vboHandle = Renderable::createVbo(vertices, 3, 0);
 		renderable->m_positions.m_size = vertices.size() / 3;
+
+		renderable->m_uvs.m_vboHandle = Renderable::createVbo(uv_coords, 2, 1);
+		renderable->m_uvs.m_size = uv_coords.size() / 2;
+
+		renderable->m_normals.m_vboHandle = Renderable::createVbo(normals, 3, 2);
+		renderable->m_normals.m_size = normals.size() / 3;
+
 		renderable->m_indices.m_vboHandle = Renderable::createIndexVbo(indices);
 		renderable->m_indices.m_size = indices.size();
 
 		// add another vertex attribute which contains the tree hierarchy
 		Renderable::createVbo<unsigned int>(hierarchy, 3, 4, GL_UNSIGNED_INT, true); 
 
-		//glPointSize(5.0f);
-		//renderable->setDrawMode(GL_POINTS);
-
-		renderable->setDrawMode(GL_LINES);
+		renderable->setDrawMode(GL_TRIANGLES);
 		
 		glBindVertexArray(0); 
 
@@ -482,8 +485,6 @@ int main()
 			// orientation is computed from object space direction relative to optimal branch axis
 			glm::quat orientation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), branches[i]->direction);
 			glm::vec4 quatAsVec4 = glm::vec4(orientation.x, orientation.y, orientation.z, orientation.w);
-			//DEBUGLOG->log("recovered: ", quatAsVec4);
-
 			shaderProgram.update(prefix + "orientation", quatAsVec4);
 
 			int parentIdx = 0; if ( branches[i]->parent != nullptr) {parentIdx = branches[i]->parent->idx;}
