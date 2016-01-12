@@ -33,6 +33,7 @@ static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
 
 static float s_wind_angle = 45.0f;
 static glm::vec3 s_wind_direction = glm::rotateY(glm::vec3(1.0f,0.0f,0.0f), glm::radians(s_wind_angle));
+static glm::mat4 s_wind_rotation = glm::mat4(1.0f);
 static float s_wind_power = 1.0f;
 
 static float s_strength = 1.0f;
@@ -107,7 +108,7 @@ int main()
 	std::vector<TreeAnimation::Tree::Branch* > branches; // branches, indexed
 	branches.push_back(&tree.m_trunk);
 	
-	for ( int i = 0; i < 5; i++)
+	for ( int i = 0; i < 7; i++)
 	{
 		auto branch = addRandomBranch(
 			&tree,
@@ -115,11 +116,11 @@ int main()
 			0.50f,
 			tree.m_trunk.length / 2.0f,
 			tree.m_trunk.length / 4.0f,
-			glm::radians(-25.0f),
-			glm::radians(25.0f));
+			glm::radians(40.0f),
+			glm::radians(50.0f));
 		branches.push_back(branch);
 
-		for ( int j = 0; j < 5; j++)
+		for ( int j = 0; j < 3; j++)
 		{
 			auto subBranch = addRandomBranch(
 				&tree,
@@ -127,8 +128,8 @@ int main()
 				0.1f,
 				branch->length / 2.0f,
 				branch->length / 8.0f,
-				glm::radians(-25.0f),
-				glm::radians(25.0f));
+				glm::radians(40.0f),
+				glm::radians(50.0f));
 				branches.push_back(subBranch);
 		}
 	}
@@ -288,7 +289,7 @@ int main()
 	 shaderProgram.update("view", view);
 	 shaderProgram.update("projection", perspective);
 	 
-	 shaderProgram.printUniformInfo();
+	 //shaderProgram.printUniformInfo();
 	 //shaderProgram.printInputInfo();
 	 DEBUGLOG->outdent();
 
@@ -413,16 +414,17 @@ int main()
 		ImGui::PushItemWidth(-125);
 		
 		ImGui::SliderFloat("windDirection", &s_wind_angle, 0.0f, 360.0f); 
+		ImGui::SliderFloat("windPower", &s_wind_power, 0.0f, 4.0f); 
 
 		static glm::vec3 angleshifts[3] ={glm::vec3(0.0),glm::vec3(0.0),glm::vec3(0.0)};
-		ImGui::SliderFloat3("vAngleShifts1", glm::value_ptr( angleshifts[0]), -1.0f, 1.0f);
-		ImGui::SliderFloat3("vAngleShifts2", glm::value_ptr( angleshifts[1]), -1.0f, 1.0f);
-		ImGui::SliderFloat3("vAngleShifts3", glm::value_ptr( angleshifts[2]), -1.0f, 1.0f);
+		ImGui::SliderFloat3("vAngleShiftFront", glm::value_ptr( angleshifts[0]), -1.0f, 1.0f);
+		ImGui::SliderFloat3("vAngleShiftBack", glm::value_ptr( angleshifts[1]), -1.0f, 1.0f);
+		ImGui::SliderFloat3("vAngleShiftSide", glm::value_ptr( angleshifts[2]), -1.0f, 1.0f);
 		
 		static glm::vec3 amplitudes[3] = {glm::vec3(1.0),glm::vec3(1.0),glm::vec3(1.0)};
-		ImGui::SliderFloat3("vAmplitudes1", glm::value_ptr( amplitudes[0]), -1.0f, 1.0f);
-		ImGui::SliderFloat3("vAmplitudes2", glm::value_ptr( amplitudes[1]), -1.0f, 1.0f);
-		ImGui::SliderFloat3("vAmplitudes3", glm::value_ptr( amplitudes[2]), -1.0f, 1.0f); 
+		ImGui::SliderFloat3("vAmplitudesFront", glm::value_ptr( amplitudes[0]), -1.0f, 1.0f);
+		ImGui::SliderFloat3("vAmplitudesBack", glm::value_ptr( amplitudes[1]), -1.0f, 1.0f);
+		ImGui::SliderFloat3("vAmplitudesSide", glm::value_ptr( amplitudes[2]), -1.0f, 1.0f); 
 		
 		static glm::vec3 frequencies(1.0f);
 		ImGui::SliderFloat3("fFrequencies", glm::value_ptr( frequencies), 0.0f, 3.0f); 
@@ -430,7 +432,6 @@ int main()
 		static float tree_phase = 0.0f;
 		ImGui::SliderFloat("treePhase", &tree_phase, 0.0, glm::two_pi<float>());
 		
-
 		ImGui::PopItemWidth();
         //////////////////////////////////////////////////////////////////////////////
 
@@ -440,26 +441,30 @@ int main()
 				
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
 		// update view related uniforms
-		shaderProgram.update( "view", view);
+		shaderProgram.update( "view",  view);
 		shaderProgram.update( "color", s_color);
 		shaderProgram.update( "model", turntable.getRotationMatrix() * model);
 
 		shaderProgram.update("simTime", s_simulationTime);
 		s_wind_direction = glm::rotateY(glm::vec3(1.0f,0.0f,0.0f), glm::radians(s_wind_angle));
 		shaderProgram.update( "windDirection", s_wind_direction);
-
-
-		shaderProgram.update("vAngleShifts1", angleshifts[0]); //front
-		shaderProgram.update("vAngleShifts2", angleshifts[1]); //back
-		shaderProgram.update("vAngleShifts3", angleshifts[2]); //side
 		
-		shaderProgram.update("vAmplitudes1", amplitudes[0]); //front
-		shaderProgram.update("vAmplitudes2", amplitudes[1]); //back
-		shaderProgram.update("vAmplitudes3", amplitudes[2]); //side
+		glm::vec3 windTangent = glm::vec3(-s_wind_direction.z, s_wind_direction.y, s_wind_direction.x);
+		float animatedWindPower = sin(s_simulationTime) * (s_wind_power / 2.0f) + s_wind_power / 2.0f; 
+		s_wind_rotation = glm::rotate(glm::mat4(1.0f), (animatedWindPower / 2.0f), windTangent);
+		shaderProgram.update( "windRotation" , s_wind_rotation); 
+
+		shaderProgram.update("vAngleShiftFront", angleshifts[0]); //front
+		shaderProgram.update("vAngleShiftBack", angleshifts[1]); //back
+		shaderProgram.update("vAngleShiftSide", angleshifts[2]); //side
 		
-		shaderProgram.update("fFrequencies1", frequencies.x); //front
-		shaderProgram.update("fFrequencies2", frequencies.y); //back
-		shaderProgram.update("fFrequencies3", frequencies.z); //side
+		shaderProgram.update("vAmplitudesFront", amplitudes[0]); //front
+		shaderProgram.update("vAmplitudesBack", amplitudes[1]); //back
+		shaderProgram.update("vAmplitudesSide", amplitudes[2]); //side
+		
+		shaderProgram.update("fFrequencyFront", frequencies.x); //front
+		shaderProgram.update("fFrequencyBack", frequencies.y); //back
+		shaderProgram.update("fFrequencySide", frequencies.z); //side
 
 		shaderProgram.update("tree.phase", tree_phase); //front
 
@@ -471,8 +476,8 @@ int main()
 			shaderProgram.update(prefix + "origin", branches[i]->origin);
 			
 			float branch_phase = float(i) / branches.size();
-			shaderProgram.update(prefix + "phase", branch_phase);
-			shaderProgram.update(prefix + "pseudoInertiaFactor", branch_phase);
+			shaderProgram.update(prefix + "phase", 0.0f);
+			shaderProgram.update(prefix + "pseudoInertiaFactor", 1.0f);
 			
 			// orientation is computed from object space direction relative to optimal branch axis
 			glm::quat orientation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), branches[i]->direction);

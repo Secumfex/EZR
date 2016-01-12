@@ -4,10 +4,6 @@
 #define MAX_NUM_BRANCHES 35
 #define EPSILON 0.0000001
 #define PI 3.1415926535897932384626433832795
-//#define RULE_FRONT 0
-//#define RULE_BACK 1
-//#define RULE_SIDE 2
-//#define MAX_RULES 3
 
 struct Branch
 {
@@ -41,17 +37,18 @@ uniform mat4 projection;
 uniform float simTime; //!< used for noise function
 
 uniform vec3  windDirection; // global wind direction
+uniform mat4  windRotation; // global wind rotation (weighed with wind power)
 
-// Input parameters for simulation
-uniform vec3 vAngleShifts1;
-uniform vec3 vAngleShifts2;
-uniform vec3 vAngleShifts3; 
-uniform vec3 vAmplitudes1;
-uniform vec3 vAmplitudes2;
-uniform vec3 vAmplitudes3;
-uniform float fFrequencies1;
-uniform float fFrequencies2;
-uniform float fFrequencies3;
+// Input parameters for simulation (for some reason array of vecs doesn't work)
+uniform vec3 vAngleShiftFront;
+uniform vec3 vAngleShiftBack;
+uniform vec3 vAngleShiftSide; 
+uniform vec3 vAmplitudesFront;
+uniform vec3 vAmplitudesBack;
+uniform vec3 vAmplitudesSide;
+uniform float fFrequencyFront;
+uniform float fFrequencyBack;
+uniform float fFrequencySide;
 
 uniform Tree tree; //!< the whole tree hierarchy
 
@@ -195,24 +192,24 @@ vec4 bendBranch( vec3 pos,           // object space
 
 	// calculate parameters for simualation rules
 	float t = dota * 0.5f + 0.5f;
-	vec3 amplitudes  = mix(vAmplitudes2, vAmplitudes1, t);
-	vec3 angleShifts = mix(vAngleShifts2, vAngleShifts1, t);
+	vec3 amplitudes  = mix(vAmplitudesBack, vAmplitudesFront, t);
+	vec3 angleShift = mix(vAngleShiftBack, vAngleShiftFront, t);
 	
 	float amplitude0  = mix3(amplitudes.x, amplitudes.y, amplitudes.z, pseudoInertiaFactor);
-	float angleShift0 = mix3(angleShifts.x, angleShifts.y, angleShifts.z, pseudoInertiaFactor);
+	float angleShift0 = mix3(angleShift.x, angleShift.y, angleShift.z, pseudoInertiaFactor);
 
 	float frequency0 = 1.0;
 	if (dota > 0)
 	{
-		frequency0 = fFrequencies1;
+		frequency0 = fFrequencyFront;
 	}
 	else
 	{
-		 frequency0 = fFrequencies2;
+		 frequency0 = fFrequencyBack;
 	}
-	float amplitude1 = vAmplitudes3.y;
-	float angleShift1 = vAngleShifts3.y * dotb;
-	float frequency1 = fFrequencies3;
+	float amplitude1 = vAmplitudesSide.y;
+	float angleShift1 = vAngleShiftSide.y * dotb;
+	float frequency1 = fFrequencySide;
 
 	// cacluate quaternion representing bending of the branch due to wind load
 	// along direction of the wind
@@ -282,7 +279,7 @@ void main(){
 		vertex_pos = mix(vertex_pos, new_pos, branch_weight);
 	}
 
-	vec4 final_pos = vec4(vertex_pos, 1.0);
+	vec4 final_pos = windRotation * vec4(vertex_pos, 1.0);
 
 	vec4 worldPos = model * final_pos;
 
