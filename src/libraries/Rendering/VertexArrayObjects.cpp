@@ -509,7 +509,8 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
     m_uvs.m_vboHandle = uvBuffer;
     m_indices.m_vboHandle = indexBuffer;
 
-    m_mode = GL_TRIANGLE_STRIP;
+    //m_mode = GL_TRIANGLE_STRIP;
+    m_mode = GL_PATCHES;
     
 
     std::vector<float> positions( ((fieldsX+1) * (fieldsY+1))*3, 0.0f );

@@ -64,8 +64,8 @@ int main()
 
 
 	std::vector<Renderable* > objects;
-	//objects.push_back(new Sphere( 20, 40, object_size ) );
 	objects.push_back(new Grid( 1,1, ground_size, ground_size, true ));
+	//objects.push_back(new Sphere( 20, 40, object_size ) );
 	//objects.push_back(new Grid( 1,1, bb_width, bb_height, false ) ); // origin bottom left
 	//objects.push_back(new Volume( object_size * 4.0f, object_size * 3.0f, object_size ) ); //box
 	//objects.push_back(new Sphere( 20, 40, object_size * 1.5f ) );
@@ -78,26 +78,32 @@ int main()
 
 	DEBUGLOG->log("Setup: model matrices"); DEBUGLOG->indent();
 	std::vector<glm::mat4 > modelMatrices;
-	//modelMatrices.resize(5);
 	modelMatrices.resize(1);
-	//modelMatrices[0] = glm::translate( glm::mat4(1.0f), glm::vec3(0.0f,-0.25f,0.0f) ); // sphere 
 	modelMatrices[0] = glm::translate( glm::mat4(1.0f), glm::vec3(0.0f,-0.5f,0.0f) ) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0) );
+	glm::mat4 model = modelMatrices[0];
+	DEBUGLOG->outdent();
+
+	//modelMatrices.resize(5);
+	//modelMatrices[0] = glm::translate( glm::mat4(1.0f), glm::vec3(0.0f,-0.25f,0.0f) ); // sphere 
 	//modelMatrices[1] = glm::translate( glm::mat4(1.0f), glm::vec3(0.0f,-0.5f,0.0f) ) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0) );
 	//modelMatrices[2] = glm::translate( glm::mat4(1.0f), glm::vec3(- 0.5f * bb_width,0.0f,0.0f) ); // billboard
 	//modelMatrices[3] = glm::translate( glm::mat4(1.0f), glm::vec3(0.5f, 0.4f,1.1f) ); // sphere 
 	//modelMatrices[4] = glm::translate( glm::mat4(1.0f), glm::vec3(-1.0f, 0.5f,-0.5f) ) * glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f,1.0,0.0) ); // sphere 
-	glm::mat4 model = modelMatrices[0];
-	DEBUGLOG->outdent();
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
 	// regular GBuffer
 	DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
-	// Maybe use other shaders here?
+	// TODO 
+	// in and outs fix
 	//ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag", "/tessellation/tc.tesc", "/tessellation/te.tese"); DEBUGLOG->outdent();
-	ShaderProgram shaderProgram("/modelSpace/modelViewProjection.vert", "/modelSpace/simpleLighting.frag", "/tessellation/tc.tesc", "/tessellation/te.tese"); DEBUGLOG->outdent();
+	ShaderProgram shaderProgram("/modelSpace/modelViewProjection.vert", "/tessellation/tess.frag", "/tessellation/tc.tesc", "/tessellation/te.tese", "/tessellation/tess_geom.geom"); DEBUGLOG->outdent();//
+	//ShaderProgram shaderProgram("/modelSpace/modelViewProjection.vert", "/tessellation/test.frag"); DEBUGLOG->outdent();
 	shaderProgram.update("model", model);
 	shaderProgram.update("view", view);
-	//shaderProgram.update("projection", perspective);
+	shaderProgram.update("projection", perspective);
+	shaderProgram.update("tessLevelInner", 4.0f );
+	shaderProgram.update("tessLevelOuter", 4.0f );
+
 
 	//DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
 	//FrameBufferObject fbo(getResolution(window).x, getResolution(window).y);
@@ -111,14 +117,13 @@ int main()
 
 	Quad quad;
 
-
 	DEBUGLOG->log("RenderPass Creation: GBuffer"); DEBUGLOG->indent();
 	//RenderPass renderPass(&shaderProgram, &fbo);
 	RenderPass renderPass(&shaderProgram, 0);
 	renderPass.addEnable(GL_DEPTH_TEST);
 	// renderPass.addEnable(GL_BLEND);
 	renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	renderPass.setClearColor(0.40,0.0,0.0,0.0);
+	renderPass.setClearColor(0.0, 0.0, 0.4,0.0);
 	renderPass.addRenderable(&quad);
 	for (auto r : objects){renderPass.addRenderable(r);}
 
@@ -306,8 +311,10 @@ int main()
 				
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
 		// update view related uniforms
-		shaderProgram.update( "color", s_color);
+		//shaderProgram.update( "color", s_color);
 		shaderProgram.update( "view", view);
+	shaderProgram.update("tessLevelOuter", 4.0f );
+
 
 		//ssrShader.update( "view", view);
 		//ssrShader.update( "strength", s_strength);
@@ -320,9 +327,7 @@ int main()
 		renderPass.render();
 
 		//compositing.render();
-
 		//ssrRenderPass.render();
-
 		//simpleTexture.render();
 
 		ImGui::Render();

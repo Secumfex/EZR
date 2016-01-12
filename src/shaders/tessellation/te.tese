@@ -2,6 +2,7 @@
 layout(triangles, equal_spacing, cw) in;
 
 in vec3 tcPosition[];
+
 out vec3 tePosition;
 out vec3 tePatchDistance;
 

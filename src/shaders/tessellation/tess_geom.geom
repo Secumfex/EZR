@@ -1,3 +1,5 @@
+#version 430
+
 uniform mat4 Modelview;
 uniform mat3 NormalMatrix;
 

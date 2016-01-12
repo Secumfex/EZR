@@ -40,7 +40,7 @@ public:
 	 * @param geometryshader path to the geometryshader
 	 * 
 	 */
-	ShaderProgram(std::string vertexshader, std::string fragmentshader, std::string tessellationcontrollshader, std::string tessellationevaluationshader);
+	ShaderProgram(std::string vertexshader, std::string fragmentshader, std::string tessellationcontrollshader, std::string tessellationevaluationshader, std::string geometryshader);
 
 
 	/**
