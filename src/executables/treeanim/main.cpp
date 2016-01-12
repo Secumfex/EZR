@@ -58,7 +58,7 @@ int main()
 	DEBUGLOG->log("Setup: generating trees"); DEBUGLOG->indent();
 
 	float tree_height = 4.0f;
-	float tree_width = 1.0f;
+	float tree_width = tree_height / 10.0f;
 	float tree_stiffness = TreeAnimation::Tree::computeStiffness(tree_width, tree_width, tree_height, TreeAnimation::E_RED_OAK);
 	TreeAnimation::Tree tree( tree_width, tree_height, tree_stiffness );
 
@@ -162,110 +162,75 @@ int main()
 	/////////////////////    generate Tree Renderable    //////////////////////////
 	DEBUGLOG->log("Setup: generating renderables"); DEBUGLOG->indent();
 
-	auto generateRenderableFromTree = []( TreeAnimation::Tree& tree)
+	auto generateRenderable = [&](TreeAnimation::Tree::Branch* branch)
 	{
-		Renderable* renderable = new Renderable();
-		
-		std::vector<unsigned int> indices;
-		std::vector<float> vertices;
-		std::vector<float> normals;
-		std::vector<float> uv_coords;
+		//TruncatedCone::VertexData coneVertexData = TruncatedCone::generateVertexData(branch->length, branch->thickness / 2.0f, 0.0f, 5, 0.0f, GL_TRIANGLE_STRIP);
+
+		//Renderable* renderable = new Renderable();
+
+	 //   glGenVertexArrays(1, &renderable->m_vao);
+		//glBindVertexArray(renderable->m_vao);
+
+		//renderable->m_positions.m_vboHandle = Renderable::createVbo(coneVertexData.positions, 3, 0);
+		//renderable->m_positions.m_size = coneVertexData.positions.size() / 3;
+
+		//renderable->m_uvs.m_vboHandle = Renderable::createVbo(coneVertexData.uv_coords, 2, 1);
+		//renderable->m_uvs.m_size = coneVertexData.uv_coords.size() / 2;
+
+		//renderable->m_normals.m_vboHandle = Renderable::createVbo(coneVertexData.normals, 3, 2);
+		//renderable->m_normals.m_size = coneVertexData.normals.size() / 3;
+
+		//renderable->m_indices.m_vboHandle = Renderable::createIndexVbo(coneVertexData.indices);
+		//renderable->m_indices.m_size = coneVertexData.indices.size();
+
+		// generate regular Truncated Cone
+		Renderable* renderable = new TruncatedCone( branch->length, branch->thickness / 2.0f, 0.0f, 20, 0.0f);
+		renderable->bind();
 
 		std::vector<unsigned int> hierarchy;
-
-		//auto addVert = [&]( glm::vec3& vert)
-		//{
-		//	vertices.push_back(vert.x);
-		//	vertices.push_back(vert.y);
-		//	vertices.push_back(vert.z);
-
-		//	indices.push_back(indices.size());
-		//};
-
 		auto addHierarchy = [&] (TreeAnimation::Tree::Branch* b) // wow this is ugly
 		{
 			// first index is always this branch's index
 			hierarchy.push_back(b->idx);
 		
-			if ( b->parent != nullptr )
-			{
+			if ( b->parent != nullptr ){
 				hierarchy.push_back(b->parent->idx); // parent branch
-				if ( b->parent->parent != nullptr)
-				{
+				if ( b->parent->parent != nullptr){
+					hierarchy.push_back(0); // trunk
+				}else{
 					hierarchy.push_back(0); // trunk
 				}
-				else
-				{
-					hierarchy.push_back(0); // trunk
-				}
-			}
-			else
-			{
+			}else{
 				hierarchy.push_back(0); // trunk
 				hierarchy.push_back(0); // trunk
-			}
-		};
+			}};
 
-		std::function<void(TreeAnimation::Tree::Branch*)> addBranchRecursively = [&](TreeAnimation::Tree::Branch* b)
+		for ( int i = 0; i < renderable->m_positions.m_size; i++)
 		{
-			TruncatedCone::VertexData coneVertexData = TruncatedCone::generateVertexData(b->length, b->thickness / 2.0f, 0.0f, 5, 0.1f, GL_TRIANGLES);
-
-			for ( int i = 0; i < coneVertexData.positions.size() / 3; i++)
-			{
-				// add hierarchy for each vertex
-				addHierarchy(b);
-			}
-
-			// adjust indices by adding offset of all vertex indices up until now
-			for (int i = 0; i < coneVertexData.indices.size(); i++)
-			{
-				coneVertexData.indices[i] += vertices.size() / 3 + 1;
-			}
-
-			indices.insert(indices.end(), coneVertexData.indices.begin(), coneVertexData.indices.end());
-			vertices.insert(vertices.end(), coneVertexData.positions.begin(), coneVertexData.positions.end());
-			uv_coords.insert(uv_coords.end(), coneVertexData.uv_coords.begin(), coneVertexData.uv_coords.end());
-			normals.insert(normals.end(), coneVertexData.normals.begin(), coneVertexData.normals.end());
-			
-			for ( auto subB : b->children)
-			{
-				addBranchRecursively(subB);
-			}
-		};
-
-		addBranchRecursively( &tree.m_trunk );
-
-	    glGenVertexArrays(1, &renderable->m_vao);
-		glBindVertexArray(renderable->m_vao);
-
-		renderable->m_positions.m_vboHandle = Renderable::createVbo(vertices, 3, 0);
-		renderable->m_positions.m_size = vertices.size() / 3;
-
-		renderable->m_uvs.m_vboHandle = Renderable::createVbo(uv_coords, 2, 1);
-		renderable->m_uvs.m_size = uv_coords.size() / 2;
-
-		renderable->m_normals.m_vboHandle = Renderable::createVbo(normals, 3, 2);
-		renderable->m_normals.m_size = normals.size() / 3;
-
-		renderable->m_indices.m_vboHandle = Renderable::createIndexVbo(indices);
-		renderable->m_indices.m_size = indices.size();
+			addHierarchy(branch); // add hierarchy once for every vertex
+		}
 
 		// add another vertex attribute which contains the tree hierarchy
 		Renderable::createVbo<unsigned int>(hierarchy, 3, 4, GL_UNSIGNED_INT, true); 
-
-		renderable->setDrawMode(GL_TRIANGLES);
 		
 		glBindVertexArray(0); 
 
 		return renderable;
 	};
 
-	glLineWidth(5.0f); // chunky lines
-
+	// generate one renderable per branch
+	std::function<void(TreeAnimation::Tree::Branch*, std::vector<Renderable*>&)> generateRenderables = [&](
+		TreeAnimation::Tree::Branch* branch, std::vector<Renderable*>& renderables)
+	{
+		renderables.push_back( generateRenderable(branch));
+		for (int i = 0; i < branch->children.size(); i++)
+		{
+			generateRenderables(branch->children[i], renderables);
+		}
+	};
+	
 	std::vector<Renderable*> objects;
-	Renderable* renderable = generateRenderableFromTree(tree);
-	//Renderable* renderable = new TruncatedCone( 1.0f, 1.0f, 0.2f);
-	objects.push_back(renderable);
+	generateRenderables(&tree.m_trunk, objects);
 	
 	DEBUGLOG->outdent();
 	//////////////////////////////////////////////////////////////////////////////
