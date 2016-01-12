@@ -243,8 +243,8 @@ void main(){
 	vec3 branch_origin   = tree.branches[hierarchyAttribute[0]].origin;
 	vec4 branch_orientation = tree.branches[hierarchyAttribute[0]].orientation;
 
-	float vertex_dist = length(positionAttribute.xyz);
-	vec3  vertex_dir = normalize(positionAttribute.xyz);
+	//float vertex_dist = length(positionAttribute.xyz);
+	//vec3  vertex_dir = normalize(positionAttribute.xyz);
 	vec3  vertex_pos = branch_origin + applyQuat(branch_orientation, positionAttribute.xyz);
 
 	float tree_phase = tree.phase;

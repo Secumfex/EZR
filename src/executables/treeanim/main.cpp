@@ -64,7 +64,7 @@ int main()
 
 	// generate a tree randomly
 	srand (time(NULL));	
-	auto addRandomBranch = [&](TreeAnimation::Tree* tree, TreeAnimation::Tree::Branch* parent, float rPosMin, float rLengthMax, float rLengthMin, float rPitchMin, float rPitchMax)
+	auto addRandomBranch = [&](TreeAnimation::Tree* tree, TreeAnimation::Tree::Branch* parent, float rPosMin, float rPosMax, float rLengthMax, float rLengthMin, float rPitchMin, float rPitchMax)
 	{
 		// randomization values
 		float r1 = ((float) rand()) / ((float) RAND_MAX);
@@ -73,7 +73,7 @@ int main()
 		float rPitchAngle = ( r2 * (rPitchMax - rPitchMin) ) + rPitchMin; // should be between 0° and 180°
 		float rYawAngle = ((float) rand()) / ((float) RAND_MAX) * 2.f * glm::pi<float>() - glm::pi<float>(); //between -180° and 180°
 		// float rYawAngle = 0.0f;
-		float rPos = (((float) rand()) / ((float) RAND_MAX) * (1.0f - rPosMin)) + rPosMin ;
+		float rPos = (((float) rand()) / ((float) RAND_MAX) * (rPosMax - rPosMin)) + rPosMin ;
 
 		// optimal: 90° to parent, assuming parent is pointing in (0,1,0) in object space
 		glm::vec3 optimalDirection = glm::vec3(1.0f,0.0f,0.0f);
@@ -82,6 +82,7 @@ int main()
 		// retrieve object-space orientation of parent
 		glm::vec3 parentDirection= parent->direction;
 		glm::quat parentRotation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), parent->direction);
+		float thickness = (1.0f - rPos) * parent->thickness * 0.5f; 
 		
 		// apply parent orientation to this branch direction
 		rDirection = (glm::rotate(parentRotation, rDirection));
@@ -91,10 +92,10 @@ int main()
 			parent,
 			rDirection,
 			rPos,
-			rPos * parent->thickness,
+			thickness,
 			rLength,
 			TreeAnimation::Tree::computeStiffness( 
-				rPos * parent->thickness,
+				(1.0f - rPos) * parent->thickness,
 				(1.0f - rPos) * parent->thickness,
 				rLength,
 				tree->m_E)
@@ -110,6 +111,7 @@ int main()
 			&tree,
 			&tree.m_trunk,
 			0.50f,
+			0.75f,
 			tree.m_trunk.length / 2.0f,
 			tree.m_trunk.length / 4.0f,
 			glm::radians(40.0f),
@@ -118,10 +120,11 @@ int main()
 
 		for ( int j = 0; j < 3; j++)
 		{
-			auto subBranch = addRandomBranch(
+			auto subBranch = addRandomBranch( 
 				&tree,
 				branch,
 				0.1f,
+				0.7f,
 				branch->length / 2.0f,
 				branch->length / 8.0f,
 				glm::radians(40.0f),
