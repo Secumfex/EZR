@@ -1,21 +1,28 @@
 #version 430
 
 // arbitrary size, just to make sure enough memory is allocated
-#define MAX_NUM_BRANCHES 40
+#define MAX_NUM_BRANCHES 35
 #define EPSILON 0.0000001
 #define PI 3.1415926535897932384626433832795
+//#define RULE_FRONT 0
+//#define RULE_BACK 1
+//#define RULE_SIDE 2
+//#define MAX_RULES 3
 
 struct Branch
 {
 	vec3  origin;
 	vec4  orientation;
 	vec3  tangent;
+	float phase;
 	float stiffness;
+	float pseudoInertiaFactor;
 	uint   parentIdx;
 };
 
 struct Tree 
 {
+	float phase;
 	Branch[MAX_NUM_BRANCHES] branches;
 };
 
@@ -31,19 +38,20 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-uniform float strength;
-
 uniform float simTime; //!< used for noise function
-uniform float simTimeWithDelay; //!< used for phase shift or sth?
-uniform float branchMovementRandomization; //!< used for randomization
 
-uniform float delayedWindPower;
 uniform vec3  windDirection; // global wind direction
-uniform float windPower;
 
-uniform float branchSuppressPower; //!< some paramete rdescribing the power of being suppressed by front facing wind (?)
-uniform float branchSwayPowerA; //!< some parameter describing the power of swaying due to front facing wind (?)
-uniform float branchSwayPowerB; //!< some parameter describing the power of swaying due to being perpendicular to wind direction (?)
+// Input parameters for simulation
+uniform vec3 vAngleShifts1;
+uniform vec3 vAngleShifts2;
+uniform vec3 vAngleShifts3; 
+uniform vec3 vAmplitudes1;
+uniform vec3 vAmplitudes2;
+uniform vec3 vAmplitudes3;
+uniform float fFrequencies1;
+uniform float fFrequencies2;
+uniform float fFrequencies3;
 
 uniform Tree tree; //!< the whole tree hierarchy
 
@@ -59,6 +67,15 @@ out VertexData {
 	vec3 position;
 	vec3 normal;
 } VertexOut;
+
+float mix3(float a, float b, float c, float t)
+{
+	return 
+		mix(
+			mix(a, b, clamp(t+1,0.0,1.0)),
+			c,
+			clamp(t,0.0,1.0));
+}
 
 vec4 quatAxisAngle(vec3 axis, float angle)
 { 
@@ -86,7 +103,6 @@ vec4 quatAroundY(float angle)
 	return vec4(0, sinha, 0, cosha);
 }
 
-
 mat3 quatToMatrix( vec4 q)
 {
 	// add: 15 = 6 + 9
@@ -111,11 +127,6 @@ mat3 quatToMatrix( vec4 q)
 			dxz-dwy,		dyz-dwx,		w2-x2-y2+z2 );				
 	return r;
 }
-
-//vec3 applyQuat(vec4 q, vec3 v)
-//{ 
-//	return v + 2.0*cross(cross(v, q.xyz ) + q.w*v, q.xyz);
-//}
 
 vec3 applyQuat(vec4 q, vec3 v)
 {
@@ -167,40 +178,51 @@ vec4 rotation(vec3 orig, vec3 dest)
 		rotationAxis.z * invs);
 }
 
-vec4 bendBranch( vec3 pos,  // branch space
+vec4 bendBranch( vec3 pos,           // object space
                  vec3 branchOrigin,  // object space
-                 // vec3 branchUp,  //object space // what is this for??
-                 float  branchNoise,  
-                 vec3 windDir,  //object space
-                 float  windPow)  
-{  
-	vec3 posInBranchSpace = pos - branchOrigin.xyz;  
+                 vec3 trunkDirection,//object space 
+                 float branchPhase, // this branch's animation phase
+				 float treePhase,
+				 float pseudoInertiaFactor
+		       )  
+{
+	vec3 branchPos = pos - branchOrigin;
+	
+	// determine branch orientation relative to the wind
+	vec3 windTangent = vec3(-windDirection.z, windDirection.y, windDirection.x); 
+	float dota = dot(-normalize(branchPos), windDirection);
+	float dotb = dot(-normalize(branchPos), windTangent);
 
-	// what is this for??
-	// float towardsX = dot(normalize(vec3(posInBranchSpace.x, 0, posInBranchSpace.z)), vec3(1, 0, 0));  
+	// calculate parameters for simualation rules
+	float t = dota * 0.5f + 0.5f;
+	vec3 amplitudes  = mix(vAmplitudes2, vAmplitudes1, t);
+	vec3 angleShifts = mix(vAngleShifts2, vAngleShifts1, t);
 	
-	// describes how much branch and wind are aligned (mind the sign)
-	 float facingWind = dot(normalize(vec3(posInBranchSpace.x, 0, posInBranchSpace.z)), windDir); 
+	float amplitude0  = mix3(amplitudes.x, amplitudes.y, amplitudes.z, pseudoInertiaFactor);
+	float angleShift0 = mix3(angleShifts.x, angleShifts.y, angleShifts.z, pseudoInertiaFactor);
+
+	float frequency0 = 1.0;
+	if (dota > 0)
+	{
+		frequency0 = fFrequencies1;
+	}
+	else
+	{
+		 frequency0 = fFrequencies2;
+	}
+	float amplitude1 = vAmplitudes3.y;
+	float angleShift1 = vAngleShifts3.y * dotb;
+	float frequency1 = fFrequencies3;
+
+	// cacluate quaternion representing bending of the branch due to wind load
+	// along direction of the wind
+	vec4 q0 = quatAxisAngle(windTangent,   angleShift0 + amplitude0 * sin((branchPhase + treePhase + simTime) * frequency0));
 	
-	// compute two values describing the simulation state (aka. fake movement state)
-	float a = branchSwayPowerA * cos(simTime + branchNoise * branchMovementRandomization);          // amp 1 (around branch origin)
-	float b = branchSwayPowerB * cos(simTimeWithDelay + branchNoise * branchMovementRandomization); // amp 2 (around Y-axis)
+	// cacluate quaternion representing bending of the branch perpendicular to main trunk
+	vec4 q1 = quatAxisAngle(trunkDirection, angleShift1 + amplitude1 * sin((branchPhase + treePhase + simTime) * frequency1));
 	
-	// float oldA = a; // save temp (full sway power in wind)
-	// a = -0.5 * a + branchSuppressPower * branchSwayPowerA; // suppress amp1 (reduced sway power in wind)
-	
-	// // final amplitudes, dependent on actual current wind power
-	// b *= windPower;
-	// // interpolate between full power and suppressed power
-	// a = mix(oldA * windPow, a * windPow, delayedWindPower * clamp(1 - facingWind, 0.0, 1.0));
-	
-	// compute orientations
-	vec3 windTangent = vec3(-windDir.z, windDir.y, windDir.x); 
-	vec4 rotation1 = quatAxisAngle(windTangent, a); // rotation away from wind
-	vec4 rotation2 = quatAroundY(b); // rotation around parent
-	
-	// mix 'em 
-	 return normalize(mix(rotation1, rotation2, 1.0 - abs(facingWind)));  
+	// combine bending
+	return normalize(mix(q1, q0, abs(dota))); 
 } 
 
 int countNonZero(uvec3 hierarchy)
@@ -228,46 +250,40 @@ void main(){
 	vec3  vertex_dir = normalize(positionAttribute.xyz);
 	vec3  vertex_pos = branch_origin + applyQuat(branch_orientation, positionAttribute.xyz);
 
-	// vec4 branch_orientation_offset = bendBranch(
-	// 	vertex_pos,
-	// 	branch_origin,
-	// 	0.0,
-	// 	windDirection,
-	// 	windPower
-	// 	);
-
-	// // vec4 branch_orientation_offset = quatAxisAngle( vec3(0,0,1), branchSwayPowerA * cos(simTime));
-
-	// vertex_pos = applyQuat( branch_orientation_offset , vertex_pos - branch_origin) + branch_origin;
+	float tree_phase = tree.phase;
 
 	for (int i = 0; i <= numParents; i++) //not trunk
 	{	
 		//simulated properties of parent
-		vec4 parent_orientation_offset = vec4(0,0,0,1);
-		vec4 parent_orientation = vec4(0,0,0,1);
-		vec3 parent_origin = vec3(0,0,0);
+		vec4 branch_orientation_offset = vec4(0,0,0,1);
+		vec4 branch_orientation = vec4(0,0,0,1);
+		vec3 branch_origin = vec3(0,0,0);
+		float branch_phase = 0.0;
+		float branch_pseudoInertiaFactor = 1.0;
+		float branch_weight = 1.0;
 
-		if ( hierarchyAttribute[i] != 0 && i != numParents )
-		
+		if ( hierarchyAttribute[i] > 0 )
 		{
-			parent_origin      = tree.branches[hierarchyAttribute[i]].origin;
+			branch_origin      = tree.branches[hierarchyAttribute[i]].origin;
+			branch_phase = tree.branches[hierarchyAttribute[i]].phase;
+			branch_pseudoInertiaFactor = tree.branches[hierarchyAttribute[i]].pseudoInertiaFactor;
 
-		parent_orientation_offset = bendBranch(
-			vertex_pos,
-			parent_origin,
-			0.0,
-			windDirection,
-			windPower
+			branch_orientation_offset = bendBranch(
+				vertex_pos,
+				branch_origin,
+				vec3(0,1,0),
+				branch_phase,
+				tree_phase,
+				branch_pseudoInertiaFactor
 			);
 		}
-		// vec4 parent_orientation_offset = quatAxisAngle( vec3(0,0,1), branchSwayPowerA *  cos(simTime));
+		vec3 new_pos =applyQuat(branch_orientation_offset, vertex_pos - branch_origin) + branch_origin;
 		
-		vertex_pos = applyQuat(parent_orientation_offset, vertex_pos - parent_origin) + parent_origin;
+		vertex_pos = mix(vertex_pos, new_pos, branch_weight);
 	}
-		
+
 	vec4 final_pos = vec4(vertex_pos, 1.0);
 
-	//vec4 pos = positionAttribute;
 	vec4 worldPos = model * final_pos;
 
     passWorldPosition = worldPos.xyz;
