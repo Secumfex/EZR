@@ -758,6 +758,8 @@ TruncatedCone::TruncatedCone(float height, float radius_bottom, float radius_top
 	std::vector<float> uv_coords;
 	std::vector<unsigned int>   indices;
 	
+	bool once = true;
+			
 	// generate vertices and indices
 	const float angle_step = glm::two_pi<float>() / (float) resolution;
 	const float u_step = 1.0f / (float) resolution;
@@ -802,7 +804,6 @@ TruncatedCone::TruncatedCone(float height, float radius_bottom, float radius_top
 		}
 		else // always the same vertex, so create it only once and resue its index
 		{
-			static bool once = true;
 			if (once) // push back the top vertex 
 			{
 				positions.push_back( x * radius_top);
