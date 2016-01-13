@@ -34,6 +34,7 @@ public:
 	// static functions
 	static float computeStiffness(float b, float t, float l, float E); //!< base_width, thickness, length, E
 	static Tree* generateTree(float approxHeight, float approxWidth, int numMainBranches, int numSubBranches, std::vector<Tree::Branch*>* branchPtrs = nullptr);
+	static glm::uvec3 hierarchy(TreeAnimation::Tree::Branch* branch, std::vector<unsigned int>* hierarchy = nullptr);
 
 	// public members 
 	float m_E; //!< elastic modulus of this tree species

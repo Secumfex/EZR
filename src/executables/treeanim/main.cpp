@@ -25,6 +25,7 @@
 #include <Importing/AssimpTools.h>
 
 #include <TreeAnimation/Tree.h>
+#include <TreeAnimation/TreeRendering.h>
 
 ////////////////////// PARAMETERS /////////////////////////////
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
@@ -60,8 +61,6 @@ int main()
 
 	/////////////////////    create Tree data    //////////////////////////
 	DEBUGLOG->log("Setup: generating trees"); DEBUGLOG->indent();
-
-	
 	// generate a tree randomly
 	srand (time(NULL));	
 	
@@ -69,9 +68,9 @@ int main()
 	float tree_width = tree_height / 10.0f;
 
 	std::vector<TreeAnimation::Tree::Branch* > branches; // branches, indexed
-	TreeAnimation::Tree* tree = TreeAnimation::Tree::generateTree(tree_height, tree_width, 7,3, &branches);
-		
+	TreeAnimation::Tree* tree = TreeAnimation::Tree::generateTree(tree_height, tree_width, 7, 3, &branches);	
 	DEBUGLOG->outdent();
+	
 	/////////////////////    generate Tree Renderable    //////////////////////////
 	DEBUGLOG->log("Setup: generating renderables"); DEBUGLOG->indent();
 
@@ -79,64 +78,10 @@ int main()
 	Assimp::Importer importer;
 	DEBUGLOG->log("Loading branch model");
 	std::string branchModel = "branch.dae";
-	const aiScene* scene = importer.ReadFile( RESOURCES_PATH "/" + branchModel, aiProcessPreset_TargetRealtime_MaxQuality);
-	if (scene == NULL)
-	{
-		std::string errorString = importer.GetErrorString();
-		DEBUGLOG->log("ERROR: " + errorString); cout << "Using cone model instead." << endl;
-	} else {
-		DEBUGLOG->log("Branch model has been loaded successfully");
-	}
+	
+	const aiScene* scene = AssimpTools::importAssetFromResourceFolder(branchModel, importer);
 
-	auto generateRenderable = [&](TreeAnimation::Tree::Branch* branch)
-	{
-		Renderable* renderable = nullptr;
-
-		if (scene != NULL)
-		{
-			glm::mat4 transform = glm::scale( glm::vec3(branch->thickness / 2.0f, branch->length, branch->thickness / 2.0f) );
-			auto renderables = AssimpTools::createSimpleRenderablesFromScene(scene, transform);
-			renderable = renderables.at(0).renderable;
-		}else{
-			// generate regular Truncated Cone
-			renderable = new TruncatedCone( branch->length, branch->thickness / 2.0f, 0.0f, 20, 0.0f);
-		}
-
-		renderable->bind();
-
-		std::vector<unsigned int> hierarchy;
-		auto addHierarchy = [&] (TreeAnimation::Tree::Branch* b) // wow this is ugly
-		{
-			// first index is always this branch's index
-			hierarchy.push_back(b->idx);
-		
-			if ( b->parent != nullptr ){
-				hierarchy.push_back(b->parent->idx); // parent branch
-				if ( b->parent->parent != nullptr){
-					hierarchy.push_back(0); // trunk
-				}else{
-					hierarchy.push_back(0); // trunk
-				}
-			}else{
-				hierarchy.push_back(0); // trunk
-				hierarchy.push_back(0); // trunk
-			}};
-
-		for ( int i = 0; i < renderable->m_positions.m_size; i++)
-		{
-			addHierarchy(branch); // add hierarchy once for every vertex
-		}
-
-		// add another vertex attribute which contains the tree hierarchy
-		Renderable::createVbo<unsigned int>(hierarchy, 3, 4, GL_UNSIGNED_INT, true); 
-		
-		glBindVertexArray(0); 
-		
-		s_renderable_color[renderable] = &s_trunk_color;
-		return renderable;
-	};
-
-	std::function<void(TreeAnimation::Tree::Branch*, std::vector<Renderable*>&, int)> generateFoliage= [&]( TreeAnimation::Tree::Branch* branch, std::vector<Renderable*>& renderables, int numLeafs)
+	std::function<Renderable* (TreeAnimation::Tree::Branch*, std::vector<Renderable*>&, int)> generateFoliage= [&]( TreeAnimation::Tree::Branch* branch, std::vector<Renderable*>& renderables, int numLeafs)
 	{		
 		Renderable* renderable = new Renderable();
 		std::vector<float> positions;
@@ -235,17 +180,22 @@ int main()
 		renderables.push_back(renderable);
 
 		s_renderable_color[renderable] = &s_foliage_color;
+
+		return renderable;
 	};
 
 	// generate one renderable per branch
 	std::function<void(TreeAnimation::Tree::Branch*, std::vector<Renderable*>&)> generateRenderables = [&](
 		TreeAnimation::Tree::Branch* branch, std::vector<Renderable*>& renderables)
 	{
-		renderables.push_back( generateRenderable(branch));
+		auto branchRenderable = TreeAnimation::generateRenderable(branch, scene); 
+		s_renderable_color[branchRenderable] = &s_trunk_color;
+
+		renderables.push_back( branchRenderable );
 		for (int i = 0; i < branch->children.size(); i++)
 		{
 			generateRenderables(branch->children[i], renderables);
-			generateFoliage(branch->children[i], renderables, 35);
+			auto foliageRenderable = generateFoliage(branch->children[i], renderables, 35);
 		}
 	};
 	
@@ -467,7 +417,7 @@ int main()
 		shaderProgram.update("tree.phase", tree_phase); //front
 
 		// upload tree uniforms
-		for (int i = 0; i < branches.size(); i++)
+		for (unsigned int i = 0; i < branches.size(); i++)
 		{
 			std::string prefix = "tree.branches[" + DebugLog::to_string(i) + "].";
 

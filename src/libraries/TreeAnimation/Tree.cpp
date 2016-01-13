@@ -155,3 +155,25 @@ TreeAnimation::Tree* TreeAnimation::Tree::generateTree(float approxHeight, float
 	return tree;
 } 
 
+glm::uvec3 TreeAnimation::Tree::hierarchy(TreeAnimation::Tree::Branch* branch, std::vector<unsigned int>* hierarchy)
+{
+	glm::uvec3 result(0u);
+	
+	result[0] = branch->idx;
+	if( branch->parent != nullptr)
+	{
+		result[1] = branch->parent->idx;
+		if (branch->parent->parent != nullptr)
+		{
+			result[2] = branch->parent->parent->idx;
+		}
+	}
+
+	if (hierarchy != nullptr)
+	{
+		hierarchy->push_back(result.x);
+		hierarchy->push_back(result.y);
+		hierarchy->push_back(result.z);
+	}
+	return result;
+}
