@@ -22,8 +22,8 @@ public:
 
     virtual void draw();
 
-    inline void bind();
-    inline void unbind();
+    void bind();
+    void unbind();
 
     unsigned int getVertexCount(); //!< get number of vertices
     unsigned int getIndexCount();  //!< get number of indices
