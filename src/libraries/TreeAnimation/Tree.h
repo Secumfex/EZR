@@ -15,13 +15,12 @@ static const float E_APPLE = 8.76; // GPa
 class Tree
 {
 public:
-	static float computeStiffness(float b, float t, float l, float E);
-
 	struct Branch
 	{
 		glm::vec3 origin; //!< in branch-space of in object-space
 		glm::vec3 direction; //!< direction of the branch in object-space
 
+		float base_width;
 		float thickness; //!< base_width - top_width (implicitly)
 		float length;
 		float stiffness; //!< computed by thickness, length and the tree-specific elastic-modulus-constant E
@@ -32,13 +31,20 @@ public:
 		unsigned int idx; //!< an unique index identifying this branch
 	} m_trunk; 
 
+	// static functions
+	static float computeStiffness(float b, float t, float l, float E); //!< base_width, thickness, length, E
+	static Tree* generateTree(float approxHeight, float approxWidth, int numMainBranches, int numSubBranches, std::vector<Tree::Branch*>* branchPtrs = nullptr);
+
+	// public members 
 	float m_E; //!< elastic modulus of this tree species
 
+	// methods
 	Tree(float thickness, float length, float stiffness);
 	~Tree();
 
 	Branch* addBranch(Branch* parent, glm::vec3 direction, float posOnParent, float thickness, float length, float stiffness);
-
+	Branch* addRandomBranch(TreeAnimation::Tree::Branch* parent, float rPosMin, float rPosMax, float rLengthMax, float rLengthMin, float rPitchMin, float rPitchMax);
+	
 protected:
 	unsigned int m_nextBranchIdx;
 };

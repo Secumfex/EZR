@@ -3,7 +3,6 @@
  ****************************************/
 
 #include <iostream>
-//#include <random>
 #include <time.h>
 
 #include <Rendering/GLTools.h>
@@ -13,7 +12,6 @@
 #include "UI/imgui/imgui.h"
 #include <UI/imguiTools.h>
 #include <UI/Turntable.h>
-
 
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -25,8 +23,6 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <Importing/AssimpTools.h>
-
-//#include <glm/gtx/vector_angle.hpp>
 
 #include <TreeAnimation/Tree.h>
 
@@ -65,110 +61,16 @@ int main()
 	/////////////////////    create Tree data    //////////////////////////
 	DEBUGLOG->log("Setup: generating trees"); DEBUGLOG->indent();
 
-	float tree_height = 4.0f;
-	float tree_width = tree_height / 10.0f;
-	float tree_stiffness = TreeAnimation::Tree::computeStiffness(tree_width, tree_width, tree_height, TreeAnimation::E_RED_OAK);
-	TreeAnimation::Tree tree( tree_width, tree_height, tree_stiffness );
-
+	
 	// generate a tree randomly
 	srand (time(NULL));	
-	auto addRandomBranch = [&](TreeAnimation::Tree* tree, TreeAnimation::Tree::Branch* parent, float rPosMin, float rPosMax, float rLengthMax, float rLengthMin, float rPitchMin, float rPitchMax)
-	{
-		// randomization values
-		float r1 = ((float) rand()) / ((float) RAND_MAX);
-		float r2 = ((float) rand()) / ((float) RAND_MAX);
-		float rLength = ( r1 * (rLengthMax - rLengthMin)) + rLengthMin;
-		float rPitchAngle = ( r2 * (rPitchMax - rPitchMin) ) + rPitchMin; // should be between 0° and 180°
-		float rYawAngle = ((float) rand()) / ((float) RAND_MAX) * 2.f * glm::pi<float>() - glm::pi<float>(); //between -180° and 180°
-		// float rYawAngle = 0.0f;
-		float rPos = (((float) rand()) / ((float) RAND_MAX) * (rPosMax - rPosMin)) + rPosMin ;
-
-		// optimal: 90° to parent, assuming parent is pointing in (0,1,0) in object space
-		glm::vec3 optimalDirection = glm::vec3(1.0f,0.0f,0.0f);
-		glm::vec3 rDirection = glm::normalize( glm::rotateY( glm::rotateZ( optimalDirection, rPitchAngle), rYawAngle)); // apply randomization
-		
-		// retrieve object-space orientation of parent
-		glm::vec3 parentDirection= parent->direction;
-		glm::quat parentRotation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), parent->direction);
-		float thickness = (1.0f - rPos) * parent->thickness * 0.5f; 
-		
-		// apply parent orientation to this branch direction
-		rDirection = (glm::rotate(parentRotation, rDirection));
-
-		// add branch
-		return tree->addBranch(
-			parent,
-			rDirection,
-			rPos,
-			thickness,
-			rLength,
-			TreeAnimation::Tree::computeStiffness( 
-				(1.0f - rPos) * parent->thickness,
-				(1.0f - rPos) * parent->thickness,
-				rLength,
-				tree->m_E)
-			); ;
-	};
+	
+	float tree_height = 4.0f;
+	float tree_width = tree_height / 10.0f;
 
 	std::vector<TreeAnimation::Tree::Branch* > branches; // branches, indexed
-	branches.push_back(&tree.m_trunk);
-	
-	for ( int i = 0; i < 7; i++)
-	{
-		auto branch = addRandomBranch(
-			&tree,
-			&tree.m_trunk,
-			0.50f,
-			0.75f,
-			tree.m_trunk.length / 2.0f,
-			tree.m_trunk.length / 4.0f,
-			glm::radians(40.0f),
-			glm::radians(50.0f));
-		branches.push_back(branch);
-
-		for ( int j = 0; j < 3; j++)
-		{
-			auto subBranch = addRandomBranch( 
-				&tree,
-				branch,
-				0.1f,
-				0.7f,
-				branch->length / 2.0f,
-				branch->length / 8.0f,
-				glm::radians(40.0f),
-				glm::radians(50.0f));
-				branches.push_back(subBranch);
-		}
-	}
-
-	auto printTree = [](TreeAnimation::Tree& tree)
-	{
-		DEBUGLOG->log("Tree");
-		DEBUGLOG->indent();
-		DEBUGLOG->log("num trunk branches: ", tree.m_trunk.children.size());
-		for ( int i = 0; i < tree.m_trunk.children.size(); i++)
-		{
-			DEBUGLOG->log("branch " + DebugLog::to_string(i) + ": ");
-			DEBUGLOG->indent();
-			    DEBUGLOG->log("idx: ", tree.m_trunk.children[i]->idx );
-				DEBUGLOG->log("num sub branches: ", tree.m_trunk.children[i]->children.size());
-				int k = 0;
-				for ( auto b : tree.m_trunk.children[i]->children)
-				{
-					DEBUGLOG->log("sub branch "+ DebugLog::to_string(k));
-					DEBUGLOG->indent();
-					DEBUGLOG->log("idx: ", b->idx);
-					DEBUGLOG->outdent();
-					k++;
-				}
+	TreeAnimation::Tree* tree = TreeAnimation::Tree::generateTree(tree_height, tree_width, 7,3, &branches);
 		
-			DEBUGLOG->outdent();
-		}
-		DEBUGLOG->outdent();
-	};
-
-	printTree(tree);
-	
 	DEBUGLOG->outdent();
 	/////////////////////    generate Tree Renderable    //////////////////////////
 	DEBUGLOG->log("Setup: generating renderables"); DEBUGLOG->indent();
@@ -348,7 +250,7 @@ int main()
 	};
 	
 	std::vector<Renderable*> objects;
-	generateRenderables(&tree.m_trunk, objects);
+	generateRenderables(branches[0], objects);
 	
 	DEBUGLOG->outdent();
 	//////////////////////////////////////////////////////////////////////////////
@@ -542,11 +444,11 @@ int main()
 		shaderProgram.update( "model", turntable.getRotationMatrix() * model);
 
 		shaderProgram.update("simTime", s_simulationTime);
-		s_wind_direction = glm::rotateY(glm::vec3(1.0f,0.0f,0.0f), glm::radians(s_wind_angle));
+		s_wind_direction = glm::rotateY(glm::vec3(0.0f,0.0f,1.0f), glm::radians(s_wind_angle));
 		shaderProgram.update( "windDirection", s_wind_direction);
 		
 		glm::vec3 windTangent = glm::vec3(-s_wind_direction.z, s_wind_direction.y, s_wind_direction.x);
-		float animatedWindPower = sin(s_simulationTime) * (s_wind_power / 2.0f) + s_wind_power / 2.0f; 
+		float animatedWindPower = sin(s_simulationTime) * (s_wind_power / 2.0f) + s_wind_power / 2.0f + (0.25f * sin(2.0f * s_wind_power * s_simulationTime + 0.25f)) ; 
 		s_wind_rotation = glm::rotate(glm::mat4(1.0f), (animatedWindPower / 2.0f), windTangent);
 		shaderProgram.update( "windRotation" , s_wind_rotation); 
 
