@@ -187,3 +187,19 @@ AssimpTools::BoundingBox AssimpTools::computeBoundingBox(const aiMesh* mesh)
 	BoundingBox result = {min,max};
 	return result;
 }
+
+#include <assimp/Importer.hpp>
+const aiScene* AssimpTools::importAssetFromResourceFolder(std::string filename, Assimp::Importer& importer,int steps)
+{
+	const aiScene* scene = importer.ReadFile( RESOURCES_PATH "/" + filename, steps);
+	
+	if (scene == NULL)
+	{
+		std::string errorString = importer.GetErrorString();
+		DEBUGLOG->log("ERROR: " + errorString);
+	} else {
+		DEBUGLOG->log("Model has been loaded successfully");
+	}
+
+	return scene;
+}

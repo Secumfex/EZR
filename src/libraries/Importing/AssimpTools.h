@@ -3,10 +3,12 @@
 
 #include <assimp/scene.h>
 #include <assimp/mesh.h>
+#include <assimp/postprocess.h>
 #include <glm/glm.hpp>
 #include <vector>
 
 class Renderable;
+namespace Assimp{ class Importer; }
 
 namespace AssimpTools {
 
@@ -32,6 +34,8 @@ namespace AssimpTools {
 	std::vector<RenderableInfo > createSimpleRenderablesFromScene( const aiScene* scene, glm::mat4 vertexTransform = glm::mat4(1.0f) ); 
 
 	BoundingBox computeBoundingBox(const aiMesh* mesh);
+
+	const aiScene* importAssetFromResourceFolder(std::string filename, Assimp::Importer& importer, int steps = aiProcessPreset_TargetRealtime_MaxQuality);
 
 } // namespace AssimpTools
 #endif
