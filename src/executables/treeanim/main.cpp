@@ -33,7 +33,8 @@
 ////////////////////// PARAMETERS /////////////////////////////
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 
-static glm::vec4 s_color = glm::vec4(107.0f / 255.0f , 68.0f / 255.0f , 35.0f /255.0f, 1.0f); // far : brown
+static glm::vec4 s_trunk_color =  glm::vec4(107.0f / 255.0f , 68.0f / 255.0f , 35.0f /255.0f, 1.0f); // brown
+static glm::vec4 s_foliage_color = glm::vec4(22.0f / 255.0f , 111.0f / 255.0f , 22.0f /255.0f, 1.0f); // green
 static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
 
 static float s_wind_angle = 45.0f;
@@ -45,6 +46,8 @@ static float s_strength = 1.0f;
 static bool  s_isRotating = false;
 
 static float s_simulationTime = 0.0f;
+
+static std::map<Renderable*, glm::vec4*> s_renderable_color;
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -226,8 +229,110 @@ int main()
 		Renderable::createVbo<unsigned int>(hierarchy, 3, 4, GL_UNSIGNED_INT, true); 
 		
 		glBindVertexArray(0); 
-
+		
+		s_renderable_color[renderable] = &s_trunk_color;
 		return renderable;
+	};
+
+	std::function<void(TreeAnimation::Tree::Branch*, std::vector<Renderable*>&, int)> generateFoliage= [&]( TreeAnimation::Tree::Branch* branch, std::vector<Renderable*>& renderables, int numLeafs)
+	{		
+		Renderable* renderable = new Renderable();
+		std::vector<float> positions;
+		std::vector<unsigned int> indices;
+		std::vector<float> normals;
+
+		for ( int i = 0; i < numLeafs; i++)
+		{
+			int nextIdx = positions.size()/3;
+			glm::vec3 v[4];
+			auto addVert = [&](float x, float y, float z, int temp) 
+			{
+				positions.push_back(x);
+				positions.push_back(y);
+				positions.push_back(z);
+				v[temp] = glm::vec3(x,y,z);
+			};
+
+			float rWidth = ((float) rand()) / ((float) RAND_MAX)* 0.1 + 0.03; //0.03..0.13
+			float rHeight = ((float) rand()) / ((float) RAND_MAX)* 0.1 + 0.03; //0.03..0.13
+			
+			float rOffsetX = ((float) rand()) / ((float) RAND_MAX) * (branch->length / 2.0) - (branch->length / 4.0); //0..0.1
+			float rOffsetY = ((float) rand()) / ((float) RAND_MAX) * branch->length; //-branchLength/4 .. branchLegnth/4
+			float rOffsetZ = ((float) rand()) / ((float) RAND_MAX) * branch->thickness * 2.0f - branch->thickness;
+
+			addVert(-rWidth + rOffsetX,-rHeight+ rOffsetY,rOffsetZ,0);
+			addVert(-rWidth+ rOffsetX,rHeight + rOffsetY,rOffsetZ,1);
+			addVert(rWidth+ rOffsetX,rHeight+ rOffsetY,rOffsetZ,2);
+			addVert(rWidth+ rOffsetX,-rHeight+ rOffsetY,rOffsetZ,3);
+
+			glm::vec3 n[4];
+			auto addNorm = [&](int i0, int i1, int i2, int temp) 
+			{
+				n[temp] = glm::normalize(glm::cross(v[i1]- v[i0], v[i2]-v[i0]));
+				if ( abs(n[temp].x) < 0.0000001){ n[temp].x = 0;}
+				normals.push_back(n[temp].x);
+				normals.push_back(n[temp].y);
+				normals.push_back(n[temp].z);
+			};
+			addNorm(0,3,1,0);
+			addNorm(1,0,2,1);
+			addNorm(2,1,3,2);
+			addNorm(3,2,0,3);
+
+			indices.push_back(nextIdx);
+			indices.push_back(nextIdx+1);
+			indices.push_back(nextIdx+2);
+
+			indices.push_back(nextIdx+2);
+			indices.push_back(nextIdx+3);
+			indices.push_back(nextIdx);
+		}
+
+	    glGenVertexArrays(1, &renderable->m_vao);
+		glBindVertexArray(renderable->m_vao);
+
+		renderable->m_positions.m_vboHandle = Renderable::createVbo(positions, 3, 0);
+		renderable->m_positions.m_size = positions.size() / 3;
+
+		renderable->m_normals.m_vboHandle = Renderable::createVbo(normals, 2, 2);
+		renderable->m_normals.m_size = normals.size() / 3;
+
+		renderable->m_indices.m_vboHandle = Renderable::createIndexVbo(indices);
+		renderable->m_indices.m_size = indices.size();
+				
+		renderable->setDrawMode(GL_TRIANGLES);
+
+		std::vector<unsigned int> hierarchy;
+		auto addHierarchy = [&] (TreeAnimation::Tree::Branch* b) // wow this is ugly
+		{
+			// first index is always this branch's index
+			hierarchy.push_back(b->idx);
+		
+			if ( b->parent != nullptr ){
+				hierarchy.push_back(b->parent->idx); // parent branch
+				if ( b->parent->parent != nullptr){
+					hierarchy.push_back(0); // trunk
+				}else{
+					hierarchy.push_back(0); // trunk
+				}
+			}else{
+				hierarchy.push_back(0); // trunk
+				hierarchy.push_back(0); // trunk
+			}};
+
+		for ( int i = 0; i < renderable->m_positions.m_size; i++)
+		{
+			addHierarchy(branch); // add hierarchy once for every vertex
+		}
+
+		// add another vertex attribute which contains the tree hierarchy
+		Renderable::createVbo<unsigned int>(hierarchy, 3, 4, GL_UNSIGNED_INT, true); 
+
+		glBindVertexArray(0); 
+
+		renderables.push_back(renderable);
+
+		s_renderable_color[renderable] = &s_foliage_color;
 	};
 
 	// generate one renderable per branch
@@ -238,6 +343,7 @@ int main()
 		for (int i = 0; i < branch->children.size(); i++)
 		{
 			generateRenderables(branch->children[i], renderables);
+			generateFoliage(branch->children[i], renderables, 35);
 		}
 	};
 	
@@ -286,6 +392,17 @@ int main()
 	 renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	  for (auto r : objects){renderPass.addRenderable(r);}  
 	 DEBUGLOG->outdent();
+
+	 std::function<void(Renderable*)> perRenderableFunc = [&] (Renderable* r)
+	 {
+		 auto c =s_renderable_color.find(r); 
+		 if ( c!= s_renderable_color.end() )
+		 {
+			 shaderProgram.update( "color", *(c->second) );
+		 }
+	 };
+	 renderPass.setPerRenderableFunction(&perRenderableFunc);
+
 
 	 // regular GBuffer compositing
 	 DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
@@ -422,7 +539,6 @@ int main()
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
 		// update view related uniforms
 		shaderProgram.update( "view",  view);
-		shaderProgram.update( "color", s_color);
 		shaderProgram.update( "model", turntable.getRotationMatrix() * model);
 
 		shaderProgram.update("simTime", s_simulationTime);
