@@ -258,6 +258,11 @@ void main(){
 		float branch_phase = 0.0;
 		float branch_pseudoInertiaFactor = 1.0;
 		float branch_weight = 1.0;
+		if ( i == 0)
+		{
+			branch_weight = clamp(distance(branch_origin, vertex_pos),0.0,1.0);
+		}
+
 
 		if ( hierarchyAttribute[i] > 0 )
 		{
@@ -279,7 +284,8 @@ void main(){
 		vertex_pos = mix(vertex_pos, new_pos, branch_weight);
 	}
 
-	vec4 final_pos = windRotation * vec4(vertex_pos, 1.0);
+	float windRotationWeight = clamp( length(vertex_pos)/4.0, 0.0, 1.0);
+	vec4 final_pos = mix(vec4(vertex_pos,1.0), windRotation * vec4(vertex_pos, 1.0), windRotationWeight);
 
 	vec4 worldPos = model * final_pos;
 
