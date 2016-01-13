@@ -21,8 +21,8 @@
 static bool s_isRotating = false;
 
 
-//const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
-const glm::vec2 WINDOW_RESOLUTION = glm::vec2(1280.0f, 720.0f);
+const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
+//const glm::vec2 WINDOW_RESOLUTION = glm::vec2(1280.0f, 720.0f);
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -49,13 +49,21 @@ int main()
 	glm::vec4 cameraPos(0.0f, 0.0f, 3.0f, 1.0f);
 	glm::vec4 cameraTarget(0.0f,0.0f,0.0f,1.0f);
 	glm::mat4 view = glm::lookAt(glm::vec3(cameraPos), glm::vec3(cameraTarget), glm::vec3(0,1,0));
-	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 50.f);
-
+	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 100.0f);
+    // setup light
+    glm::vec4 lightColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glm::vec3 lightPos(0.0f, 0.0f, 3.0f);
+    glm::vec3 lightTarget(0,0,0);
+    glm::mat4 lightView = glm::lookAt(lightPos, lightTarget, glm::vec3(0,1,0));
+    float lightViewAngle = 45.0f;
+    float lightNearPlane = 0.1f;
+    float lightFarPlane = 1000.0f;
+    glm::mat4 lightProjection = glm::perspective(glm::radians(lightViewAngle), getRatio(window), lightNearPlane, lightFarPlane);
+    glm::mat4 lightMVP = lightProjection * lightView * model;
     // create objects
-    float object_size = 0.4f;
+    float object_size = 0.5f;
 	std::vector<Renderable* > objects;
     objects.push_back(new Volume(object_size));
-    objects.push_back(new Sphere(20, 40, 40.0f));
 
 	/////////////////////// 	Renderpass     ///////////////////////////
 
@@ -70,21 +78,14 @@ int main()
     volumeLightingBuffer.addColorAttachments(1);
     FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
 
-    ///////////////////////    Shadowmapping   ///////////////////////////
-    // setup light
-    glm::vec4 lightColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glm::vec3 lightPos(0.0f, 5.0f, 5.0f);
-    glm::vec3 lightCenter(0,0,0);
-    glm::mat4 lightView = glm::lookAt(lightPos, lightCenter, glm::vec3(0,1,0));
-    glm::mat4 lightProjection = glm::perspective(glm::radians(5.0f), getRatio(window), 0.10f, 100.0f);
-    glm::mat4 lightMVP = lightProjection * lightView * model;
 
+
+    ///////////////////////    Shadowmapping   ///////////////////////////
     // load and update shadowmap shader
     DEBUGLOG->log("Shader Compilation: shadowmap shader"); DEBUGLOG->indent();
     ShaderProgram shadowMapShader("/vml/shadowmap.vert", "/vml/shadowmap.frag");
     shadowMapShader.update("lightMVP", lightMVP);
     DEBUGLOG->outdent();
-
     // setup shadowmap renderpass
     DEBUGLOG->log("Renderpass Creation: simple renderpass"); DEBUGLOG->indent();
     RenderPass shadowMapRenderpass(&shadowMapShader, &shadowMap);
@@ -92,12 +93,13 @@ int main()
     shadowMapRenderpass.addClearBit(GL_DEPTH_BUFFER_BIT);
     shadowMapRenderpass.addEnable(GL_DEPTH_TEST);
     DEBUGLOG->outdent();
-
     // add objects to shadowMap render pass
     for (auto r : objects )
     {
         shadowMapRenderpass.addRenderable(r);
     }
+
+
 
     /////////////////////// 	Light Shading     //////////////////////////
     DEBUGLOG->log("Shader Compilation: Light shader"); DEBUGLOG->indent();
@@ -107,16 +109,16 @@ int main()
     lightShader.update("projection", perspective);
     lightShader.update("color", lightColor);
     DEBUGLOG->outdent();
-
     DEBUGLOG->log("Renderpass Creation: simple renderpass"); DEBUGLOG->indent();
     RenderPass lightRenderpass(&lightShader, &debugBuffer);
     lightRenderpass.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     lightRenderpass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     lightRenderpass.addEnable(GL_DEPTH_TEST);
     DEBUGLOG->outdent();
-
     // add light
     lightRenderpass.addRenderable(new Sphere(20,40,0.25f));
+
+
 
     /////////////////////// 	Raymarching     //////////////////////////
     glm::vec4 cameraPosLightSpace = lightView * cameraPos;
@@ -136,7 +138,6 @@ int main()
     raymarchingShader.update("cameraPosLightSpace", cameraPosLightSpace);
     raymarchingShader.update("cameraViewDirInvLightSpace", cameraViewDirInvLightSpace);
     DEBUGLOG->outdent();
-
     DEBUGLOG->log("Renderpass Creation: Raymarching renderpass"); DEBUGLOG->indent();
     RenderPass raymarchingRenderpass(&raymarchingShader, &volumeLightingBuffer);
     raymarchingRenderpass.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -144,8 +145,8 @@ int main()
     raymarchingRenderpass.addEnable(GL_DEPTH_TEST);
     raymarchingRenderpass.addDisable(GL_BLEND);
     DEBUGLOG->outdent();
-
     // add objects to simple render pass
+    objects.push_back(new Sphere(20, 40, 50.0f));
     for (auto r : objects )
     {
         raymarchingRenderpass.addRenderable(r);
@@ -200,6 +201,15 @@ int main()
 		ImGui_ImplGlfwGL3_MouseButtonCallback(window, b, a, m);
 	};
 
+    auto mouseScrollCB = [&](double xOffset, double yOffset)
+    {
+        glm::vec4 cameraDir = glm::normalize(cameraPos - cameraTarget);
+        cameraDir.x *= xOffset;
+        cameraDir.y *= yOffset;
+
+        ImGui_ImplGlfwGL3_ScrollCallback(window, xOffset, yOffset);
+    };
+
 	auto keyboardCB = [&](int k, int s, int a, int m)
 	{
 		if (a == GLFW_RELEASE) {return;}
@@ -227,6 +237,7 @@ int main()
 		ImGui_ImplGlfwGL3_KeyCallback(window,k,s,a,m);
 	};
 
+    setScrollCallback(window, mouseScrollCB);
 	setCursorPosCallback(window, cursorPosCB);
 	setMouseButtonCallback(window, mouseButtonCB);
 	setKeyCallback(window, keyboardCB);
@@ -240,7 +251,7 @@ int main()
 	{
         // set window title
 		elapsedTime += dt;
-		std::string window_header = "Simple Renderer - " + DebugLog::to_string( 1.0 / dt ) + " FPS";
+		std::string window_header = "Volume Lighting Renderer - " + DebugLog::to_string( 1.0 / dt ) + " FPS";
 		glfwSetWindowTitle(window, window_header.c_str() );
 
 		////////////////////////////////     GUI      ////////////////////////////////
@@ -249,6 +260,9 @@ int main()
 		ImGui::PushItemWidth(-100);
 
         ImGui::SliderFloat3("lightPos", glm::value_ptr(lightPos), -10.0f, 10.0f);
+        ImGui::SliderFloat("lightAngle", &lightViewAngle, 0.1f, 90.0f);
+        ImGui::SliderFloat("lightNearPlane", &lightNearPlane, 0.01f, 1.0f);
+        ImGui::SliderFloat("lightFarPlane", &lightFarPlane, 10.0f, 1000.0f);
         ImGui::SliderFloat4("lightColor", glm::value_ptr(lightColor), 0.0f, 1.0f);
 		ImGui::Checkbox("auto-rotate", &s_isRotating); // enable/disable rotating volume
 		ImGui::PopItemWidth();
@@ -260,15 +274,16 @@ int main()
 			model = glm::rotate(glm::mat4(1.0f), (float) dt, glm::vec3(0.0f, 1.0f, 0.0f) ) * model;
 		}
 
-        // update view matrix (camera pos)
+        // update camera
         cameraPos = turntable.getRotationMatrix() * cameraStartPos;
 		view = glm::lookAt(glm::vec3(cameraPos), glm::vec3(cameraTarget), glm::vec3(0.0f, 1.0f, 0.0f));
 
         // update the lightsource
-        lightView = glm::lookAt(glm::vec3(lightPos), glm::vec3(lightCenter), glm::vec3(0,1,0));
+        lightView = glm::lookAt(glm::vec3(lightPos), glm::vec3(lightTarget), glm::vec3(0,1,0));
+        lightProjection = glm::perspective(glm::radians(lightViewAngle), getRatio(window), lightNearPlane, lightFarPlane);
+        lightMVP = lightProjection * lightView * model;
         cameraPosLightSpace = lightView * cameraPos;
         cameraViewDirInvLightSpace = glm::normalize(lightView * (cameraPos - cameraTarget));
-        lightMVP = lightProjection * lightView * model;
 
 		//////////////////////////////////////////////////////////////////////////////
 				
@@ -289,7 +304,7 @@ int main()
         raymarchingShader.update("lightProjection", lightProjection);
         raymarchingShader.update("lightColor", lightColor);
         raymarchingShader.update("cameraPosLightSpace", cameraPosLightSpace);
-        raymarchingShader.update("cameraViewDirInvLightSpace", cameraViewDirInvLightSpace);
+//        raymarchingShader.update("cameraViewDirInvLightSpace", cameraViewDirInvLightSpace);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////

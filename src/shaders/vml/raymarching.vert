@@ -8,7 +8,6 @@ uniform mat4 projection;
 uniform mat4 lightView;
 
 out vec4 startPosLightSpace;
-out vec3 uvwCoord;
 
 void main() {
 	gl_Position =  projection * view * model * positionAttribute;

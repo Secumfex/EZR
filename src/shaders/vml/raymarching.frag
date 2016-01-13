@@ -6,7 +6,7 @@
 #define ALBEDO 1
 #define PHI 10000000.0
 #define PI_RCP 0.31830988618379067153776752674503
-#define BIAS 0.00000000000001
+#define BIAS 0.005
 
 in vec4 startPosLightSpace;
 
@@ -23,8 +23,6 @@ float v(vec4 rayPositionLightSpace) {
     rayCoordLightSpace.xyz /= rayCoordLightSpace.w;
     rayCoordLightSpace.xyz /= 2;
     rayCoordLightSpace.xyz += 0.5;
-
-    //rayCoordLightSpace.xy = clamp(rayCoordLightSpace.xy, 0.0, 1.0);
 
     float v = 1;
     if (texture(shadowMapSampler, rayCoordLightSpace.xy).z < rayCoordLightSpace.z - BIAS) {
@@ -45,7 +43,7 @@ float executeRaymarching(vec4 rayPositionLightSpace, float stepSize, float l) {
 
     // get distance of current ray postition to the light source in light view-space
     float d = length(rayPositionLightSpace.xyz);
-    float dRcp = (d != 0) ? 1/d : 1000000;
+    float dRcp = (d != 0) ? 1.0/d : 1000000;
 
     // calculate anisotropic scattering
     float p = p();
@@ -64,23 +62,22 @@ void main() {
 
     // here is something missing
 
-    // reduce noise by truncating the start position between 0 and the reymarchDistanceLLimit
-    //float raymarchDistance = trunc(clamp(length(cameraPosLightSpace.xyz - startPosLightSpace.xyz), 0.0, raymarchDistanceLimit));
+    // calculate complete raymarching distance
     float raymarchDistance = length(cameraPosLightSpace.xyz - startPosLightSpace.xyz);
-    float stepSize = raymarchDistance * NUM_SAMPLES_RCP;
+    float stepSize = raymarchDistance * (NUM_SAMPLES_RCP);
     vec4 rayPositionLightSpace = startPosLightSpace;
 
     // total light contribution accumulated along the ray
     float vli = 0.0f;
-
-    for (float l = raymarchDistance; l > stepSize; l -= stepSize) {
-        // add the light contribution to the total contribution of the ray
-        rayPositionLightSpace.xyz += stepSize * cameraViewDirInvLightSpace.xyz;
-        vli += executeRaymarching(rayPositionLightSpace, stepSize, l);
+    float l = raymarchDistance;
+    for (float t = 0.0; t < 1.0; t= t+ NUM_SAMPLES_RCP)
+    {
+        l = raymarchDistance - t * stepSize;
+        vec4 currentPos = vec4(startPosLightSpace.xyz + t * (cameraPosLightSpace.xyz - startPosLightSpace.xyz),1.0);
+        vli += executeRaymarching(currentPos, stepSize, l);
     }
 
     vli /= NUM_SAMPLES;
 
     gl_FragColor =  vec4(lightColor.xyz * vli, 1);
-
 }
