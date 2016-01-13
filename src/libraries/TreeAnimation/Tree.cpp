@@ -65,7 +65,7 @@ TreeAnimation::Tree::Branch* TreeAnimation::Tree::addBranch(TreeAnimation::Tree:
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 
-TreeAnimation::Tree::Branch* TreeAnimation::Tree::addRandomBranch(TreeAnimation::Tree::Branch* parent, float rPosMin, float rPosMax, float rLengthMax, float rLengthMin, float rPitchMin, float rPitchMax)
+TreeAnimation::Tree::Branch* TreeAnimation::Tree::addRandomBranch(TreeAnimation::Tree::Branch* parent, float rPosMin, float rPosMax, float rLengthMin, float rLengthMax,float rPitchMin, float rPitchMax)
 {
 	// randomization values
 	float r1 = ((float) rand()) / ((float) RAND_MAX);
@@ -103,6 +103,18 @@ TreeAnimation::Tree::Branch* TreeAnimation::Tree::addRandomBranch(TreeAnimation:
 		); ;
 };
 
+float TreeAnimation::Tree::s_r_pos_min_main		= 0.5f;
+float TreeAnimation::Tree::s_r_pos_max_main		= 0.75f;
+float TreeAnimation::Tree::s_r_pos_min_sub		= 0.5f;
+float TreeAnimation::Tree::s_r_pos_max_sub		= 1.0f;
+float TreeAnimation::Tree::s_r_length_min_main	= 0.25f;
+float TreeAnimation::Tree::s_r_length_max_main	= 0.5f;
+float TreeAnimation::Tree::s_r_length_min_sub	= 0.25f;
+float TreeAnimation::Tree::s_r_length_max_sub	= 0.5f;
+float TreeAnimation::Tree::s_r_pitch_min_main	= 40.0f;
+float TreeAnimation::Tree::s_r_pitch_max_main	= 50.0f;
+float TreeAnimation::Tree::s_r_pitch_min_sub	= 40.0f;
+float TreeAnimation::Tree::s_r_pitch_max_sub	= 50.0f;
 
 TreeAnimation::Tree* TreeAnimation::Tree::generateTree(float approxHeight, float approxWidth, int numMainBranches, int numSubBranches, std::vector<Tree::Branch*>* branchPtrs)
 {
@@ -118,24 +130,24 @@ TreeAnimation::Tree* TreeAnimation::Tree::generateTree(float approxHeight, float
 	{
 		auto branch = tree->addRandomBranch(
 			&tree->m_trunk,
-			0.50f,
-			0.75f,
-			tree->m_trunk.length / 2.0f,
-			tree->m_trunk.length / 4.0f,
-			glm::radians(40.0f),
-			glm::radians(50.0f));
+			s_r_pos_min_main,
+			s_r_pos_max_main,
+			tree->m_trunk.length * s_r_length_min_main,
+			tree->m_trunk.length * s_r_length_max_main,
+			glm::radians(s_r_pitch_min_main),
+			glm::radians(s_r_pitch_max_main));
 		if ( branchPtrs != nullptr){ branchPtrs->push_back(branch); }
 		
 		for ( int j = 0; j < numSubBranches; j++)
 		{
 			auto subBranch = tree->addRandomBranch( 
 				branch,
-				0.1f,
-				0.7f,
-				branch->length / 2.0f,
-				branch->length / 8.0f,
-				glm::radians(40.0f),
-				glm::radians(50.0f));
+				s_r_pos_min_sub,
+				s_r_pos_min_sub,
+				branch->length * s_r_length_min_sub,
+				branch->length * s_r_length_max_sub,
+				glm::radians(s_r_pitch_min_sub),
+				glm::radians(s_r_pitch_max_sub));
 			if ( branchPtrs != nullptr){ branchPtrs->push_back(subBranch); }
 		}
 	}

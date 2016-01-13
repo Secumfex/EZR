@@ -43,10 +43,15 @@ public:
 	~Tree();
 
 	Branch* addBranch(Branch* parent, glm::vec3 direction, float posOnParent, float thickness, float length, float stiffness);
-	Branch* addRandomBranch(TreeAnimation::Tree::Branch* parent, float rPosMin, float rPosMax, float rLengthMax, float rLengthMin, float rPitchMin, float rPitchMax);
+	Branch* addRandomBranch(TreeAnimation::Tree::Branch* parent, float rPosMin, float rPosMax, float rLengthMin, float rLengthMax, float rPitchMin, float rPitchMax);
 	
 protected:
 	unsigned int m_nextBranchIdx;
+
+public:
+	static float s_r_pos_min_main, s_r_pos_max_main, s_r_pos_min_sub, s_r_pos_max_sub;
+	static float s_r_length_min_sub, s_r_length_max_sub, s_r_length_min_main, s_r_length_max_main;
+	static float s_r_pitch_min_main, s_r_pitch_max_main, s_r_pitch_min_sub, s_r_pitch_max_sub;
 };
 
 } // TreeAnimation
