@@ -203,11 +203,9 @@ int main()
 
     auto mouseScrollCB = [&](double xOffset, double yOffset)
     {
-        glm::vec4 cameraDir = glm::normalize(cameraPos - cameraTarget);
-        cameraDir.x *= xOffset;
-        cameraDir.y *= yOffset;
+        cameraStartPos.z += (float) yOffset;
 
-        ImGui_ImplGlfwGL3_ScrollCallback(window, xOffset, yOffset);
+        //ImGui_ImplGlfwGL3_ScrollCallback(window, xOffset, yOffset);
     };
 
 	auto keyboardCB = [&](int k, int s, int a, int m)
