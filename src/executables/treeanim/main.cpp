@@ -196,7 +196,7 @@ int main()
 		renderable->m_positions.m_vboHandle = Renderable::createVbo(positions, 3, 0);
 		renderable->m_positions.m_size = positions.size() / 3;
 
-		renderable->m_normals.m_vboHandle = Renderable::createVbo(normals, 2, 2);
+		renderable->m_normals.m_vboHandle = Renderable::createVbo(normals, 3, 2);
 		renderable->m_normals.m_size = normals.size() / 3;
 
 		renderable->m_indices.m_vboHandle = Renderable::createIndexVbo(indices);
