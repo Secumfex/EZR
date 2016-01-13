@@ -21,6 +21,11 @@
 
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <Importing/AssimpTools.h>
+
 //#include <glm/gtx/vector_angle.hpp>
 
 #include <TreeAnimation/Tree.h>
@@ -165,29 +170,33 @@ int main()
 	/////////////////////    generate Tree Renderable    //////////////////////////
 	DEBUGLOG->log("Setup: generating renderables"); DEBUGLOG->indent();
 
+	// import using ASSIMP and check for errors
+	Assimp::Importer importer;
+	DEBUGLOG->log("Loading branch model");
+	std::string branchModel = "branch.dae";
+	const aiScene* scene = importer.ReadFile( RESOURCES_PATH "/" + branchModel, aiProcessPreset_TargetRealtime_MaxQuality);
+	if (scene == NULL)
+	{
+		std::string errorString = importer.GetErrorString();
+		DEBUGLOG->log("ERROR: " + errorString); cout << "Using cone model instead." << endl;
+	} else {
+		DEBUGLOG->log("Branch model has been loaded successfully");
+	}
+
 	auto generateRenderable = [&](TreeAnimation::Tree::Branch* branch)
 	{
-		//TruncatedCone::VertexData coneVertexData = TruncatedCone::generateVertexData(branch->length, branch->thickness / 2.0f, 0.0f, 5, 0.0f, GL_TRIANGLE_STRIP);
+		Renderable* renderable = nullptr;
 
-		//Renderable* renderable = new Renderable();
+		if (scene != NULL)
+		{
+			glm::mat4 transform = glm::scale( glm::vec3(branch->thickness / 2.0f, branch->length, branch->thickness / 2.0f) );
+			auto renderables = AssimpTools::createSimpleRenderablesFromScene(scene, transform);
+			renderable = renderables.at(0).renderable;
+		}else{
+			// generate regular Truncated Cone
+			renderable = new TruncatedCone( branch->length, branch->thickness / 2.0f, 0.0f, 20, 0.0f);
+		}
 
-	 //   glGenVertexArrays(1, &renderable->m_vao);
-		//glBindVertexArray(renderable->m_vao);
-
-		//renderable->m_positions.m_vboHandle = Renderable::createVbo(coneVertexData.positions, 3, 0);
-		//renderable->m_positions.m_size = coneVertexData.positions.size() / 3;
-
-		//renderable->m_uvs.m_vboHandle = Renderable::createVbo(coneVertexData.uv_coords, 2, 1);
-		//renderable->m_uvs.m_size = coneVertexData.uv_coords.size() / 2;
-
-		//renderable->m_normals.m_vboHandle = Renderable::createVbo(coneVertexData.normals, 3, 2);
-		//renderable->m_normals.m_size = coneVertexData.normals.size() / 3;
-
-		//renderable->m_indices.m_vboHandle = Renderable::createIndexVbo(coneVertexData.indices);
-		//renderable->m_indices.m_size = coneVertexData.indices.size();
-
-		// generate regular Truncated Cone
-		Renderable* renderable = new TruncatedCone( branch->length, branch->thickness / 2.0f, 0.0f, 20, 0.0f);
 		renderable->bind();
 
 		std::vector<unsigned int> hierarchy;
