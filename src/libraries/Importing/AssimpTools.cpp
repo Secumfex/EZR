@@ -4,7 +4,13 @@
 
 #include "Rendering/VertexArrayObjects.h"
 
-std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFromScene(const aiScene* scene)
+glm::vec3 toVec3(const aiVector3D& vert)
+{
+	return glm::vec3(vert.x, vert.y, vert.z);
+}
+
+
+std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFromScene(const aiScene* scene, glm::mat4 vertexTransform)
 {
 	std::vector<RenderableInfo >resultVector; 
 	for (unsigned int i = 0; i < scene->mNumMeshes; i++)
@@ -23,14 +29,14 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 			glm::vec3 min( FLT_MAX);
 			glm::vec3 max(-FLT_MAX);
 
-			auto checkMax = [](glm::vec3& max, const aiVector3D& vert) 
+			auto checkMax = [](glm::vec3& max, const glm::vec3& vert) 
 			{
 				max.x = std::max(max.x, vert.x);
 				max.y = std::max(max.y, vert.y);
 				max.z = std::max(max.z, vert.z);
 			};
 
-			auto checkMin = [](glm::vec3& min, const aiVector3D& vert) 
+			auto checkMin = [](glm::vec3& min, const glm::vec3& vert) 
 			{
 				min.x = std::min(min.x, vert.x);
 				min.y = std::min(min.y, vert.y);
@@ -40,7 +46,9 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 			if ( m->HasPositions()){
 			for ( unsigned int v = 0; v < m->mNumVertices; v++)
 			{
-				aiVector3D vert = m->mVertices[v];
+				glm::vec3 vert = toVec3( m->mVertices[v] );
+				vert = glm::vec3( vertexTransform * glm::vec4(vert, 1.0f));
+
 				vertices.push_back(vert.x);
 				vertices.push_back(vert.y);
 				vertices.push_back(vert.z);
@@ -52,7 +60,10 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 			if ( m->HasNormals()){
 			for ( unsigned int n = 0; n < m->mNumVertices; n++)
 			{
-				aiVector3D norm = m->mNormals[n];
+
+				glm::vec3 norm = toVec3( m->mNormals[n] );
+				norm = glm::vec3( glm::transpose(glm::inverse(vertexTransform)) * glm::vec4(norm, 1.0f));
+
 				normals.push_back(norm.x);
 				normals.push_back(norm.y);
 				normals.push_back(norm.z);
