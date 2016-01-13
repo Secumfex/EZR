@@ -4,7 +4,13 @@
 
 #include "Rendering/VertexArrayObjects.h"
 
-std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFromScene(const aiScene* scene)
+glm::vec3 toVec3(const aiVector3D& vert)
+{
+	return glm::vec3(vert.x, vert.y, vert.z);
+}
+
+
+std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFromScene(const aiScene* scene, glm::mat4 vertexTransform)
 {
 	std::vector<RenderableInfo >resultVector; 
 	for (unsigned int i = 0; i < scene->mNumMeshes; i++)
@@ -23,39 +29,47 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 			glm::vec3 min( FLT_MAX);
 			glm::vec3 max(-FLT_MAX);
 
-			auto checkMax = [](glm::vec3& max, const aiVector3D& vert) 
+			auto checkMax = [](glm::vec3& max, const glm::vec3& vert) 
 			{
 				max.x = std::max(max.x, vert.x);
 				max.y = std::max(max.y, vert.y);
 				max.z = std::max(max.z, vert.z);
 			};
 
-			auto checkMin = [](glm::vec3& min, const aiVector3D& vert) 
+			auto checkMin = [](glm::vec3& min, const glm::vec3& vert) 
 			{
 				min.x = std::min(min.x, vert.x);
 				min.y = std::min(min.y, vert.y);
 				min.z = std::min(min.z, vert.z);
 			};
-
+			
+			if ( m->HasPositions()){
 			for ( unsigned int v = 0; v < m->mNumVertices; v++)
 			{
-				aiVector3D vert = m->mVertices[v];
+				glm::vec3 vert = toVec3( m->mVertices[v] );
+				vert = glm::vec3( vertexTransform * glm::vec4(vert, 1.0f));
+
 				vertices.push_back(vert.x);
 				vertices.push_back(vert.y);
 				vertices.push_back(vert.z);
 				
 				checkMin(min,vert);
 				checkMax(max,vert);
-			}
+			}}
 
+			if ( m->HasNormals()){
 			for ( unsigned int n = 0; n < m->mNumVertices; n++)
 			{
-				aiVector3D norm = m->mNormals[n];
+
+				glm::vec3 norm = toVec3( m->mNormals[n] );
+				norm = glm::vec3( glm::transpose(glm::inverse(vertexTransform)) * glm::vec4(norm, 1.0f));
+
 				normals.push_back(norm.x);
 				normals.push_back(norm.y);
 				normals.push_back(norm.z);
-			}
+			}}
 
+			if ( m->HasTextureCoords(0)){
 			for (unsigned int u = 0; u < m->mNumVertices; u++)
 			{
 				aiVector3D uv = m->mTextureCoords[0][u];
@@ -66,8 +80,9 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 				{
 					uvs.push_back(uv.z);
 				}
-			}
+			}}
 
+			if ( m->HasFaces()){
 			for ( unsigned int f = 0; f < m->mNumFaces; f++)
 			{
 				aiFace face = m->mFaces[f];
@@ -75,11 +90,11 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 				{
 					indices.push_back(face.mIndices[idx]);
 				}
-			}
+			}}
 
 			// method to upload data to GPU and set as vertex attribute
 			auto createVbo = [](std::vector<float>& content, GLuint dimensions, GLuint attributeIndex)
-			{
+			{ 
 				GLuint vbo = 0;
 				glGenBuffers(1, &vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -105,14 +120,20 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 			renderable->m_vao = vao;
 			glBindVertexArray(vao);
 
+			if (m->HasPositions()){
 			renderable->m_positions.m_vboHandle = createVbo(vertices, 3, 0);
 			renderable->m_positions.m_size = vertices.size() / 3;
+			}
 
+			if(m->HasTextureCoords(0)){
 			renderable->m_uvs.m_vboHandle = createVbo(uvs, (m->GetNumUVChannels() == 3) ? 3 : 2, 1);
 			renderable->m_uvs.m_size = (m->GetNumUVChannels() == 3) ? uvs.size() / 3 : uvs.size() / 2;
-			
+			}
+
+			if( m->HasNormals()){
 			renderable->m_normals.m_vboHandle = createVbo(normals, 3, 2);
 			renderable->m_normals.m_size = normals.size() / 3;
+			}
 
 			renderable->m_indices.m_vboHandle = createIndexVbo(indices);
 			renderable->m_indices.m_size = indices.size();

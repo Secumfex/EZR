@@ -41,7 +41,7 @@ void Renderable::draw()
     unbind();
 }
 
-GLuint Renderable::createIndexVbo(std::vector<unsigned int> content, GLuint vertexAttributePointer) 
+GLuint Renderable::createIndexVbo(std::vector<unsigned int> content) 
 {
     
 	GLuint vbo = 0;
@@ -633,3 +633,228 @@ void Grid::draw()
     glDrawElements(GL_TRIANGLE_STRIP, m_indices.m_size, GL_UNSIGNED_INT, 0);
     // glDrawArrays(GL_POINTS,  0, m_positions.m_size);
 }
+
+TruncatedCone::VertexData TruncatedCone::generateVertexData(float height, float radius_bottom, float radius_top, int resolution, float offset_y, GLenum drawMode)
+{ 
+    VertexData result;
+    
+    // generate vertices and indices
+    const float angle_step = glm::two_pi<float>() / (float) resolution;
+    const float u_step = 1.0f / (float) resolution;
+    int vIdx = 0;
+    for ( int i = 0; i < resolution; i++)
+    {
+        float x = cos((float) i * angle_step);
+        float z = sin((float) i * angle_step);
+
+        // first vert
+        result.positions.push_back( x * radius_bottom );
+        result.positions.push_back( - offset_y);
+        result.positions.push_back( z * radius_bottom );
+        result.uv_coords.push_back( (float) i * u_step); // u_cord
+        result.uv_coords.push_back( 0.0f); // v_coord
+        
+        glm::vec3 normal = glm::normalize( glm::vec3(x, 0.0f, z));
+        result.normals.push_back( normal.x );
+        result.normals.push_back( normal.y );
+        result.normals.push_back( normal.z );
+
+		result.indices.push_back(vIdx);
+	
+        vIdx ++;
+        
+        // second vert
+        if ( radius_top != 0.0f)
+        {
+            result.positions.push_back( x * radius_top);
+            result.positions.push_back( height - offset_y);
+            result.positions.push_back( z * radius_top);
+
+			result.indices.push_back(vIdx);
+            vIdx ++;
+
+            glm::vec3 normal = glm::normalize( glm::vec3(x, 0.0f, z));
+            result.normals.push_back( normal.x );
+            result.normals.push_back( normal.y );
+            result.normals.push_back( normal.z );
+
+            result.uv_coords.push_back( (float) i * u_step); // u_cord
+            result.uv_coords.push_back( 1.0f); // v_coord
+        
+        }
+        else // always the same vertex, so create it only once and resue its index
+        {
+            static bool once = true;
+            if (once) // push back the top vertex 
+            {
+                result.positions.push_back( x * radius_top);
+                result.positions.push_back( height - offset_y);
+                result.positions.push_back( z * radius_top);
+
+                glm::vec3 normal = glm::vec3(0.0f, 1.0f, 0.0f);
+                result.normals.push_back( normal.x );
+                result.normals.push_back( normal.y );
+                result.normals.push_back( normal.z );        
+
+                result.uv_coords.push_back( (float) i * u_step); // u_cord
+                result.uv_coords.push_back( 1.0f); // v_coord
+                
+                vIdx ++;
+                once = false;
+            }
+			result.indices.push_back(1);
+        }
+    }
+
+    // reuse first and second vertices as last positions
+	result.indices.push_back(0);
+	result.indices.push_back(1);
+
+	if ( drawMode == GL_TRIANGLES)
+	{
+		result.indices.clear(); // lets start over
+		if ( radius_top == 0.0f) // reuse top vertex
+		{
+			// first triangle
+			result.indices.push_back(0);
+			result.indices.push_back(1);
+			result.indices.push_back(2);
+
+			for (int i = 2; i <= resolution; i++)
+			{
+				result.indices.push_back(i);
+				result.indices.push_back(1);
+				result.indices.push_back(((i+1) % (resolution+1)));
+			}
+		}
+		else
+		{
+			for( int i = 0; i < resolution * 2 - 2; i++)
+			{
+				// bottom left triangle
+				result.indices.push_back(i);
+				result.indices.push_back(i + 1);
+				result.indices.push_back((i+2) % (resolution * 2 -1));
+			}
+
+			result.indices.push_back(2*resolution - 2);
+			result.indices.push_back(1);
+			result.indices.push_back(0);
+		}
+	}
+
+    return result;
+}
+
+TruncatedCone::TruncatedCone(float height, float radius_bottom, float radius_top, int resolution, float offset_y)
+{
+	glGenVertexArrays(1, &m_vao);
+    glBindVertexArray(m_vao);
+
+    m_mode = GL_TRIANGLE_STRIP;
+
+	std::vector<float> positions;
+    std::vector<float> normals;
+	std::vector<float> uv_coords;
+	std::vector<unsigned int>   indices;
+	
+	bool once = true;
+			
+	// generate vertices and indices
+	const float angle_step = glm::two_pi<float>() / (float) resolution;
+	const float u_step = 1.0f / (float) resolution;
+	int vIdx = 0;
+	for ( int i = 0; i < resolution; i++)
+	{
+		float x = cos((float) i * angle_step);
+		float z = sin((float) i * angle_step);
+
+		// first vert
+		positions.push_back( x * radius_bottom );
+		positions.push_back( - offset_y);
+		positions.push_back( z * radius_bottom );
+		uv_coords.push_back( (float) i * u_step); // u_cord
+		uv_coords.push_back( 0.0f); // v_coord
+		
+        glm::vec3 normal = glm::normalize( glm::vec3(x, 0.0f, z));
+        normals.push_back( normal.x );
+        normals.push_back( normal.y );
+        normals.push_back( normal.z );
+
+		indices.push_back(vIdx);
+		vIdx ++;
+		
+		// second vert
+		if ( radius_top != 0.0f)
+		{
+			positions.push_back( x * radius_top);
+			positions.push_back( height - offset_y);
+			positions.push_back( z * radius_top);
+			indices.push_back(vIdx );
+			vIdx ++;
+
+            glm::vec3 normal = glm::normalize( glm::vec3(x, 0.0f, z));
+            normals.push_back( normal.x );
+            normals.push_back( normal.y );
+            normals.push_back( normal.z );
+
+            uv_coords.push_back( (float) i * u_step); // u_cord
+            uv_coords.push_back( 1.0f); // v_coord
+        
+		}
+		else // always the same vertex, so create it only once and resue its index
+		{
+			if (once) // push back the top vertex 
+			{
+				positions.push_back( x * radius_top);
+				positions.push_back( height - offset_y);
+				positions.push_back( z * radius_top);
+
+                glm::vec3 normal = glm::normalize( glm::vec3(x, 0.0f, z));
+                normals.push_back( normal.x );
+                normals.push_back( normal.y );
+                normals.push_back( normal.z );        
+
+        		uv_coords.push_back( (float) i * u_step); // u_cord
+        		uv_coords.push_back( 1.0f); // v_coord
+                
+                vIdx ++;
+                once = false;
+            }
+            indices.push_back(1);
+        }
+	}
+
+	// reuse first and second vertices as last positions
+	indices.push_back(0);
+	indices.push_back(1);
+
+	// buffer vertex data
+	m_positions.m_vboHandle = createVbo(positions, 3, 0);
+	m_uvs.m_vboHandle = createVbo(uv_coords, 2, 1);
+	m_normals.m_vboHandle = createVbo(normals, 3, 2); //TODO
+	m_indices.m_vboHandle = createIndexVbo(indices);
+
+	m_uvs.m_size = uv_coords.size() / 2;
+	m_positions.m_size = positions.size() / 3;
+	m_indices.m_size = indices.size();
+	m_normals.m_size = normals.size() / 3;
+
+    glBindVertexArray(0);
+}
+
+TruncatedCone::~TruncatedCone()
+{
+	glDeleteBuffersARB(1, &(m_positions.m_vboHandle));
+    glDeleteBuffersARB(1, &(m_uvs.m_vboHandle));
+    glDeleteBuffersARB(1, &(m_normals.m_vboHandle));
+}
+
+void TruncatedCone::draw()
+{
+	glBindVertexArray(m_vao);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indices.m_vboHandle);
+	glDrawElements(m_mode, m_indices.m_size, GL_UNSIGNED_INT, 0);
+}
+
+

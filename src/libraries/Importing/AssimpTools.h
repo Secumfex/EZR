@@ -25,8 +25,11 @@ namespace AssimpTools {
 	};
 
 	/** @brief creates a Renderable for every Mesh in the scene
-	 * @details Each Renderable (hopefully) has vertices, normals, uvs and an index buffer, draw mode is GL_TRIANGLES */
-	std::vector<RenderableInfo > createSimpleRenderablesFromScene( const aiScene* scene ); 
+	 * @details Each Renderable (hopefully) has vertices, normals, uvs and an index buffer, draw mode is GL_TRIANGLES 
+	 * @param scene imported with Assimp::Importer
+	 * @param vertexTransform transformation that will be apllied to every vertex (and normal). Default: identity
+	 */
+	std::vector<RenderableInfo > createSimpleRenderablesFromScene( const aiScene* scene, glm::mat4 vertexTransform = glm::mat4(1.0f) ); 
 
 	BoundingBox computeBoundingBox(const aiMesh* mesh);
 
