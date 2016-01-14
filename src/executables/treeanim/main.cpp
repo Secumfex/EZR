@@ -26,6 +26,7 @@
 
 #include <TreeAnimation/Tree.h>
 #include <TreeAnimation/TreeRendering.h>
+#include <TreeAnimation/WindField.h>
 
 ////////////////////// PARAMETERS /////////////////////////////
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
@@ -82,7 +83,7 @@ int main()
 	const aiScene* scene = AssimpTools::importAssetFromResourceFolder(branchModel, importer);
 
 	// generate one renderable per branch
-	std::function<void(TreeAnimation::Tree::Branch*, std::vector<Renderable*>&)> generateRenderables = [&](
+	std::function<void(TreeAnimation::Tree::Branch*, std::vector<Renderable*>&)> generateRenderablesRecursively = [&](
 		TreeAnimation::Tree::Branch* branch, std::vector<Renderable*>& renderables)
 	{
 		auto branchRenderable = TreeAnimation::generateRenderable(branch, scene); 
@@ -92,7 +93,7 @@ int main()
 		
 		for (int i = 0; i < branch->children.size(); i++)
 		{
-			generateRenderables(branch->children[i], renderables);
+			generateRenderablesRecursively(branch->children[i], renderables);
 			auto foliageRenderable = TreeAnimation::generateFoliage(branch->children[i], 35);
 			
 			s_renderable_color[foliageRenderable] = &s_foliage_color;
@@ -101,8 +102,11 @@ int main()
 	};
 	
 	std::vector<Renderable*> objects;
-	generateRenderables(branches[0], objects);
+	generateRenderablesRecursively(branches[0], objects);
 	
+	TreeAnimation::WindField windField(128,128);
+	windField.updateVectorTexture(0.0f);
+
 	DEBUGLOG->outdent();
 	//////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////// RENDERING  ///////////////////////////////////
@@ -155,7 +159,6 @@ int main()
 		 }
 	 };
 	 renderPass.setPerRenderableFunction(&perRenderableFunc);
-
 
 	 // regular GBuffer compositing
 	 DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
