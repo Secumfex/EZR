@@ -72,7 +72,22 @@ int main()
 		{
 			aiMesh* m = scene->mMeshes[i];
 			DEBUGLOG->log(std::string("mesh ") + DebugLog::to_string(i) + std::string(": ") + std::string( m->mName.C_Str() ));
-		}DEBUGLOG->outdent();
+		}
+		
+		for ( unsigned int i = 0; i < scene->mNumMaterials; i++ )
+		{
+			aiMaterial* m = scene->mMaterials[i];
+			DEBUGLOG->log(std::string("material ") + DebugLog::to_string(i) + std::string(": "));
+			DEBUGLOG->indent();
+				auto texInfos = AssimpTools::getTexturesInfo(scene, i);
+				for ( auto e : texInfos )
+				{
+					DEBUGLOG->log("texture-file : "+ e.second.relativePath);
+				}
+
+			DEBUGLOG->outdent();
+		}
+		DEBUGLOG->outdent();
 	DEBUGLOG->outdent();
 
 	DEBUGLOG->outdent();

@@ -218,3 +218,29 @@ const aiScene* AssimpTools::importAssetFromResourceFolder(std::string filename, 
 
 	return scene;
 }
+
+std::map<aiTextureType, AssimpTools::TextureInfo> AssimpTools::getTexturesInfo(const aiScene* scene, int matIdx)
+{
+	std::map<aiTextureType, AssimpTools::TextureInfo> result;
+	
+	if (matIdx >= scene->mNumMaterials)
+	{
+		DEBUGLOG->log("ERROR: invalid material index");
+		return result;
+	}
+
+	auto m = scene->mMaterials[matIdx];
+	for (int t = aiTextureType::aiTextureType_NONE; t <= aiTextureType::aiTextureType_UNKNOWN; t++)
+	{
+		if (m->GetTextureCount( (aiTextureType) t ) != 0)
+		{
+			aiString path;
+			m->GetTexture( (aiTextureType) t, 0, &path);
+			std::string sPath(path.C_Str());
+			
+			TextureInfo info = {matIdx, t, sPath}; 
+			result[(aiTextureType) t] = info;
+		}
+	}
+	return result;
+}

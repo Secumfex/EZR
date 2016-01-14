@@ -6,6 +6,7 @@
 #include <assimp/postprocess.h>
 #include <glm/glm.hpp>
 #include <vector>
+#include <map>
 
 class Renderable;
 namespace Assimp{ class Importer; }
@@ -37,6 +38,15 @@ namespace AssimpTools {
 
 	const aiScene* importAssetFromResourceFolder(std::string filename, Assimp::Importer& importer, int steps = aiProcessPreset_TargetRealtime_MaxQuality);
 	
+	struct TextureInfo
+	{
+		int matIdx;
+		int type;
+		std::string relativePath;
+	};
+
+	std::map<aiTextureType, TextureInfo> getTexturesInfo(const aiScene* scene, int matIdx);
+
 	void checkMax(glm::vec3& max, const glm::vec3& point); //!< adapt components of current max by checking them against the components of a point
 	void checkMin(glm::vec3& min, const glm::vec3& point); //!< adapt components of current min by checking them against the components of a point
 
