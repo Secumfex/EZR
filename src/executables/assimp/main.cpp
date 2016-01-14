@@ -12,13 +12,14 @@
 #include <Rendering/VertexArrayObjects.h>
  #include <Rendering/RenderPass.h>
 
-// #include "UI/imgui/imgui.h"
-// #include <UI/imguiTools.h>
+ #include "UI/imgui/imgui.h"
+ #include <UI/imguiTools.h>
 #include <UI/Turntable.h>
 
 // #include <Importing/TextureTools.h>
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 ////////////////////// PARAMETERS /////////////////////////////
@@ -26,6 +27,8 @@ const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 
 static glm::vec4 s_color = glm::vec4(0.45 * 0.3f, 0.44f * 0.3f, 0.87f * 0.3f, 1.0f); // far : blueish
 static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
+
+static glm::vec3 s_scale = glm::vec3(1.0f,1.0f,1.0f);
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -102,14 +105,23 @@ int main()
 	DEBUGLOG->log("Setup: creating VAOs from mesh data"); DEBUGLOG->indent();
 	std::vector<AssimpTools::RenderableInfo> renderableInfoVector = AssimpTools::createSimpleRenderablesFromScene( scene );
 
+	//glm::vec3 bbox_min(FLT_MAX);
+	//glm::vec3 bbox_max(-FLT_MAX);
 	for (auto r : renderableInfoVector)
 	{
 		objects.push_back(r.renderable); // extract list of renderables
 		DEBUGLOG->log("corresponding aiScene mesh idx: ", r.meshIdx); DEBUGLOG->indent();
 		DEBUGLOG->log("name      : " + r.name);
 		DEBUGLOG->log("bbox size : " , r.boundingBox.max - r.boundingBox.min); DEBUGLOG->outdent();
+
+		//AssimpTools::checkMax(bbox_max, r.boundingBox.max);
+		//AssimpTools::checkMin(bbox_min, r.boundingBox.min);
+
 	}
 	DEBUGLOG->outdent();
+
+	// recenter view
+	//center = glm::vec4(glm::vec3(center) + 0.5f * (bbox_max - bbox_min) + bbox_min, center.w);
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
 	 // regular GBuffer
@@ -157,18 +169,19 @@ int main()
 	//////////////////////////////////////////////////////////////////////////////
 
 	// Setup ImGui binding
- //    ImGui_ImplGlfwGL3_Init(window, true);
+     ImGui_ImplGlfwGL3_Init(window, true);
 
 	Turntable turntable;
 	double old_x;
     double old_y;
 	glfwGetCursorPos(window, &old_x, &old_y);
 	
-	// 	ImGuiIO& io = ImGui::GetIO();
-	// 	if ( io.WantCaptureMouse )
-	// 	{ return; } // ImGUI is handling this
+
 	auto cursorPosCB = [&](double x, double y)
 	{
+	 	ImGuiIO& io = ImGui::GetIO();
+	 	if ( io.WantCaptureMouse )
+	 	{ return; } // ImGUI is handling this
 
 		double d_x = x - old_x;
 		double d_y = y - old_y;
@@ -249,16 +262,16 @@ int main()
 		glfwSetWindowTitle(window, window_header.c_str() );
 
 		////////////////////////////////     GUI      ////////////////////////////////
-  //       ImGuiIO& io = ImGui::GetIO();
-		// ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
-		
+         ImGuiIO& io = ImGui::GetIO();
+		 ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
+		 ImGui::SliderFloat3("strength", glm::value_ptr(s_scale), 0.0f, 10.0f);
 		// ImGui::PushItemWidth(-100);
 
 		// ImGui::ColorEdit4( "color", glm::value_ptr( s_color)); // color mixed at max distance
   //       ImGui::SliderFloat("strength", &s_strength, 0.0f, 2.0f); // influence of color shift
         
-		// ImGui::Checkbox("auto-rotate", &s_isRotating); // enable/disable rotating volume
-		// ImGui::PopItemWidth();
+		 //ImGui::Checkbox("auto-rotate", &s_isRotating); // enable/disable rotating volume
+		 //ImGui::PopItemWidth();
 
         //////////////////////////////////////////////////////////////////////////////
 
@@ -270,7 +283,7 @@ int main()
 		// update view related uniforms
 		shaderProgram.update( "view", view);
 		shaderProgram.update( "color", s_color);
-		shaderProgram.update( "model", turntable.getRotationMatrix() * model);
+		shaderProgram.update( "model", turntable.getRotationMatrix() * model * glm::scale(s_scale));
 
 		compShader.update("vLightPos", view * s_lightPos);
 		//////////////////////////////////////////////////////////////////////////////
@@ -280,9 +293,9 @@ int main()
 
 		compositing.render();
 
-		// ImGui::Render();
-		// glDisable(GL_BLEND);
-		// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
+		 ImGui::Render();
+		 glDisable(GL_BLEND);
+		 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
 		//////////////////////////////////////////////////////////////////////////////
 
 	});

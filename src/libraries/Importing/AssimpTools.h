@@ -36,6 +36,9 @@ namespace AssimpTools {
 	BoundingBox computeBoundingBox(const aiMesh* mesh);
 
 	const aiScene* importAssetFromResourceFolder(std::string filename, Assimp::Importer& importer, int steps = aiProcessPreset_TargetRealtime_MaxQuality);
+	
+	void checkMax(glm::vec3& max, const glm::vec3& point); //!< adapt components of current max by checking them against the components of a point
+	void checkMin(glm::vec3& min, const glm::vec3& point); //!< adapt components of current min by checking them against the components of a point
 
 } // namespace AssimpTools
 #endif

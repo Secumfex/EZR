@@ -188,6 +188,21 @@ AssimpTools::BoundingBox AssimpTools::computeBoundingBox(const aiMesh* mesh)
 	return result;
 }
 
+void AssimpTools::checkMin(glm::vec3& min, const glm::vec3& point)
+{
+	min.x = std::min(min.x, point.x);
+	min.y = std::min(min.y, point.y);
+	min.z = std::min(min.z, point.z);
+}
+
+void AssimpTools::checkMax(glm::vec3& max, const glm::vec3& point)
+{
+	max.x = std::max(max.x, point.x);
+	max.y = std::max(max.y, point.y);
+	max.z = std::max(max.z, point.z);
+}
+
+
 #include <assimp/Importer.hpp>
 const aiScene* AssimpTools::importAssetFromResourceFolder(std::string filename, Assimp::Importer& importer,int steps)
 {
