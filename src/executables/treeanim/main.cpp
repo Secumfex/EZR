@@ -3,7 +3,6 @@
  ****************************************/
 
 #include <iostream>
-//#include <random>
 #include <time.h>
 
 #include <Rendering/GLTools.h>
@@ -13,7 +12,6 @@
 #include "UI/imgui/imgui.h"
 #include <UI/imguiTools.h>
 #include <UI/Turntable.h>
-
 
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -26,14 +24,14 @@
 #include <assimp/postprocess.h>
 #include <Importing/AssimpTools.h>
 
-//#include <glm/gtx/vector_angle.hpp>
-
 #include <TreeAnimation/Tree.h>
+#include <TreeAnimation/TreeRendering.h>
 
 ////////////////////// PARAMETERS /////////////////////////////
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 
-static glm::vec4 s_color = glm::vec4(107.0f / 255.0f , 68.0f / 255.0f , 35.0f /255.0f, 1.0f); // far : brown
+static glm::vec4 s_trunk_color =  glm::vec4(107.0f / 255.0f , 68.0f / 255.0f , 35.0f /255.0f, 1.0f); // brown
+static glm::vec4 s_foliage_color = glm::vec4(22.0f / 255.0f , 111.0f / 255.0f , 22.0f /255.0f, 1.0f); // green
 static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
 
 static float s_wind_angle = 45.0f;
@@ -45,6 +43,8 @@ static float s_strength = 1.0f;
 static bool  s_isRotating = false;
 
 static float s_simulationTime = 0.0f;
+
+static std::map<Renderable*, glm::vec4*> s_renderable_color;
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -61,112 +61,16 @@ int main()
 
 	/////////////////////    create Tree data    //////////////////////////
 	DEBUGLOG->log("Setup: generating trees"); DEBUGLOG->indent();
-
-	float tree_height = 4.0f;
-	float tree_width = tree_height / 10.0f;
-	float tree_stiffness = TreeAnimation::Tree::computeStiffness(tree_width, tree_width, tree_height, TreeAnimation::E_RED_OAK);
-	TreeAnimation::Tree tree( tree_width, tree_height, tree_stiffness );
-
 	// generate a tree randomly
 	srand (time(NULL));	
-	auto addRandomBranch = [&](TreeAnimation::Tree* tree, TreeAnimation::Tree::Branch* parent, float rPosMin, float rPosMax, float rLengthMax, float rLengthMin, float rPitchMin, float rPitchMax)
-	{
-		// randomization values
-		float r1 = ((float) rand()) / ((float) RAND_MAX);
-		float r2 = ((float) rand()) / ((float) RAND_MAX);
-		float rLength = ( r1 * (rLengthMax - rLengthMin)) + rLengthMin;
-		float rPitchAngle = ( r2 * (rPitchMax - rPitchMin) ) + rPitchMin; // should be between 0° and 180°
-		float rYawAngle = ((float) rand()) / ((float) RAND_MAX) * 2.f * glm::pi<float>() - glm::pi<float>(); //between -180° and 180°
-		// float rYawAngle = 0.0f;
-		float rPos = (((float) rand()) / ((float) RAND_MAX) * (rPosMax - rPosMin)) + rPosMin ;
-
-		// optimal: 90° to parent, assuming parent is pointing in (0,1,0) in object space
-		glm::vec3 optimalDirection = glm::vec3(1.0f,0.0f,0.0f);
-		glm::vec3 rDirection = glm::normalize( glm::rotateY( glm::rotateZ( optimalDirection, rPitchAngle), rYawAngle)); // apply randomization
-		
-		// retrieve object-space orientation of parent
-		glm::vec3 parentDirection= parent->direction;
-		glm::quat parentRotation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), parent->direction);
-		float thickness = (1.0f - rPos) * parent->thickness * 0.5f; 
-		
-		// apply parent orientation to this branch direction
-		rDirection = (glm::rotate(parentRotation, rDirection));
-
-		// add branch
-		return tree->addBranch(
-			parent,
-			rDirection,
-			rPos,
-			thickness,
-			rLength,
-			TreeAnimation::Tree::computeStiffness( 
-				(1.0f - rPos) * parent->thickness,
-				(1.0f - rPos) * parent->thickness,
-				rLength,
-				tree->m_E)
-			); ;
-	};
+	
+	float tree_height = 4.0f;
+	float tree_width = tree_height / 10.0f;
 
 	std::vector<TreeAnimation::Tree::Branch* > branches; // branches, indexed
-	branches.push_back(&tree.m_trunk);
-	
-	for ( int i = 0; i < 7; i++)
-	{
-		auto branch = addRandomBranch(
-			&tree,
-			&tree.m_trunk,
-			0.50f,
-			0.75f,
-			tree.m_trunk.length / 2.0f,
-			tree.m_trunk.length / 4.0f,
-			glm::radians(40.0f),
-			glm::radians(50.0f));
-		branches.push_back(branch);
-
-		for ( int j = 0; j < 3; j++)
-		{
-			auto subBranch = addRandomBranch( 
-				&tree,
-				branch,
-				0.1f,
-				0.7f,
-				branch->length / 2.0f,
-				branch->length / 8.0f,
-				glm::radians(40.0f),
-				glm::radians(50.0f));
-				branches.push_back(subBranch);
-		}
-	}
-
-	auto printTree = [](TreeAnimation::Tree& tree)
-	{
-		DEBUGLOG->log("Tree");
-		DEBUGLOG->indent();
-		DEBUGLOG->log("num trunk branches: ", tree.m_trunk.children.size());
-		for ( int i = 0; i < tree.m_trunk.children.size(); i++)
-		{
-			DEBUGLOG->log("branch " + DebugLog::to_string(i) + ": ");
-			DEBUGLOG->indent();
-			    DEBUGLOG->log("idx: ", tree.m_trunk.children[i]->idx );
-				DEBUGLOG->log("num sub branches: ", tree.m_trunk.children[i]->children.size());
-				int k = 0;
-				for ( auto b : tree.m_trunk.children[i]->children)
-				{
-					DEBUGLOG->log("sub branch "+ DebugLog::to_string(k));
-					DEBUGLOG->indent();
-					DEBUGLOG->log("idx: ", b->idx);
-					DEBUGLOG->outdent();
-					k++;
-				}
-		
-			DEBUGLOG->outdent();
-		}
-		DEBUGLOG->outdent();
-	};
-
-	printTree(tree);
-	
+	TreeAnimation::Tree* tree = TreeAnimation::Tree::generateTree(tree_height, tree_width, 7, 3, &branches);	
 	DEBUGLOG->outdent();
+	
 	/////////////////////    generate Tree Renderable    //////////////////////////
 	DEBUGLOG->log("Setup: generating renderables"); DEBUGLOG->indent();
 
@@ -174,75 +78,30 @@ int main()
 	Assimp::Importer importer;
 	DEBUGLOG->log("Loading branch model");
 	std::string branchModel = "branch.dae";
-	const aiScene* scene = importer.ReadFile( RESOURCES_PATH "/" + branchModel, aiProcessPreset_TargetRealtime_MaxQuality);
-	if (scene == NULL)
-	{
-		std::string errorString = importer.GetErrorString();
-		DEBUGLOG->log("ERROR: " + errorString); cout << "Using cone model instead." << endl;
-	} else {
-		DEBUGLOG->log("Branch model has been loaded successfully");
-	}
-
-	auto generateRenderable = [&](TreeAnimation::Tree::Branch* branch)
-	{
-		Renderable* renderable = nullptr;
-
-		if (scene != NULL)
-		{
-			glm::mat4 transform = glm::scale( glm::vec3(branch->thickness / 2.0f, branch->length, branch->thickness / 2.0f) );
-			auto renderables = AssimpTools::createSimpleRenderablesFromScene(scene, transform);
-			renderable = renderables.at(0).renderable;
-		}else{
-			// generate regular Truncated Cone
-			renderable = new TruncatedCone( branch->length, branch->thickness / 2.0f, 0.0f, 20, 0.0f);
-		}
-
-		renderable->bind();
-
-		std::vector<unsigned int> hierarchy;
-		auto addHierarchy = [&] (TreeAnimation::Tree::Branch* b) // wow this is ugly
-		{
-			// first index is always this branch's index
-			hierarchy.push_back(b->idx);
-		
-			if ( b->parent != nullptr ){
-				hierarchy.push_back(b->parent->idx); // parent branch
-				if ( b->parent->parent != nullptr){
-					hierarchy.push_back(0); // trunk
-				}else{
-					hierarchy.push_back(0); // trunk
-				}
-			}else{
-				hierarchy.push_back(0); // trunk
-				hierarchy.push_back(0); // trunk
-			}};
-
-		for ( int i = 0; i < renderable->m_positions.m_size; i++)
-		{
-			addHierarchy(branch); // add hierarchy once for every vertex
-		}
-
-		// add another vertex attribute which contains the tree hierarchy
-		Renderable::createVbo<unsigned int>(hierarchy, 3, 4, GL_UNSIGNED_INT, true); 
-		
-		glBindVertexArray(0); 
-
-		return renderable;
-	};
+	
+	const aiScene* scene = AssimpTools::importAssetFromResourceFolder(branchModel, importer);
 
 	// generate one renderable per branch
 	std::function<void(TreeAnimation::Tree::Branch*, std::vector<Renderable*>&)> generateRenderables = [&](
 		TreeAnimation::Tree::Branch* branch, std::vector<Renderable*>& renderables)
 	{
-		renderables.push_back( generateRenderable(branch));
+		auto branchRenderable = TreeAnimation::generateRenderable(branch, scene); 
+
+		s_renderable_color[branchRenderable] = &s_trunk_color;
+		renderables.push_back( branchRenderable );
+		
 		for (int i = 0; i < branch->children.size(); i++)
 		{
 			generateRenderables(branch->children[i], renderables);
+			auto foliageRenderable = TreeAnimation::generateFoliage(branch->children[i], 35);
+			
+			s_renderable_color[foliageRenderable] = &s_foliage_color;
+			renderables.push_back(foliageRenderable);
 		}
 	};
 	
 	std::vector<Renderable*> objects;
-	generateRenderables(&tree.m_trunk, objects);
+	generateRenderables(branches[0], objects);
 	
 	DEBUGLOG->outdent();
 	//////////////////////////////////////////////////////////////////////////////
@@ -286,6 +145,17 @@ int main()
 	 renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	  for (auto r : objects){renderPass.addRenderable(r);}  
 	 DEBUGLOG->outdent();
+
+	 std::function<void(Renderable*)> perRenderableFunc = [&] (Renderable* r)
+	 {
+		 auto c =s_renderable_color.find(r); 
+		 if ( c!= s_renderable_color.end() )
+		 {
+			 shaderProgram.update( "color", *(c->second) );
+		 }
+	 };
+	 renderPass.setPerRenderableFunction(&perRenderableFunc);
+
 
 	 // regular GBuffer compositing
 	 DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
@@ -422,15 +292,14 @@ int main()
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
 		// update view related uniforms
 		shaderProgram.update( "view",  view);
-		shaderProgram.update( "color", s_color);
 		shaderProgram.update( "model", turntable.getRotationMatrix() * model);
 
 		shaderProgram.update("simTime", s_simulationTime);
-		s_wind_direction = glm::rotateY(glm::vec3(1.0f,0.0f,0.0f), glm::radians(s_wind_angle));
+		s_wind_direction = glm::rotateY(glm::vec3(0.0f,0.0f,1.0f), glm::radians(s_wind_angle));
 		shaderProgram.update( "windDirection", s_wind_direction);
 		
 		glm::vec3 windTangent = glm::vec3(-s_wind_direction.z, s_wind_direction.y, s_wind_direction.x);
-		float animatedWindPower = sin(s_simulationTime) * (s_wind_power / 2.0f) + s_wind_power / 2.0f; 
+		float animatedWindPower = sin(s_simulationTime) * (s_wind_power / 2.0f) + s_wind_power / 2.0f + (0.25f * sin(2.0f * s_wind_power * s_simulationTime + 0.25f)) ; 
 		s_wind_rotation = glm::rotate(glm::mat4(1.0f), (animatedWindPower / 2.0f), windTangent);
 		shaderProgram.update( "windRotation" , s_wind_rotation); 
 
@@ -449,7 +318,7 @@ int main()
 		shaderProgram.update("tree.phase", tree_phase); //front
 
 		// upload tree uniforms
-		for (int i = 0; i < branches.size(); i++)
+		for (unsigned int i = 0; i < branches.size(); i++)
 		{
 			std::string prefix = "tree.branches[" + DebugLog::to_string(i) + "].";
 
