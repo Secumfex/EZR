@@ -51,6 +51,7 @@ int main()
 	glm::mat4 view = glm::lookAt(glm::vec3(cameraPos), glm::vec3(cameraTarget), glm::vec3(0,1,0));
 	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 100.0f);
     // setup light
+    float lightIntensity = 10000000.0;
     glm::vec4 lightColor(1.0f, 1.0f, 1.0f, 1.0f);
     glm::vec3 lightPos(0.0f, 0.0f, 3.0f);
     glm::vec3 lightTarget(0,0,0);
@@ -60,6 +61,10 @@ int main()
     float lightFarPlane = 1000.0f;
     glm::mat4 lightProjection = glm::perspective(glm::radians(lightViewAngle), getRatio(window), lightNearPlane, lightFarPlane);
     glm::mat4 lightMVP = lightProjection * lightView * model;
+    // setup variables for raymarching
+    int numberOfSamples = 7;
+    float mediumDensity = 0.0001;       // tau
+    float scatterProbability = 1.0f;    // albedo
     // create objects
     float object_size = 0.5f;
 	std::vector<Renderable* > objects;
@@ -133,10 +138,14 @@ int main()
     raymarchingShader.update("lightView", lightView);
     // uniforms for the fragment shader
     raymarchingShader.bindTextureOnUse("shadowMapSampler", shadowMap.getDepthTextureHandle());
+    raymarchingShader.update("numberOfSamples", numberOfSamples);
+    raymarchingShader.update("phi", lightIntensity);
     raymarchingShader.update("lightProjection", lightProjection);
     raymarchingShader.update("lightColor", lightColor);
     raymarchingShader.update("cameraPosLightSpace", cameraPosLightSpace);
     raymarchingShader.update("cameraViewDirInvLightSpace", cameraViewDirInvLightSpace);
+    raymarchingShader.update("tau", mediumDensity);
+    raymarchingShader.update("albedo", scatterProbability);
     DEBUGLOG->outdent();
     DEBUGLOG->log("Renderpass Creation: Raymarching renderpass"); DEBUGLOG->indent();
     RenderPass raymarchingRenderpass(&raymarchingShader, &volumeLightingBuffer);
@@ -257,11 +266,15 @@ int main()
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
 		ImGui::PushItemWidth(-100);
 
+        ImGui::SliderInt("Number ff Samples", &numberOfSamples, 1, 10);
+        ImGui::SliderFloat("lightIntensity", &lightIntensity, 100.0f, 100000000.0f);
         ImGui::SliderFloat3("lightPos", glm::value_ptr(lightPos), -10.0f, 10.0f);
         ImGui::SliderFloat("lightAngle", &lightViewAngle, 0.1f, 90.0f);
         ImGui::SliderFloat("lightNearPlane", &lightNearPlane, 0.01f, 1.0f);
         ImGui::SliderFloat("lightFarPlane", &lightFarPlane, 10.0f, 1000.0f);
         ImGui::SliderFloat4("lightColor", glm::value_ptr(lightColor), 0.0f, 1.0f);
+        ImGui::SliderFloat("tau", &mediumDensity, 0.0f, 1.0f);
+        ImGui::SliderFloat("albedo", &scatterProbability, 0.0f, 1.0f);
 		ImGui::Checkbox("auto-rotate", &s_isRotating); // enable/disable rotating volume
 		ImGui::PopItemWidth();
         //////////////////////////////////////////////////////////////////////////////
@@ -295,6 +308,8 @@ int main()
         lightShader.update( "model", glm::translate(glm::mat4(1.0f), lightPos));
 
         // update raymarching related uniforms
+        raymarchingShader.update("numberOfSamples", numberOfSamples);
+        raymarchingShader.update("phi", lightIntensity);
         raymarchingShader.update("model", model);
         raymarchingShader.update("view", view);
         raymarchingShader.update("projection", perspective);
@@ -302,6 +317,8 @@ int main()
         raymarchingShader.update("lightProjection", lightProjection);
         raymarchingShader.update("lightColor", lightColor);
         raymarchingShader.update("cameraPosLightSpace", cameraPosLightSpace);
+        raymarchingShader.update("tau", mediumDensity);
+        raymarchingShader.update("albedo", scatterProbability);
 //        raymarchingShader.update("cameraViewDirInvLightSpace", cameraViewDirInvLightSpace);
 		//////////////////////////////////////////////////////////////////////////////
 		
