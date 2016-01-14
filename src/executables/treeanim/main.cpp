@@ -23,6 +23,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <Importing/AssimpTools.h>
+#include <Importing/TextureTools.h>
 
 #include <TreeAnimation/Tree.h>
 #include <TreeAnimation/TreeRendering.h>
@@ -46,6 +47,7 @@ static bool  s_isRotating = false;
 static float s_simulationTime = 0.0f;
 
 static std::map<Renderable*, glm::vec4*> s_renderable_color;
+static std::map<Renderable*, bool> s_renderable_has_texture;
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -78,9 +80,16 @@ int main()
 	// import using ASSIMP and check for errors
 	Assimp::Importer importer;
 	DEBUGLOG->log("Loading branch model");
-	std::string branchModel = "branch.dae";
+	std::string branchModel = "branch_detailed.dae";
 	
 	const aiScene* scene = AssimpTools::importAssetFromResourceFolder(branchModel, importer);
+	auto branchTextureInfo = AssimpTools::getMaterialTexturesInfo(scene, 0);
+	
+	GLuint branchTexture = 0;
+	if (branchTextureInfo.find(aiTextureType::aiTextureType_DIFFUSE) != branchTextureInfo.end())
+	{
+		branchTexture = TextureTools::loadTextureFromResourceFolder(branchTextureInfo[aiTextureType_DIFFUSE].relativePath);
+	}
 
 	// generate one renderable per branch
 	std::function<void(TreeAnimation::Tree::Branch*, std::vector<Renderable*>&)> generateRenderablesRecursively = [&](
@@ -89,6 +98,7 @@ int main()
 		auto branchRenderable = TreeAnimation::generateRenderable(branch, scene); 
 
 		s_renderable_color[branchRenderable] = &s_trunk_color;
+		s_renderable_has_texture[branchRenderable] = true;
 		renderables.push_back( branchRenderable );
 		
 		for (int i = 0; i < branch->children.size(); i++)
@@ -131,6 +141,7 @@ int main()
 	 shaderProgram.update("model", model);
 	 shaderProgram.update("view", view);
 	 shaderProgram.update("projection", perspective);
+	 shaderProgram.bindTextureOnUse("tex", branchTexture);
 	 
 	 //shaderProgram.printUniformInfo();
 	 //shaderProgram.printInputInfo();
@@ -156,6 +167,14 @@ int main()
 		 if ( c!= s_renderable_color.end() )
 		 {
 			 shaderProgram.update( "color", *(c->second) );
+		 }
+		 if( s_renderable_has_texture.find(r) != s_renderable_has_texture.end() )
+		 {
+			 shaderProgram.update("mixTexture" , 1.0);
+		 }
+		 else
+		 {
+			 shaderProgram.update("mixTexture", 0.0);
 		 }
 	 };
 	 renderPass.setPerRenderableFunction(&perRenderableFunc);

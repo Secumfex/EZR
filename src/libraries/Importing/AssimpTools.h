@@ -38,14 +38,30 @@ namespace AssimpTools {
 
 	const aiScene* importAssetFromResourceFolder(std::string filename, Assimp::Importer& importer, int steps = aiProcessPreset_TargetRealtime_MaxQuality);
 	
-	struct TextureInfo
+	struct MaterialTextureInfo
 	{
 		int matIdx;
 		int type;
 		std::string relativePath;
 	};
 
-	std::map<aiTextureType, TextureInfo> getTexturesInfo(const aiScene* scene, int matIdx);
+	enum ScalarType {OPACITY, SHININESS, SHININESS_STRENGTH};
+	enum ColorType {AMBIENT, DIFFUSE, SPECULAR, EMISSIVE, REFLECTIVE, TRANSPARENT};
+	struct MaterialInfo
+	{
+		int matIdx;
+		std::map< ColorType, glm::vec4> color;
+		std::map< ScalarType, float> scalar;
+		std::map<aiTextureType, MaterialTextureInfo> texture;
+	};
+
+	std::map<aiTextureType, MaterialTextureInfo> getMaterialTexturesInfo(const aiScene* scene, int matIdx);
+	MaterialInfo getMaterialInfo(const aiScene* scene, int matIdx);
+
+	std::string decodeColorType(ColorType type);
+	std::string decodeScalarType(ScalarType type);
+	std::string decodeAiTextureType(aiTextureType type);
+	void printMaterialInfo(const MaterialInfo& materialInfo);
 
 	void checkMax(glm::vec3& max, const glm::vec3& point); //!< adapt components of current max by checking them against the components of a point
 	void checkMin(glm::vec3& min, const glm::vec3& point); //!< adapt components of current min by checking them against the components of a point

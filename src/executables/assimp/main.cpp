@@ -76,15 +76,10 @@ int main()
 		
 		for ( unsigned int i = 0; i < scene->mNumMaterials; i++ )
 		{
-			aiMaterial* m = scene->mMaterials[i];
 			DEBUGLOG->log(std::string("material ") + DebugLog::to_string(i) + std::string(": "));
+			auto matInfo = AssimpTools::getMaterialInfo(scene, i);
 			DEBUGLOG->indent();
-				auto texInfos = AssimpTools::getTexturesInfo(scene, i);
-				for ( auto e : texInfos )
-				{
-					DEBUGLOG->log("texture-file : "+ e.second.relativePath);
-				}
-
+				AssimpTools::printMaterialInfo(matInfo);
 			DEBUGLOG->outdent();
 		}
 		DEBUGLOG->outdent();
