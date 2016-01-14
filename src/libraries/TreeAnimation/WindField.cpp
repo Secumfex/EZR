@@ -39,7 +39,7 @@ void TreeAnimation::WindField::updateVectorTexture(double elapsedTime)
 	if (m_vectorTextureHandle == 0)
 	{
 		m_vectorTexData.resize(m_width * m_height * 3, 0.0);
-		DEBUGLOG->log("VectorSize: ", m_vectorTexData.size());
+		//DEBUGLOG->log("VectorSize: ", m_vectorTexData.size());
 
 		glGenTextures(1, &m_vectorTextureHandle);
 		glBindTexture(GL_TEXTURE_2D, m_vectorTextureHandle);
