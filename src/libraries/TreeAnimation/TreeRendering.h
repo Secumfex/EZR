@@ -14,5 +14,7 @@ namespace TreeAnimation
 
 Renderable* generateRenderable(TreeAnimation::Tree::Branch* branch, const aiScene* branchModel = NULL);
 
+Renderable* generateFoliage(TreeAnimation::Tree::Branch* branch, int numLeafs);
+
 } // TreeAnimation
 #endif
