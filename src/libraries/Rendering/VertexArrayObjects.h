@@ -22,18 +22,20 @@ public:
 
     virtual void draw();
 
-    inline void bind();
-    inline void unbind();
+    void bind();
+    void unbind();
 
     unsigned int getVertexCount(); //!< get number of vertices
     unsigned int getIndexCount();  //!< get number of indices
 
     void setDrawMode(GLenum type); //!< sets the mode the Renderable will be drawn with (e.g. GL_TRIANLGES)
 
-private:
+public:
+	template <class T>
+	static GLuint createVbo(std::vector<T> content, GLuint dimensions, GLuint vertexAttributePointer, GLenum type, bool isIntegerAttribute = false); //!< implementation at end of file
 
-    GLuint createVbo(std::vector<float> content, GLuint dimensions, GLuint vertexAttributePointer);
-	GLuint createIndexVbo(std::vector<unsigned int> content, GLuint vertexAttributePointer);
+    static GLuint createVbo(std::vector<float> content, GLuint dimensions, GLuint vertexAttributePointer);
+	static GLuint createIndexVbo(std::vector<unsigned int> content);
 
 public:
 
@@ -102,5 +104,49 @@ public:
 
 protected:
 };
+
+class TruncatedCone : public Renderable {
+public:
+    /** @brief default Constructor*/
+    TruncatedCone(float height = 1.0f, float radius_bottom = 1.0f, float radius_top = 0.0f, int resolution = 20, float offset_y = 0.0f);
+    
+    /**@brief Deconstructor*/
+    ~TruncatedCone();
+
+    struct VertexData
+    { 
+        std::vector<unsigned int> indices;
+        std::vector<float> positions;
+        std::vector<float> uv_coords;
+        std::vector<float> normals;
+    };
+	static VertexData generateVertexData(float height, float radius_bottom, float radius_top, int resolution, float offset_y, GLenum drawMode = GL_TRIANGLE_STRIP);
+
+
+    void draw() override; //!< draws the sphere
+
+protected:
+};
+
+template <class T>
+GLuint Renderable::createVbo(std::vector<T> content, GLuint dimensions, GLuint vertexAttributePointer, GLenum type, bool isIntegerAttribute)
+{
+    GLuint vbo = 0;
+	if ( content.size() != 0 )// && content.size() % dimensions == 0 )
+	{
+		glGenBuffers(1, &vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glBufferData(GL_ARRAY_BUFFER, content.size() * sizeof(T), &content[0], GL_STATIC_DRAW);
+		if ( isIntegerAttribute)
+		{
+			glVertexAttribIPointer( vertexAttributePointer, dimensions, type, 0,0); // will be left as integer values in shader
+		}else
+		{
+	        glVertexAttribPointer(vertexAttributePointer, dimensions, type, 0, 0, 0);
+		}
+		glEnableVertexAttribArray(vertexAttributePointer);
+	}
+    return vbo;
+}
 
 #endif
