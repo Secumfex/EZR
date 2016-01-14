@@ -10,7 +10,7 @@ glm::vec3 toVec3(const aiVector3D& vert)
 }
 
 
-std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFromScene(const aiScene* scene, glm::mat4 vertexTransform)
+std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFromScene(const aiScene* scene, glm::mat4 vertexTransform, bool createTangentsAndBitangents)
 {
 	std::vector<RenderableInfo >resultVector; 
 	for (unsigned int i = 0; i < scene->mNumMeshes; i++)
@@ -23,8 +23,10 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 			// read info
 			std::vector<unsigned int> indices;
 			std::vector<float> vertices;
-			std::vector<float> normals;
 			std::vector<float> uvs;
+			std::vector<float> normals;
+			std::vector<float> tangents;
+			//std::vector<float> bitangents;
 
 			glm::vec3 min( FLT_MAX);
 			glm::vec3 max(-FLT_MAX);
@@ -62,7 +64,7 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 			{
 
 				glm::vec3 norm = toVec3( m->mNormals[n] );
-				norm = glm::vec3( glm::transpose(glm::inverse(vertexTransform)) * glm::vec4(norm, 1.0f));
+				norm = glm::vec3( glm::transpose(glm::inverse(vertexTransform)) * glm::vec4(norm, 0.0f));
 
 				normals.push_back(norm.x);
 				normals.push_back(norm.y);
@@ -80,6 +82,25 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 				{
 					uvs.push_back(uv.z);
 				}
+			}}
+
+
+			if ( m->HasTangentsAndBitangents() && createTangentsAndBitangents){
+			for (unsigned int t = 0; t < m->mNumVertices; t++)
+			{
+				glm::vec3 tangent = toVec3( m->mTangents[t]);
+				tangent = glm::vec3( glm::transpose(glm::inverse(vertexTransform)) * glm::vec4(tangent, 0.0f));
+				
+				tangents.push_back(tangent.x);
+				tangents.push_back(tangent.y);
+				tangents.push_back(tangent.z);
+
+				//glm::vec3 biTangent = toVec3( m->mBitangents[t]);
+				//biTangent = glm::vec3( glm::transpose(glm::inverse(vertexTransform)) * glm::vec4(biTangent, 0.0f));
+				//bitangents.push_back(biTangent.x);
+				//bitangents.push_back(biTangent.y);
+				//bitangents.push_back(biTangent.z);
+
 			}}
 
 			if ( m->HasFaces()){
@@ -134,6 +155,19 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 			renderable->m_normals.m_vboHandle = createVbo(normals, 3, 2);
 			renderable->m_normals.m_size = normals.size() / 3;
 			}
+
+			if (m->HasTangentsAndBitangents() && createTangentsAndBitangents)
+			{
+				renderable->m_tangents.m_vboHandle = createVbo(tangents, 3, 3);
+				renderable->m_tangents.m_size = tangents.size() / 3;
+			}
+
+			// // commented out, because, like, just compute this in the shader
+			//if (m->HasTangentsAndBitangents() && createTangentsAndBitangents)
+			//{
+			//	renderable->m_bitangents.m_vboHandle = createVbo(bitangents, 3, 4);
+			//	renderable->m_bitangents.m_size =bitangents.size() /3 ;
+			//}
 
 			renderable->m_indices.m_vboHandle = createIndexVbo(indices);
 			renderable->m_indices.m_size = indices.size();
@@ -311,7 +345,7 @@ std::string AssimpTools::decodeScalarType(ScalarType type)
 	switch (type)
 	{
 	case OPACITY: return std::string("AMBIENT");
-	case SHININESS: return std::string("SHININESS");
+	case SHININESS: return std::string("SHININESS (exponent)");
 	case SHININESS_STRENGTH: return std::string("SHININESS_STRENGTH");
 	default: return std::string("UNKNOWN");
 	}

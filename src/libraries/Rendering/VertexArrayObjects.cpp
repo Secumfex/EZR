@@ -4,6 +4,11 @@
 
 Renderable::Renderable()
 {
+	m_indices.m_size = 0;
+	m_positions.m_size = 0;
+	m_normals.m_size = 0;
+	m_uvs.m_size = 0;
+	m_tangents.m_size = 0;
 }
 
 Renderable::~Renderable()
@@ -12,6 +17,7 @@ Renderable::~Renderable()
     buffers.push_back(m_indices.m_vboHandle);
     buffers.push_back(m_positions.m_vboHandle);
     buffers.push_back(m_normals.m_vboHandle);
+    buffers.push_back(m_tangents.m_vboHandle);
     buffers.push_back(m_uvs.m_vboHandle);
 
     glDeleteBuffersARB(buffers.size(), &buffers[0]);
@@ -37,8 +43,16 @@ GLuint Renderable::createVbo(std::vector<float> content, GLuint dimensions, GLui
 void Renderable::draw()
 {
     bind();
-    glDrawElements(m_mode, m_indices.m_size, GL_UNSIGNED_INT, 0);
-    unbind();
+	if (m_indices.m_size != 0) // indices have been provided, use these
+	{
+		glDrawElements(m_mode, m_indices.m_size, GL_UNSIGNED_INT, 0);
+	}
+	else // no index buffer has been provided, lets assume this has to be rendered in vertex order
+	{
+		glDrawArrays(m_mode, 0, m_positions.m_size);
+	}
+
+	unbind();
 }
 
 GLuint Renderable::createIndexVbo(std::vector<unsigned int> content) 
