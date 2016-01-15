@@ -32,13 +32,15 @@ void main(){
     
     gl_Position =  projection * view * model * positionAttribute;
 
-    passWorldNormal = normalize( ( transpose( inverse( model ) ) * normalAttribute).xyz );
-	passNormal = normalize( ( transpose( inverse( view * model ) ) * normalAttribute ).xyz );
+	mat4 normalMatWorld = transpose( inverse( model ) );
+	mat4 normalMat      = transpose( inverse( view * model ) );
+    passWorldNormal = normalize( (normalMatWorld * normalAttribute).xyz);
+	passNormal = normalize( (normalMat * normalAttribute ).xyz );
 
-    passWorldTangent = normalize( ( transpose( inverse( model ) ) * tangentAttribute).xyz );
-	passTangent = normalize( ( transpose( inverse( view * model ) ) * tangentAttribute ).xyz );
+    passWorldTangent = normalize( (normalMatWorld * tangentAttribute).xyz);
+	passTangent = normalize( (normalMat * tangentAttribute ).xyz);
 
 	VertexOut.texCoord = passUVCoord;	
-	VertexOut.normal = passNormal;
+	VertexOut.normal   = passNormal;
 	VertexOut.position = passPosition;
 }
