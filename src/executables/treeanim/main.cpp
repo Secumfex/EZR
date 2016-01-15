@@ -81,7 +81,7 @@ int main()
 	// import using ASSIMP and check for errors
 	Assimp::Importer importer;
 	DEBUGLOG->log("Loading branch model");
-	std::string branchModel = "asdf.dae";
+	std::string branchModel = "branch_detailed.dae";
 	
 	const aiScene* scene = AssimpTools::importAssetFromResourceFolder(branchModel, importer);
 	std::map<aiTextureType, AssimpTools::MaterialTextureInfo> branchTexturesInfo;
