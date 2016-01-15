@@ -107,7 +107,7 @@ int main()
 	//////////////////////////////////////////////////////////////////////////////
 	
 	/////////////////////     Scene / View Settings     //////////////////////////
-	glm::vec4 eye(0.0f, 0.0f, 3.0f, 1.0f);
+	glm::vec4 eye(0.0f, 0.0f, 5.0f, 1.0f);
 	glm::vec4 center(0.0f,0.0f,0.0f,1.0f);
 	glm::mat4 view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0,1,0));
 
@@ -256,28 +256,28 @@ int main()
 	 auto keyboardCB = [&](int k, int s, int a, int m)
 	 {
 	 	if (a == GLFW_RELEASE) {return;} 
-	// 	switch (k)
-	// 	{
-	// 		case GLFW_KEY_W:
-	// 			eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
-	// 			center += glm::inverse(view) * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
-	// 			break;
-	// 		case GLFW_KEY_A:
-	// 			eye += glm::inverse(view)	 * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
-	// 			center += glm::inverse(view) * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
-	// 			break;
-	// 		case GLFW_KEY_S:
-	// 			eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,0.1f,0.0f);
-	// 			center += glm::inverse(view) * glm::vec4(0.0f,0.0f,0.1f,0.0f);
-	// 			break;
-	// 		case GLFW_KEY_D:
-	// 			eye += glm::inverse(view)    * glm::vec4(0.1f,0.0f,0.0f,0.0f);
-	// 			center += glm::inverse(view) * glm::vec4(0.1f,0.0f,0.0f,0.0f);
-	// 			break;
-	// 		default:
-	// 			break;
-	// 	}
-	// 	ImGui_ImplGlfwGL3_KeyCallback(window,k,s,a,m);
+	 	switch (k)
+	 	{
+	 		case GLFW_KEY_W:
+	 			eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
+	 			center += glm::inverse(view) * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
+	 			break;
+	 		case GLFW_KEY_A:
+	 			eye += glm::inverse(view)	 * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
+	 			center += glm::inverse(view) * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
+	 			break;
+	 		case GLFW_KEY_S:
+	 			eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,0.1f,0.0f);
+	 			center += glm::inverse(view) * glm::vec4(0.0f,0.0f,0.1f,0.0f);
+	 			break;
+	 		case GLFW_KEY_D:
+	 			eye += glm::inverse(view)    * glm::vec4(0.1f,0.0f,0.0f,0.0f);
+	 			center += glm::inverse(view) * glm::vec4(0.1f,0.0f,0.0f,0.0f);
+	 			break;
+	 		default:
+	 			break;
+	 	}
+	 	ImGui_ImplGlfwGL3_KeyCallback(window,k,s,a,m);
 	 };
 
 	setCursorPosCallback(window, cursorPosCB);

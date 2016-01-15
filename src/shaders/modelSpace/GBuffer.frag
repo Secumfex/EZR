@@ -4,9 +4,7 @@
 in vec3 passPosition;
 in vec2 passUVCoord;
 in vec3 passNormal;
-
-in vec3 passWorldNormal;
-in vec3 passWorldTangent;
+in vec3 passTangent;
 
 in VertexData {
 	vec2 texCoord;
@@ -20,7 +18,6 @@ uniform sampler2D tex;
 
 uniform bool hasNormalTex;
 uniform sampler2D normalTex;
-uniform mat4 view;
 
 //writable textures for deferred screen space calculations
 layout(location = 0) out vec4 fragColor;
@@ -39,15 +36,15 @@ void main(){
 
 	if (hasNormalTex)
 	{
-		vec3 binormalWorld = normalize(cross(passWorldNormal, passWorldTangent));
-		mat3 tangentSpaceWorld = mat3(
-			passWorldTangent.x, binormalWorld.x, passWorldNormal.x, // first column
-			passWorldTangent.y, binormalWorld.y, passWorldNormal.y, // second column
-			passWorldTangent.z, binormalWorld.z, passWorldNormal.z  // third column
+		vec3 binormalView = normalize(cross(passNormal, passTangent));
+		mat3 tangentSpaceView = mat3(
+			passTangent.x,  passTangent.y,   passTangent.z,  // first column
+			binormalView.x, binormalView.y,  binormalView.z, // second column
+			passNormal.x,   passNormal.y,     passNormal.z   // third column
 		);
 		vec3 normalTangentSpace = texture(normalTex, passUVCoord).xyz;
 
-		normalView = transpose(inverse( mat3(view) ) ) * tangentSpaceWorld * normalTangentSpace;
+		normalView = tangentSpaceView * normalTangentSpace;
 	}
 
     // fragPosition = vec4(passPosition,1);
