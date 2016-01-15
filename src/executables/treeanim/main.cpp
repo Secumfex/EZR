@@ -46,8 +46,9 @@ static bool  s_isRotating = false;
 
 static float s_simulationTime = 0.0f;
 
-static std::map<Renderable*, glm::vec4*> s_renderable_color;
-static std::map<Renderable*, bool> s_renderable_has_texture;
+static std::map<Renderable*, glm::vec4*> s_renderable_color_map;
+static std::map<Renderable*, int> s_renderable_material_map; //!< mapping a renderable to a material index
+static std::vector<std::map<aiTextureType, GLuint>> s_material_texture_handles; //!< mapping material texture types to texture handles
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -80,20 +81,18 @@ int main()
 	// import using ASSIMP and check for errors
 	Assimp::Importer importer;
 	DEBUGLOG->log("Loading branch model");
-	std::string branchModel = "branch_detailed.dae";
+	std::string branchModel = "asdf.dae";
 	
 	const aiScene* scene = AssimpTools::importAssetFromResourceFolder(branchModel, importer);
-	auto branchTextureInfo = AssimpTools::getMaterialTexturesInfo(scene, 0);
-	
-	GLuint branchTexture = 0;
-	if (branchTextureInfo.find(aiTextureType::aiTextureType_DIFFUSE) != branchTextureInfo.end())
+	std::map<aiTextureType, AssimpTools::MaterialTextureInfo> branchTexturesInfo;
+	if (scene != NULL) branchTexturesInfo = AssimpTools::getMaterialTexturesInfo(scene, 0);
+	if (scene != NULL) s_material_texture_handles.resize(scene->mNumMaterials);
+
+	int i = 0;
+	for (auto e : branchTexturesInfo)
 	{
-		branchTexture = TextureTools::loadTextureFromResourceFolder(branchTextureInfo[aiTextureType_DIFFUSE].relativePath);
-	}
-	GLuint branchNormalTexture = 0;
-	if (branchTextureInfo.find(aiTextureType::aiTextureType_NORMALS) != branchTextureInfo.end())
-	{
-		branchNormalTexture = TextureTools::loadTextureFromResourceFolder(branchTextureInfo[aiTextureType_NORMALS].relativePath);
+		GLuint texHandle = TextureTools::loadTextureFromResourceFolder(branchTexturesInfo[e.first].relativePath);
+		if (texHandle != -1){ s_material_texture_handles[i][e.first] = texHandle; }
 	}
 
 	// generate one renderable per branch
@@ -101,17 +100,16 @@ int main()
 		TreeAnimation::Tree::Branch* branch, std::vector<Renderable*>& renderables)
 	{
 		auto branchRenderable = TreeAnimation::generateRenderable(branch, scene); 
-
-		s_renderable_color[branchRenderable] = &s_trunk_color;
-		s_renderable_has_texture[branchRenderable] = true;
+		if (scene != NULL) s_renderable_material_map[branchRenderable] = 0;
+		s_renderable_color_map[branchRenderable] = &s_trunk_color;
 		renderables.push_back( branchRenderable );
-		
+
 		for (int i = 0; i < branch->children.size(); i++)
 		{
 			generateRenderablesRecursively(branch->children[i], renderables);
 			auto foliageRenderable = TreeAnimation::generateFoliage(branch->children[i], 35);
-			
-			s_renderable_color[foliageRenderable] = &s_foliage_color;
+			s_renderable_color_map[foliageRenderable] = &s_foliage_color;
+		
 			renderables.push_back(foliageRenderable);
 		}
 	};
@@ -146,8 +144,6 @@ int main()
 	 shaderProgram.update("model", model);
 	 shaderProgram.update("view", view);
 	 shaderProgram.update("projection", perspective);
-	 shaderProgram.bindTextureOnUse("tex", branchTexture);
-	 shaderProgram.bindTextureOnUse("normalTex", branchNormalTexture);
 	 
 	 //shaderProgram.printUniformInfo();
 	 //shaderProgram.printInputInfo();
@@ -169,21 +165,27 @@ int main()
 
 	 std::function<void(Renderable*)> perRenderableFunc = [&] (Renderable* r)
 	 {
-		 auto c =s_renderable_color.find(r); 
-		 if ( c!= s_renderable_color.end() )
+		 auto e = s_renderable_material_map.find(r);
+		 if( e != s_renderable_material_map.end() )
 		 {
-			 shaderProgram.update( "color", *(c->second) );
-		 }
-		 if( s_renderable_has_texture.find(r) != s_renderable_has_texture.end() )
-		 {
-			shaderProgram.update("mixTexture" , 1.0);
-			shaderProgram.update("hasNormalTex", true);
-			//shaderProgram.updateAndBindTexture("normalTex", 5, branchNormalTexture);
+			 auto d = s_material_texture_handles[e->second].find(aiTextureType_DIFFUSE);
+			 if ( d != s_material_texture_handles[e->second].end())
+			 {
+				 shaderProgram.updateAndBindTexture("tex", 5, d->second);
+				 shaderProgram.update("mixTexture", 1.0f);
+			 }
+			 auto n = s_material_texture_handles[e->second].find(aiTextureType_NORMALS);
+			 if ( n != s_material_texture_handles[e->second].end())
+			 {
+				 shaderProgram.updateAndBindTexture("normalTex", 6, n->second);
+				 shaderProgram.update("hasNormalTex", true);
+			 }
 		 }
 		 else
 		 {
 			shaderProgram.update("mixTexture", 0.0);
 			shaderProgram.update("hasNormalTex", false);
+			shaderProgram.update("color", *s_renderable_color_map[r]);
 		 }
 	 };
 	 renderPass.setPerRenderableFunction(&perRenderableFunc);
