@@ -152,7 +152,7 @@ int main()
 		for (auto t : matInfo.texture) // load all textures used with this material
 		{
 			GLuint tex = TextureTools::loadTextureFromResourceFolder(t.second.relativePath);
-			if (tex != -1){ textures[t.first] = TextureTools::loadTextureFromResourceFolder(t.second.relativePath); } // save if successfull
+			if (tex != -1){ textures[t.first] = tex; } // save if successfull
 		}
 	}
 
