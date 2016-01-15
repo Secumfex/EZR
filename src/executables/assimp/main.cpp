@@ -16,7 +16,7 @@
  #include <UI/imguiTools.h>
 #include <UI/Turntable.h>
 
-// #include <Importing/TextureTools.h>
+ #include <Importing/TextureTools.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
@@ -53,16 +53,29 @@ int main()
 
 	// import using ASSIMP and check for errors
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile( file, aiProcessPreset_TargetRealtime_MaxQuality);
-	if (scene == NULL)
+	bool success = false;
+	while (!success)
 	{
-		std::string errorString = importer.GetErrorString();
-		DEBUGLOG->log("ERROR: " + errorString);
-		cout << "ENTER ANYTHING TO EXIT" << endl; cin >> errorString;
-		exit(-1);
-	} else {
-		DEBUGLOG->log("Asset has been loaded successfully");
-	}
+		const aiScene* temp = importer.ReadFile( file, aiProcessPreset_TargetRealtime_MaxQuality);
+		if (temp == NULL)
+		{
+			std::string errorString = importer.GetErrorString();
+			DEBUGLOG->log("ERROR: " + errorString); DEBUGLOG->log("Try again...");
+
+			std::cout << RESOURCES_PATH << "/"; std::getline(cin, input);
+			if (input == std::string("")) {	DEBUGLOG->log("No file name provided, loading 'cube.obj' instead."); input = "cube.obj"; }
+			file = RESOURCES_PATH "/" + input;
+			importer.FreeScene();
+			importer.ReadFile( file, aiProcessPreset_TargetRealtime_MaxQuality);
+		}
+		else
+		{
+			success = true;
+		}
+	} 
+	const aiScene* scene = importer.GetScene();
+
+	DEBUGLOG->log("Asset has been loaded successfully");
 	
 	// print some asset info
 	DEBUGLOG->log("Asset (scene) info: ");	DEBUGLOG->indent();
@@ -73,7 +86,6 @@ int main()
 			aiMesh* m = scene->mMeshes[i];
 			DEBUGLOG->log(std::string("mesh ") + DebugLog::to_string(i) + std::string(": ") + std::string( m->mName.C_Str() ));
 		}
-		
 		for ( unsigned int i = 0; i < scene->mNumMaterials; i++ )
 		{
 			DEBUGLOG->log(std::string("material ") + DebugLog::to_string(i) + std::string(": "));
@@ -95,7 +107,7 @@ int main()
 	//////////////////////////////////////////////////////////////////////////////
 	
 	/////////////////////     Scene / View Settings     //////////////////////////
-	glm::vec4 eye(0.0f, 0.0f, 3.0f, 1.0f);
+	glm::vec4 eye(0.0f, 0.0f, 5.0f, 1.0f);
 	glm::vec4 center(0.0f,0.0f,0.0f,1.0f);
 	glm::mat4 view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0,1,0));
 
@@ -128,8 +140,23 @@ int main()
 		//AssimpTools::checkMin(bbox_min, r.boundingBox.min);
 
 	}
-	DEBUGLOG->outdent();
+	
+	// upload textures used by mesh
+	std::map<aiTextureType, GLuint> textures;
+	for (int i = 0; i < scene->mNumMaterials; i++)
+	{
+		auto matInfo = AssimpTools::getMaterialInfo(scene, i);
+		DEBUGLOG->indent();
+			AssimpTools::printMaterialInfo(matInfo);
+		DEBUGLOG->outdent();
+		for (auto t : matInfo.texture) // load all textures used with this material
+		{
+			GLuint tex = TextureTools::loadTextureFromResourceFolder(t.second.relativePath);
+			if (tex != -1){ textures[t.first] = tex; } // save if successfull
+		}
+	}
 
+	DEBUGLOG->outdent();
 	// recenter view
 	//center = glm::vec4(glm::vec3(center) + 0.5f * (bbox_max - bbox_min) + bbox_min, center.w);
 
@@ -140,6 +167,13 @@ int main()
 	 shaderProgram.update("model", model);
 	 shaderProgram.update("view", view);
 	 shaderProgram.update("projection", perspective);
+
+	 // check for displayable textures 
+	 if (textures.find(aiTextureType_DIFFUSE) != textures.end())
+	 { shaderProgram.bindTextureOnUse("tex", textures.at(aiTextureType_DIFFUSE)); shaderProgram.update("mixTexture", 1.0);}
+	 if (textures.find(aiTextureType_NORMALS) != textures.end() && shaderProgram.getUniformInfoMap()->find("normalTex") != shaderProgram.getUniformInfoMap()->end()) 
+	 { shaderProgram.bindTextureOnUse("normalTex", textures.at(aiTextureType_NORMALS));shaderProgram.update("hasNormalTex", true);}
+
 	 DEBUGLOG->outdent();
 
 	 DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
@@ -222,28 +256,28 @@ int main()
 	 auto keyboardCB = [&](int k, int s, int a, int m)
 	 {
 	 	if (a == GLFW_RELEASE) {return;} 
-	// 	switch (k)
-	// 	{
-	// 		case GLFW_KEY_W:
-	// 			eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
-	// 			center += glm::inverse(view) * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
-	// 			break;
-	// 		case GLFW_KEY_A:
-	// 			eye += glm::inverse(view)	 * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
-	// 			center += glm::inverse(view) * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
-	// 			break;
-	// 		case GLFW_KEY_S:
-	// 			eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,0.1f,0.0f);
-	// 			center += glm::inverse(view) * glm::vec4(0.0f,0.0f,0.1f,0.0f);
-	// 			break;
-	// 		case GLFW_KEY_D:
-	// 			eye += glm::inverse(view)    * glm::vec4(0.1f,0.0f,0.0f,0.0f);
-	// 			center += glm::inverse(view) * glm::vec4(0.1f,0.0f,0.0f,0.0f);
-	// 			break;
-	// 		default:
-	// 			break;
-	// 	}
-	// 	ImGui_ImplGlfwGL3_KeyCallback(window,k,s,a,m);
+	 	switch (k)
+	 	{
+	 		case GLFW_KEY_W:
+	 			eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
+	 			center += glm::inverse(view) * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
+	 			break;
+	 		case GLFW_KEY_A:
+	 			eye += glm::inverse(view)	 * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
+	 			center += glm::inverse(view) * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
+	 			break;
+	 		case GLFW_KEY_S:
+	 			eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,0.1f,0.0f);
+	 			center += glm::inverse(view) * glm::vec4(0.0f,0.0f,0.1f,0.0f);
+	 			break;
+	 		case GLFW_KEY_D:
+	 			eye += glm::inverse(view)    * glm::vec4(0.1f,0.0f,0.0f,0.0f);
+	 			center += glm::inverse(view) * glm::vec4(0.1f,0.0f,0.0f,0.0f);
+	 			break;
+	 		default:
+	 			break;
+	 	}
+	 	ImGui_ImplGlfwGL3_KeyCallback(window,k,s,a,m);
 	 };
 
 	setCursorPosCallback(window, cursorPosCB);

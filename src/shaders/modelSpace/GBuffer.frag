@@ -4,6 +4,7 @@
 in vec3 passPosition;
 in vec2 passUVCoord;
 in vec3 passNormal;
+in vec3 passTangent;
 
 in VertexData {
 	vec2 texCoord;
@@ -15,6 +16,9 @@ uniform vec4  color;
 uniform float mixTexture;
 uniform sampler2D tex;
 
+uniform bool hasNormalTex;
+uniform sampler2D normalTex;
+
 //writable textures for deferred screen space calculations
 layout(location = 0) out vec4 fragColor;
 layout(location = 1) out vec4 fragNormal;
@@ -23,9 +27,24 @@ layout(location = 3) out vec4 fragUVCoord;
  
 void main(){
 	fragColor = color;
+	vec3 normalView = VertexOut.normal;
+
 	if ( mixTexture != 0.0)
 	{
 		fragColor = mix(color, texture(tex, passUVCoord), mixTexture );
+	}
+
+	if (hasNormalTex)
+	{
+		vec3 binormalView = normalize(cross(passNormal, passTangent));
+		mat3 tangentSpaceView = mat3(
+			passTangent.x,  passTangent.y,   passTangent.z,  // first column
+			binormalView.x, binormalView.y,  binormalView.z, // second column
+			passNormal.x,   passNormal.y,     passNormal.z   // third column
+		);
+		vec3 normalTangentSpace = texture(normalTex, passUVCoord).xyz;
+
+		normalView = tangentSpaceView * normalTangentSpace;
 	}
 
     // fragPosition = vec4(passPosition,1);
@@ -34,6 +53,6 @@ void main(){
 
     fragPosition = vec4(VertexOut.position,1);
     fragUVCoord = vec4(VertexOut.texCoord,0,0);
-    fragNormal = vec4(VertexOut.normal,0);
-
+    //fragNormal = vec4(VertexOut.normal,0);
+	fragNormal = vec4(normalView,0);
 }
