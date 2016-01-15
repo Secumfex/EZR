@@ -3,6 +3,7 @@
 layout(location = 0) in vec4 positionAttribute;
 layout(location = 1) in vec2 uvCoordAttribute;
 layout(location = 2) in vec4 normalAttribute;
+layout(location = 3) in vec4 tangentAttribute;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -13,6 +14,8 @@ out vec3 passPosition;
 out vec2 passUVCoord;
 out vec3 passWorldNormal;
 out vec3 passNormal;
+out vec3 passWorldTangent;
+out vec3 passTangent;
 
 out VertexData {
 	vec2 texCoord;
@@ -31,6 +34,9 @@ void main(){
 
     passWorldNormal = normalize( ( transpose( inverse( model ) ) * normalAttribute).xyz );
 	passNormal = normalize( ( transpose( inverse( view * model ) ) * normalAttribute ).xyz );
+
+    passWorldTangent = normalize( ( transpose( inverse( model ) ) * tangentAttribute).xyz );
+	passTangent = normalize( ( transpose( inverse( view * model ) ) * tangentAttribute ).xyz );
 
 	VertexOut.texCoord = passUVCoord;	
 	VertexOut.normal = passNormal;
