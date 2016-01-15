@@ -40,9 +40,11 @@ public:
 public:
 
     VertexBufferObject m_indices; //!< index buffer
-    VertexBufferObject m_positions; //!< position buffer
-    VertexBufferObject m_uvs; //!< uv buffer
-    VertexBufferObject m_normals; //!< normal buffer
+    VertexBufferObject m_positions; //!< position buffer (vertex attribute 0)
+    VertexBufferObject m_uvs; //!< uv buffer (vertex attribute 1)
+    VertexBufferObject m_normals; //!< normal buffer (vertex attribute 2)
+	VertexBufferObject m_tangents; //!< tangent buffer (vertex attribute 3)
+	//VertexBufferObject m_bitangents; //!< bitangent buffer (vertex attribute 4)
 
     GLuint m_vao; //!< VertexArrayObject handle
     GLenum m_mode; //!< the mode the Renderable will be drawn with (e.g. GL_TRIANGLES)

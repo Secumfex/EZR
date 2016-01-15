@@ -6,12 +6,17 @@
 #include <GLFW/glfw3.h>
 
 namespace TextureTools {
-	/** \brief !docu pls!
- 	 *
- 	 * @param fileName
- 	 * @return GLuint
- 	 */
-    GLuint loadTexture(std::string fileName);
+
+	struct TextureInfo
+	{
+		GLuint handle;
+		int width;
+		int height;
+		int bytesPerPixel;
+	};
+
+    GLuint loadTexture(std::string fileName, TextureInfo* texInfo = nullptr);
+    GLuint loadTextureFromResourceFolder(std::string fileName, TextureInfo* texInfo = nullptr);
 }
 
 #endif

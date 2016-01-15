@@ -8,32 +8,18 @@
 #include "Core/DebugLog.h"
 
 namespace TextureTools {
-    GLuint loadTexture(std::string fileName){
+	GLuint loadTexture(std::string fileName, TextureInfo* texInfo){
 
     	std::string fileString = std::string(fileName);
     	fileString = fileString.substr(fileString.find_last_of("/"));
-
-    	std::string fileContent;
-    	std::string line;
 
     	int width, height, bytesPerPixel;
         stbi_set_flip_vertically_on_load(true);
         unsigned char *data = stbi_load(fileName.c_str(), &width, &height, &bytesPerPixel, 0);
 
         if(data == NULL){
-//        	std::cout << "ERROR: Unable to open image "  << fileName << std::endl;
-//        	DEBUGLOG->log("ERROR : Unable to open image " + fileName);
         	DEBUGLOG->log("ERROR : Unable to open image " + fileString);
         	  return -1;}
-
-
-        // for ( unsigned int i = 0; i < width*height;i++)
-        // {
-        //     std::cout<< (int)data[i] << std::endl;
-        //     std::cout<< (int)data[i+1] << std::endl;
-        //     std::cout<< (int)data[i+2] << std::endl;
-        //     std::cout<< (int)data[i+3] << std::endl;
-        // }
 
         //create new texture
         GLuint textureHandle;
@@ -45,8 +31,6 @@ namespace TextureTools {
         //send image data to the new texture
         if (bytesPerPixel < 3) {
         	DEBUGLOG->log("ERROR : Unable to open image " + fileString);
-//        	DEBUGLOG->log("ERROR : Unable to open image " + fileName);
-//            std::cout << "ERROR: Unable to open image"  << fileName << std::endl;
             return -1;
         } else if (bytesPerPixel == 3){
             glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -54,7 +38,6 @@ namespace TextureTools {
             glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         } else {
         	DEBUGLOG->log("Unknown format for bytes per pixel... Changed to \"4\"");
-//            std::cout << "Unknown format for bytes per pixel... Changed to \"4\"" << std::endl;
             glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         }
 
@@ -69,9 +52,22 @@ namespace TextureTools {
         glBindTexture(GL_TEXTURE_2D, 0);
 
         stbi_image_free(data);
-//        DEBUGLOG->log("SUCCESS: image loaded from " + fileName );
         DEBUGLOG->log( "SUCCESS: image loaded from " + fileString );
-//        std::cout << "SUCCESS: image loaded from " << fileName << std::endl;
+
+		if (texInfo != nullptr)
+		{
+			texInfo->bytesPerPixel = bytesPerPixel;
+			texInfo->handle = textureHandle;
+			texInfo->height = height;
+			texInfo->width = width;
+		}
+
         return textureHandle;
+    }
+
+	GLuint loadTextureFromResourceFolder(std::string fileName, TextureInfo* texInfo){
+    	std::string filePath = RESOURCES_PATH "/" + fileName;
+
+		return loadTexture(filePath, texInfo);
     }
 }

@@ -23,9 +23,11 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <Importing/AssimpTools.h>
+#include <Importing/TextureTools.h>
 
 #include <TreeAnimation/Tree.h>
 #include <TreeAnimation/TreeRendering.h>
+#include <TreeAnimation/WindField.h>
 
 ////////////////////// PARAMETERS /////////////////////////////
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
@@ -45,6 +47,7 @@ static bool  s_isRotating = false;
 static float s_simulationTime = 0.0f;
 
 static std::map<Renderable*, glm::vec4*> s_renderable_color;
+static std::map<Renderable*, bool> s_renderable_has_texture;
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -77,22 +80,30 @@ int main()
 	// import using ASSIMP and check for errors
 	Assimp::Importer importer;
 	DEBUGLOG->log("Loading branch model");
-	std::string branchModel = "branch.dae";
+	std::string branchModel = "branch_detailed.dae";
 	
 	const aiScene* scene = AssimpTools::importAssetFromResourceFolder(branchModel, importer);
+	auto branchTextureInfo = AssimpTools::getMaterialTexturesInfo(scene, 0);
+	
+	GLuint branchTexture = 0;
+	if (branchTextureInfo.find(aiTextureType::aiTextureType_DIFFUSE) != branchTextureInfo.end())
+	{
+		branchTexture = TextureTools::loadTextureFromResourceFolder(branchTextureInfo[aiTextureType_DIFFUSE].relativePath);
+	}
 
 	// generate one renderable per branch
-	std::function<void(TreeAnimation::Tree::Branch*, std::vector<Renderable*>&)> generateRenderables = [&](
+	std::function<void(TreeAnimation::Tree::Branch*, std::vector<Renderable*>&)> generateRenderablesRecursively = [&](
 		TreeAnimation::Tree::Branch* branch, std::vector<Renderable*>& renderables)
 	{
 		auto branchRenderable = TreeAnimation::generateRenderable(branch, scene); 
 
 		s_renderable_color[branchRenderable] = &s_trunk_color;
+		s_renderable_has_texture[branchRenderable] = true;
 		renderables.push_back( branchRenderable );
 		
 		for (int i = 0; i < branch->children.size(); i++)
 		{
-			generateRenderables(branch->children[i], renderables);
+			generateRenderablesRecursively(branch->children[i], renderables);
 			auto foliageRenderable = TreeAnimation::generateFoliage(branch->children[i], 35);
 			
 			s_renderable_color[foliageRenderable] = &s_foliage_color;
@@ -101,8 +112,11 @@ int main()
 	};
 	
 	std::vector<Renderable*> objects;
-	generateRenderables(branches[0], objects);
+	generateRenderablesRecursively(branches[0], objects);
 	
+	TreeAnimation::WindField windField(128,128);
+	windField.updateVectorTexture(0.0f);
+
 	DEBUGLOG->outdent();
 	//////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////// RENDERING  ///////////////////////////////////
@@ -127,6 +141,7 @@ int main()
 	 shaderProgram.update("model", model);
 	 shaderProgram.update("view", view);
 	 shaderProgram.update("projection", perspective);
+	 shaderProgram.bindTextureOnUse("tex", branchTexture);
 	 
 	 //shaderProgram.printUniformInfo();
 	 //shaderProgram.printInputInfo();
@@ -153,9 +168,16 @@ int main()
 		 {
 			 shaderProgram.update( "color", *(c->second) );
 		 }
+		 if( s_renderable_has_texture.find(r) != s_renderable_has_texture.end() )
+		 {
+			 shaderProgram.update("mixTexture" , 1.0);
+		 }
+		 else
+		 {
+			 shaderProgram.update("mixTexture", 0.0);
+		 }
 	 };
 	 renderPass.setPerRenderableFunction(&perRenderableFunc);
-
 
 	 // regular GBuffer compositing
 	 DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
