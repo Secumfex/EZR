@@ -26,6 +26,7 @@ struct Tree
 layout(location = 0) in vec4 positionAttribute;
 layout(location = 1) in vec2 uvCoordAttribute;
 layout(location = 2) in vec4 normalAttribute;
+layout(location = 3) in vec4 tangentAttribute;
 layout(location = 4) in uvec3 hierarchyAttribute;//!< contains the indices of this and the parent branches
  //layout(location = 5) in vec2 branchWeights; //!< ToDo: should contain the weights of the vertex' branch and the parent's branch
 
@@ -58,6 +59,7 @@ out vec3 passPosition;
 out vec2 passUVCoord;
 out vec3 passWorldNormal;
 out vec3 passNormal;
+out vec3 passTangent;
 
 out VertexData {
 	vec2 texCoord;
@@ -295,7 +297,10 @@ void main(){
     gl_Position =  projection * view * model * final_pos;
 
     passWorldNormal = normalize( ( transpose( inverse( model ) ) * normalAttribute).xyz );
-	passNormal = normalize( ( transpose( inverse( view * model ) ) * normalAttribute ).xyz );
+	
+	mat4 normalMatrix = transpose( inverse( view * model ) ) ;
+	passNormal = normalize( normalMatrix * normalAttribute ).xyz;
+	passTangent = normalize( normalMatrix * tangentAttribute ).xyz;
 
 	VertexOut.texCoord = passUVCoord;	
 	VertexOut.normal = passNormal;

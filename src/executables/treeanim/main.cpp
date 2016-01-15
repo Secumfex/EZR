@@ -90,6 +90,11 @@ int main()
 	{
 		branchTexture = TextureTools::loadTextureFromResourceFolder(branchTextureInfo[aiTextureType_DIFFUSE].relativePath);
 	}
+	GLuint branchNormalTexture = 0;
+	if (branchTextureInfo.find(aiTextureType::aiTextureType_NORMALS) != branchTextureInfo.end())
+	{
+		branchNormalTexture = TextureTools::loadTextureFromResourceFolder(branchTextureInfo[aiTextureType_NORMALS].relativePath);
+	}
 
 	// generate one renderable per branch
 	std::function<void(TreeAnimation::Tree::Branch*, std::vector<Renderable*>&)> generateRenderablesRecursively = [&](
@@ -142,6 +147,7 @@ int main()
 	 shaderProgram.update("view", view);
 	 shaderProgram.update("projection", perspective);
 	 shaderProgram.bindTextureOnUse("tex", branchTexture);
+	 shaderProgram.bindTextureOnUse("normalTex", branchNormalTexture);
 	 
 	 //shaderProgram.printUniformInfo();
 	 //shaderProgram.printInputInfo();
@@ -170,11 +176,14 @@ int main()
 		 }
 		 if( s_renderable_has_texture.find(r) != s_renderable_has_texture.end() )
 		 {
-			 shaderProgram.update("mixTexture" , 1.0);
+			shaderProgram.update("mixTexture" , 1.0);
+			shaderProgram.update("hasNormalTex", true);
+			//shaderProgram.updateAndBindTexture("normalTex", 5, branchNormalTexture);
 		 }
 		 else
 		 {
-			 shaderProgram.update("mixTexture", 0.0);
+			shaderProgram.update("mixTexture", 0.0);
+			shaderProgram.update("hasNormalTex", false);
 		 }
 	 };
 	 renderPass.setPerRenderableFunction(&perRenderableFunc);
