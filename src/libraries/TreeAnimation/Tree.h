@@ -36,10 +36,12 @@ public:
 	static float computeStiffness(float b, float t, float l, float E); //!< base_width, thickness, length, E
 	static Tree* generateTree(float approxHeight, float approxWidth, int numMainBranches, int numSubBranches, std::vector<Tree::Branch*>* branchPtrs = nullptr);
 	static glm::uvec3 hierarchy(TreeAnimation::Tree::Branch* branch, std::vector<unsigned int>* hierarchy = nullptr);
+	static std::vector<Branch*> getSubBranchVector(Tree::Branch* branch); //!< get a vector of this pointers to this branch and all branches below in the hierarchy
 
 	// public members 
 	float m_E; //!< elastic modulus of this tree species
 	float m_phase; //!< random phase shift used for simulation
+	std::vector<Branch*> m_branchesIndexed; //!< contains all branches, with the vector's index corresponding to the branch's unique idx
 
 	// methods
 	Tree(float length, float base_width, float thickness, float ElasticityConstant, float phase = 0.0f);
@@ -47,9 +49,8 @@ public:
 
 	Branch* addBranch(TreeAnimation::Tree::Branch* parent, glm::vec3 direction, float posOnParent, float length, float base_width, float relThickness = 1.0f, float phase = 0.0f);
 	Branch* addRandomBranch(TreeAnimation::Tree::Branch* parent, float rPosMin, float rPosMax, float rLengthMin, float rLengthMax, float rPitchMin, float rPitchMax);
-	
+
 protected:
-	unsigned int m_nextBranchIdx;
 
 public:
 	static float s_r_pos_min_main, s_r_pos_max_main, s_r_pos_min_sub, s_r_pos_max_sub;

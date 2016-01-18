@@ -11,7 +11,8 @@ float TreeAnimation::Tree::computeStiffness(float b, float t, float l, float E)
 TreeAnimation::Tree::Tree(float length, float base_width, float thickness, float ElasticityConstant, float phase)
 {
 	m_trunk.idx = 0;
-	m_nextBranchIdx = 1;
+	m_branchesIndexed.push_back(&m_trunk);
+
 	m_trunk.origin = glm::vec3(0.0f, 0.0f, 0.0f);
 	m_trunk.direction = glm::vec3(0.0f, 1.0f, 0.0f); //!< direction of the branch 
 	
@@ -23,7 +24,7 @@ TreeAnimation::Tree::Tree(float length, float base_width, float thickness, float
 	m_phase = phase;
 
 	m_trunk.parent = nullptr;
-	
+
 	m_E = ElasticityConstant;
 }
 
@@ -62,8 +63,8 @@ TreeAnimation::Tree::Branch* TreeAnimation::Tree::addBranch(TreeAnimation::Tree:
 	branch->parent = parent;
 	branch->phase = phase;
 
-	branch->idx = m_nextBranchIdx;
-	m_nextBranchIdx++;
+	branch->idx = m_branchesIndexed.size();
+	m_branchesIndexed.push_back(branch);
 
 	parent->children.push_back(branch);
 
@@ -182,5 +183,20 @@ glm::uvec3 TreeAnimation::Tree::hierarchy(TreeAnimation::Tree::Branch* branch, s
 		hierarchy->push_back(result.y);
 		hierarchy->push_back(result.z);
 	}
+	return result;
+}
+
+
+std::vector<TreeAnimation::Tree::Branch*> TreeAnimation::Tree::getSubBranchVector(Tree::Branch* branch)
+{
+	std::vector< TreeAnimation::Tree::Branch*> result;
+	result.push_back(branch);
+	
+	for (auto e: branch->children)
+	{
+		auto children = getSubBranchVector(e);
+		result.insert(result.end(), children.begin(), children.end());
+	}
+
 	return result;
 }
