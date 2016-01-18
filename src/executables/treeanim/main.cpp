@@ -38,7 +38,7 @@ const int NUM_SUB_BRANCHES  = 3;
 
 static glm::vec4 s_trunk_color =  glm::vec4(107.0f / 255.0f , 68.0f / 255.0f , 35.0f /255.0f, 1.0f); // brown
 static glm::vec4 s_foliage_color = glm::vec4(22.0f / 255.0f , 111.0f / 255.0f , 22.0f /255.0f, 1.0f); // green
-static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
+static glm::vec4 s_lightPos = glm::vec4(0.0,50.0f,0.0,1.0);
 
 static float s_wind_angle = 45.0f;
 static glm::vec3 s_wind_direction = glm::rotateY(glm::vec3(1.0f,0.0f,0.0f), glm::radians(s_wind_angle));

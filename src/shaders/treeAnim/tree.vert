@@ -304,8 +304,8 @@ void main(){
     passWorldNormal = normalize( ( transpose( inverse( model ) ) * normalAttribute).xyz );
 	
 	mat4 normalMatrix = transpose( inverse( view * model ) ) ;
-	passNormal = normalize( normalMatrix * normalAttribute ).xyz;
-	passTangent = normalize( normalMatrix * tangentAttribute ).xyz;
+	passNormal = normalize( normalMatrix * vec4(normalAttribute.xyz,0.0) ).xyz;
+	passTangent = normalize( normalMatrix * vec4(tangentAttribute.xyz,0.0) ).xyz;
 
 	VertexOut.texCoord = passUVCoord;	
 	VertexOut.normal = passNormal;
