@@ -24,6 +24,7 @@ public:
 		float thickness; //!< base_width - top_width (implicitly)
 		float length;
 		float stiffness; //!< computed by thickness, length and the tree-specific elastic-modulus-constant E
+		float phase; //!< random phase shift used for simulation
 		
 		Branch* parent; //!< nullptr if trunk
 		
@@ -38,12 +39,13 @@ public:
 
 	// public members 
 	float m_E; //!< elastic modulus of this tree species
+	float m_phase; //!< random phase shift used for simulation
 
 	// methods
-	Tree(float thickness, float length, float stiffness);
+	Tree(float length, float base_width, float thickness, float ElasticityConstant, float phase = 0.0f);
 	~Tree();
 
-	Branch* addBranch(Branch* parent, glm::vec3 direction, float posOnParent, float thickness, float length, float stiffness);
+	Branch* addBranch(TreeAnimation::Tree::Branch* parent, glm::vec3 direction, float posOnParent, float length, float base_width, float relThickness = 1.0f, float phase = 0.0f);
 	Branch* addRandomBranch(TreeAnimation::Tree::Branch* parent, float rPosMin, float rPosMax, float rLengthMin, float rLengthMax, float rPitchMin, float rPitchMax);
 	
 protected:

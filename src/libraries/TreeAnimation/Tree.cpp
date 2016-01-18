@@ -8,18 +8,23 @@ float TreeAnimation::Tree::computeStiffness(float b, float t, float l, float E)
 	return (E * b * pow(t, 3.0f)) / (4.0f * pow(l, 3.0f));
 }
 
-TreeAnimation::Tree::Tree(float thickness, float length, float stiffness)
+TreeAnimation::Tree::Tree(float length, float base_width, float thickness, float ElasticityConstant, float phase)
 {
 	m_trunk.idx = 0;
 	m_nextBranchIdx = 1;
 	m_trunk.origin = glm::vec3(0.0f, 0.0f, 0.0f);
 	m_trunk.direction = glm::vec3(0.0f, 1.0f, 0.0f); //!< direction of the branch 
+	
 	m_trunk.thickness = thickness;
 	m_trunk.length = length;
-	m_trunk.stiffness = stiffness; //!< computed by thickness, length and the tree-specific elastic-modulus-constant E
-	m_trunk.parent = nullptr;
+	m_trunk.base_width = base_width;
+	m_trunk.stiffness = computeStiffness(base_width, thickness, length, ElasticityConstant); //!< computed by thickness, length and the tree-specific elastic-modulus-constant E
+	m_trunk.phase = phase;
+	m_phase = phase;
 
-	m_E = E_RED_OAK;
+	m_trunk.parent = nullptr;
+	
+	m_E = ElasticityConstant;
 }
 
 TreeAnimation::Tree::~Tree()
@@ -41,17 +46,21 @@ TreeAnimation::Tree::~Tree()
 	deleteBranchesRecursively(&m_trunk);
 }
 
+#include <Core/DebugLog.h>
 
-TreeAnimation::Tree::Branch* TreeAnimation::Tree::addBranch(TreeAnimation::Tree::Branch* parent, glm::vec3 direction, float posOnParent, float thickness, float length, float stiffness)
+TreeAnimation::Tree::Branch* TreeAnimation::Tree::addBranch(TreeAnimation::Tree::Branch* parent, glm::vec3 direction, float posOnParent, float length, float base_width, float relThickness, float phase)
 {
 	Tree::Branch* branch = new Tree::Branch;
 	branch->length = length;
 	//branch->origin = (posOnParent * parent->length) * glm::vec3(0.0f,1.0f,0.0f); // branch space of parent
 	branch->origin = parent->origin + (posOnParent * parent->length) * parent->direction; // object space of tree
+	branch->base_width = base_width; 
 	branch->direction = direction;
-	branch->thickness = thickness;
-	branch->stiffness = stiffness;
+	branch->thickness = relThickness * base_width;
+	branch->stiffness = computeStiffness(base_width, branch->thickness, length, m_E);
+	//DEBUGLOG->log("stiffness: ", branch->stiffness);
 	branch->parent = parent;
+	branch->phase = phase;
 
 	branch->idx = m_nextBranchIdx;
 	m_nextBranchIdx++;
@@ -75,6 +84,7 @@ TreeAnimation::Tree::Branch* TreeAnimation::Tree::addRandomBranch(TreeAnimation:
 	float rYawAngle = ((float) rand()) / ((float) RAND_MAX) * 2.f * glm::pi<float>() - glm::pi<float>(); //between -180° and 180°
 	// float rYawAngle = 0.0f;
 	float rPos = (((float) rand()) / ((float) RAND_MAX) * (rPosMax - rPosMin)) + rPosMin ;
+	float rPhase = ((float) rand())/((float) RAND_MAX) * glm::half_pi<float>() - glm::quarter_pi<float>(); // +- -45°
 
 	// optimal: 90° to parent, assuming parent is pointing in (0,1,0) in object space
 	glm::vec3 optimalDirection = glm::vec3(1.0f,0.0f,0.0f);
@@ -82,9 +92,9 @@ TreeAnimation::Tree::Branch* TreeAnimation::Tree::addRandomBranch(TreeAnimation:
 		
 	// retrieve object-space orientation of parent
 	glm::vec3 parentDirection= parent->direction;
-	glm::quat parentRotation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), parent->direction);
-	float thickness = (1.0f - rPos) * parent->thickness * 0.5f; 
-		
+	glm::quat parentRotation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), parent->direction); 
+	float base_width = (1.0f - rPos) * parent->base_width * 0.5f;
+
 	// apply parent orientation to this branch direction
 	rDirection = (glm::rotate(parentRotation, rDirection));
 
@@ -93,13 +103,10 @@ TreeAnimation::Tree::Branch* TreeAnimation::Tree::addRandomBranch(TreeAnimation:
 		parent,
 		rDirection,
 		rPos,
-		thickness,
 		rLength,
-		TreeAnimation::Tree::computeStiffness( 
-			(1.0f - rPos) * parent->thickness,
-			(1.0f - rPos) * parent->thickness,
-			rLength,
-			m_E)
+		base_width,
+		1.0f,
+		rPhase
 		); ;
 };
 
@@ -122,7 +129,7 @@ TreeAnimation::Tree* TreeAnimation::Tree::generateTree(float approxHeight, float
 	float rThickness = rWidth - abs(approxWidth - rWidth);
 
 	float rHeight = approxHeight + ((float) rand() / (float) RAND_MAX) * (0.1f * approxHeight) - (0.05f * approxHeight); //random offset of 10%
-	TreeAnimation::Tree* tree = new Tree(rWidth, rHeight, Tree::computeStiffness(rWidth, rThickness, rHeight, E_RED_OAK) );
+	TreeAnimation::Tree* tree = new Tree(rHeight, rWidth,rThickness, E_RED_OAK);
 	
 	if ( branchPtrs != nullptr){ branchPtrs->push_back(&tree->m_trunk); }
 	

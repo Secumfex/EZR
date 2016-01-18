@@ -304,7 +304,7 @@ int main()
 		ImGui::SliderFloat3("vAngleShiftBack", glm::value_ptr( angleshifts[1]), -1.0f, 1.0f);
 		ImGui::SliderFloat3("vAngleShiftSide", glm::value_ptr( angleshifts[2]), -1.0f, 1.0f);
 		
-		static glm::vec3 amplitudes[3] = {glm::vec3(1.0),glm::vec3(1.0),glm::vec3(1.0)};
+		static glm::vec3 amplitudes[3] = {glm::vec3(0.3f),glm::vec3(0.3f),glm::vec3(0.3f)};
 		ImGui::SliderFloat3("vAmplitudesFront", glm::value_ptr( amplitudes[0]), -1.0f, 1.0f);
 		ImGui::SliderFloat3("vAmplitudesBack", glm::value_ptr( amplitudes[1]), -1.0f, 1.0f);
 		ImGui::SliderFloat3("vAmplitudesSide", glm::value_ptr( amplitudes[2]), -1.0f, 1.0f); 
@@ -312,10 +312,20 @@ int main()
 		static glm::vec3 frequencies(1.0f);
 		ImGui::SliderFloat3("fFrequencies", glm::value_ptr( frequencies), 0.0f, 3.0f); 
 
-		static float tree_phase = 0.0f;
-		ImGui::SliderFloat("treePhase", &tree_phase, 0.0, glm::two_pi<float>());
-		
 		ImGui::PopItemWidth();
+
+		//static float stiffness = 1.0f;
+	 //   if (ImGui::CollapsingHeader("Stiffness Test"))
+		//{
+		//	static float length = 1.0f;
+		//	static float thickness = 1.0f;
+		//	static float width = 1.0f;
+		//	stiffness = TreeAnimation::Tree::computeStiffness(width, thickness, length, TreeAnimation::E_APPLE);
+		//	ImGui::Text("stiffness %f", stiffness);
+		//	ImGui::SliderFloat("length", &length, 0.0f, 10.0f);
+		//	ImGui::SliderFloat("thickness", &thickness, 0.0f, width);
+		//	ImGui::SliderFloat("width", &width, 0.0f, length / 4.0f);
+		//}
         //////////////////////////////////////////////////////////////////////////////
 
 		///////////////////////////// MATRIX UPDATING ///////////////////////////////
@@ -348,7 +358,7 @@ int main()
 		shaderProgram.update("fFrequencyBack", frequencies.y); //back
 		shaderProgram.update("fFrequencySide", frequencies.z); //side
 
-		shaderProgram.update("tree.phase", tree_phase); //front
+		shaderProgram.update("tree.phase", tree->m_phase); //front
 
 		// upload tree uniforms
 		for (unsigned int i = 0; i < branches.size(); i++)
@@ -356,9 +366,9 @@ int main()
 			std::string prefix = "tree.branches[" + DebugLog::to_string(i) + "].";
 
 			shaderProgram.update(prefix + "origin", branches[i]->origin);
-			
-			float branch_phase = float(i) / branches.size();
-			shaderProgram.update(prefix + "phase", 0.0f);
+			shaderProgram.update(prefix + "phase", branches[i]->phase);	
+			//shaderProgram.update(prefix + "stiffness", branches[i]->stiffness);		
+
 			shaderProgram.update(prefix + "pseudoInertiaFactor", 1.0f);
 			
 			// orientation is computed from object space direction relative to optimal branch axis
@@ -366,9 +376,11 @@ int main()
 			glm::vec4 quatAsVec4 = glm::vec4(orientation.x, orientation.y, orientation.z, orientation.w);
 			shaderProgram.update(prefix + "orientation", quatAsVec4);
 
-			int parentIdx = 0; if ( branches[i]->parent != nullptr) {parentIdx = branches[i]->parent->idx;}
+			//int parentIdx = 0; if ( branches[i]->parent != nullptr) {parentIdx = branches[i]->parent->idx;}
+			//shaderProgram.update(prefix + "parentIdx", parentIdx);
 		}
 
+		// compositing shader
 		compShader.update("vLightPos", view * s_lightPos);
 		//////////////////////////////////////////////////////////////////////////////
 		
