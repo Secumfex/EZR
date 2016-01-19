@@ -136,3 +136,100 @@ Renderable* TreeAnimation::generateFoliage( TreeAnimation::Tree::Branch* branch,
 
 		return renderable;
 	};
+
+void TreeAnimation::generateFoliagVertexData( TreeAnimation::Tree::Branch* branch, int numLeafs, TreeAnimation::FoliageVertexData& target)
+{		
+	for ( int i = 0; i < numLeafs; i++)
+	{
+		int nextIdx = target.positions.size()/3;
+		glm::vec3 v[4];
+		auto addVert = [&](float x, float y, float z, int temp) 
+		{
+			target.positions.push_back(x);
+			target.positions.push_back(y);
+			target.positions.push_back(z);
+			v[temp] = glm::vec3(x,y,z);
+		};
+
+		auto addUV = [&](float s, float t) 
+		{
+			target.uvs.push_back(s);
+			target.uvs.push_back(t);
+		};
+
+		float rWidth = ((float) rand()) / ((float) RAND_MAX)* 0.2 + 0.03; //0.03..0.23
+		float rHeight = ((float) rand()) / ((float) RAND_MAX)* 0.2 + 0.03; //0.03..0.23
+			
+		float rOffsetX = ((float) rand()) / ((float) RAND_MAX) * (branch->length / 2.0) - (branch->length / 4.0); //0..0.1
+		float rOffsetY = ((float) rand()) / ((float) RAND_MAX) * branch->length; //-branchLength/4 .. branchLegnth/4
+		float rOffsetZ = ((float) rand()) / ((float) RAND_MAX) * branch->thickness * 2.0f - branch->thickness;
+
+		addVert(-rWidth + rOffsetX,-rHeight+ rOffsetY,rOffsetZ,0);
+		addVert(-rWidth+ rOffsetX,rHeight + rOffsetY,rOffsetZ,1);
+		addVert(rWidth+ rOffsetX,rHeight+ rOffsetY,rOffsetZ,2);
+		addVert(rWidth+ rOffsetX,-rHeight+ rOffsetY,rOffsetZ,3);
+			
+		addUV(0.0f, 0.0f);
+		addUV(0.0f, 1.0f);
+		addUV(1.0f, 1.0f);
+		addUV(1.0f, 0.0f);
+
+		glm::vec3 n[4];
+		auto addNorm = [&](int i0, int i1, int i2, int temp) 
+		{
+			n[temp] = glm::normalize(glm::cross(v[i1]- v[i0], v[i2]-v[i0]));
+			if ( abs(n[temp].x) < 0.0000001){ n[temp].x = 0;}
+			target.normals.push_back(n[temp].x);
+			target.normals.push_back(n[temp].y);
+			target.normals.push_back(n[temp].z);
+		};
+		addNorm(0,3,1,0);
+		addNorm(1,0,2,1);
+		addNorm(2,1,3,2);
+		addNorm(3,2,0,3);
+
+		// add hierarchy once for every vertex
+		TreeAnimation::Tree::hierarchy(branch, &target.hierarchy);
+		TreeAnimation::Tree::hierarchy(branch, &target.hierarchy);
+		TreeAnimation::Tree::hierarchy(branch, &target.hierarchy);
+		TreeAnimation::Tree::hierarchy(branch, &target.hierarchy);
+
+		target.indices.push_back(nextIdx);
+		target.indices.push_back(nextIdx+1);
+		target.indices.push_back(nextIdx+2);
+
+		target.indices.push_back(nextIdx+2);
+		target.indices.push_back(nextIdx+3);
+		target.indices.push_back(nextIdx);
+
+	}
+}
+
+Renderable* TreeAnimation::generateFoliageRenderable(TreeAnimation::FoliageVertexData& source)
+{
+	Renderable* renderable = new Renderable();
+
+	glGenVertexArrays(1, &renderable->m_vao);
+	glBindVertexArray(renderable->m_vao);
+
+	renderable->m_positions.m_vboHandle = Renderable::createVbo(source.positions, 3, 0);
+	renderable->m_positions.m_size = source.positions.size() / 3;
+
+	renderable->m_uvs.m_vboHandle = Renderable::createVbo(source.uvs, 2, 1);
+	renderable->m_uvs.m_size = source.normals.size() / 2;
+
+	renderable->m_normals.m_vboHandle = Renderable::createVbo(source.normals, 3, 2);
+	renderable->m_normals.m_size = source.normals.size() / 3;
+
+	renderable->m_indices.m_vboHandle = Renderable::createIndexVbo(source.indices);
+	renderable->m_indices.m_size = source.indices.size();
+				
+	renderable->setDrawMode(GL_TRIANGLES);
+
+	// add another vertex attribute which contains the tree hierarchy
+	Renderable::createVbo<unsigned int>(source.hierarchy, 3, 4, GL_UNSIGNED_INT, true); 
+
+	glBindVertexArray(0); 
+
+	return renderable;
+}
