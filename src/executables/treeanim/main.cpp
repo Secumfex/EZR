@@ -86,11 +86,11 @@ void generateRenderablesRecursively(TreeAnimation::Tree::Branch* branch, TreeEnt
 	{
 		generateRenderablesRecursively(branch->children[i], treeEntity, branchModel, foliageModel);
 
-		auto foliageRenderable = TreeAnimation::generateFoliage(branch->children[i], 35, foliageModel);
-		s_renderable_color_map[foliageRenderable] = &s_foliage_color;
-		s_renderable_material_map[foliageRenderable] = 1;
-		
-		treeEntity.foliageRenderables.push_back(foliageRenderable);
+		//auto foliageRenderable = TreeAnimation::generateFoliage(branch->children[i], 35, foliageModel);
+		//s_renderable_color_map[foliageRenderable] = &s_foliage_color;
+		//s_renderable_material_map[foliageRenderable] = 1;
+		//
+		//treeEntity.foliageRenderables.push_back(foliageRenderable);
 	}
 };
 
@@ -107,7 +107,10 @@ std::vector<glm::mat4 > generateModelMatrices(int numObjects, float xSize, float
 		//float y = randFloat(-5.0f, 5.0f);
 		float y = 0.0f;
 		float rRotY = randFloat(-glm::pi<float>(),glm::pi<float>() );
-		models[i] = glm::rotate(rRotY, glm::vec3(0.0f, 1.0f, 0.0f));
+		float rScaleY = randFloat(0.75f, 1.25f);
+		models[i] = glm::mat4(1.0f);
+		models[i] = glm::scale(glm::vec3(1.0f, rScaleY, 1.0f)) * models[i];
+		models[i] = glm::rotate(rRotY, glm::vec3(0.0f, 1.0f, 0.0f))* models[i];
 		models[i] = glm::translate(glm::vec3(x, y, z)) * models[i];
 	}
 	return models;
@@ -126,6 +129,20 @@ std::vector<TreeEntity* > generateTreeVariants(int numTrees, const aiScene* bran
 
 		// generate branch renderables & generate foliage renderables
 		generateRenderablesRecursively(&tree->m_trunk, *treeEntities[i], branchModel, foliageModel);
+		
+		TreeAnimation::FoliageVertexData f;
+		for (auto b : tree->m_trunk.children)
+		{
+			TreeAnimation::generateFoliagVertexData(b, 35, f);
+			for ( auto c : b->children)
+			{
+				TreeAnimation::generateFoliagVertexData(c, 35, f);
+			}
+		}
+		auto r =TreeAnimation::generateFoliageRenderable(f);
+		s_renderable_color_map[r] = &s_foliage_color;
+		s_renderable_material_map[r] = 1;
+		treeEntities[i]->foliageRenderables.push_back(r);
 	}
 	return treeEntities;
 }
@@ -202,8 +219,8 @@ int main()
 	srand (time(NULL));	
 
 	// generate a forest randomly, including renderables
-	int numTreeVariants = 1;
-	int numTreesPerVariant = 100;
+	int numTreeVariants = 3;
+	int numTreesPerVariant = 30;
 	std::vector<TreeEntity* > treeVariants = generateTreeVariants(numTreeVariants, scene);
 	std::vector<glm::mat4 > treeModelMatrices = generateModelMatrices(numTreesPerVariant * numTreeVariants, 30.0f, 30.0f);
 
@@ -488,13 +505,8 @@ int main()
 		//&&&&&&&&&&& SIMULATION UNIFORMS &&&&&&&&&&&&&&//
 		shaderProgram.update("simTime", s_simulationTime);
 		s_wind_direction = glm::rotateY(glm::vec3(0.0f,0.0f,1.0f), glm::radians(s_wind_angle));
-		shaderProgram.update( "windDirection", s_wind_direction);
+		shaderProgram.update( "worldWindDirection", glm::vec4(s_wind_direction,s_wind_power));
 		
-		glm::vec3 windTangent = glm::vec3(-s_wind_direction.z, s_wind_direction.y, s_wind_direction.x);
-		float animatedWindPower = sin(s_simulationTime) * (s_wind_power / 2.0f) + s_wind_power / 2.0f + (0.25f * sin(2.0f * s_wind_power * s_simulationTime + 0.25f)) ; 
-		s_wind_rotation = glm::rotate(glm::mat4(1.0f), (animatedWindPower / 2.0f), windTangent);
-		shaderProgram.update( "windRotation" , s_wind_rotation); 
-
 		if (updateAngleShifts){
 		shaderProgram.update("vAngleShiftFront", angleshifts[0]); //front
 		shaderProgram.update("vAngleShiftBack", angleshifts[1]); //back

@@ -26,7 +26,6 @@ layout(location = 2) in vec4 normalAttribute;
 layout(location = 3) in vec4 tangentAttribute;
 layout(location = 4) in uvec3 hierarchyAttribute;//!< contains the indices of this and the parent branches
 layout(location = 5) in mat4 instancedModel;//!< contains the indices of this and the parent branches
- //layout(location = 5) in vec2 branchWeights; //!< ToDo: should contain the weights of the vertex' branch and the parent's branch
 
 //!< uniforms
 //uniform mat4 model;
@@ -35,8 +34,7 @@ uniform mat4 projection;
 
 uniform float simTime; //!< used for noise function
 
-uniform vec3  windDirection; // global wind direction
-uniform mat4  windRotation; // global wind rotation (weighed with wind power)
+uniform vec4  worldWindDirection; // global wind direction, .a is equal to wind power
 
 // Input parameters for simulation (for some reason array of vecs doesn't work)
 uniform vec3 vAngleShiftFront;
@@ -59,12 +57,6 @@ out vec3 passWorldNormal;
 out vec3 passNormal;
 out vec3 passTangent;
 
-out VertexData {
-	vec2 texCoord;
-	vec3 position;
-	vec3 normal;
-} VertexOut;
-
 float mix3(float a, float b, float c, float t)
 {
 	return 
@@ -76,14 +68,6 @@ float mix3(float a, float b, float c, float t)
 
 vec4 quatAxisAngle(vec3 axis, float angle)
 { 
-	// vec4 qr;
-	// float half_angle = (angle * 0.5) * PI / 180.0;
-	// qr.x = axis.x * sin(half_angle);
-	// qr.y = axis.y * sin(half_angle);
-	// qr.z = axis.z * sin(half_angle);
-	// qr.w = cos(half_angle);
-	// return qr;
-
 	float sinha = sin(angle * 0.5);
 	float cosha = cos(angle * 0.5);
 
@@ -145,49 +129,49 @@ vec3 applyQuat(vec4 q, vec3 v)
 //}
 
 
-vec4 rotation(vec3 orig, vec3 dest)
-{
-	float cosTheta = dot(orig, dest);
-	vec3 rotationAxis;
+// vec4 rotation(vec3 orig, vec3 dest)
+// {
+// 	float cosTheta = dot(orig, dest);
+// 	vec3 rotationAxis;
 
-	if(cosTheta < (-1.0 + EPSILON))
-	{
-		rotationAxis = cross(vec3(0.0, 0.0, 1.0), orig);
-		if(length(rotationAxis) < EPSILON) // bad luck, they were parallel, try again!
-		{
-			rotationAxis = cross(vec3(1.0, 0.0, 0.0), orig);
-		}
+// 	if(cosTheta < (-1.0 + EPSILON))
+// 	{
+// 		rotationAxis = cross(vec3(0.0, 0.0, 1.0), orig);
+// 		if(length(rotationAxis) < EPSILON) // bad luck, they were parallel, try again!
+// 		{
+// 			rotationAxis = cross(vec3(1.0, 0.0, 0.0), orig);
+// 		}
 
-		rotationAxis = normalize(rotationAxis);
-		return quatAxisAngle(rotationAxis, PI * 180.0);
-	}
+// 		rotationAxis = normalize(rotationAxis);
+// 		return quatAxisAngle(rotationAxis, PI * 180.0);
+// 	}
 
-	// Implementation from Stan Melax's Game Programming Gems 1 article
-	rotationAxis = cross(orig, dest);
+// 	// Implementation from Stan Melax's Game Programming Gems 1 article
+// 	rotationAxis = cross(orig, dest);
 
-	float s = sqrt((1.0 + cosTheta) * 2.0);
-	float invs = 1.0 / s;
+// 	float s = sqrt((1.0 + cosTheta) * 2.0);
+// 	float invs = 1.0 / s;
 
-	return vec4(
-		s * 0.5, 
-		rotationAxis.x * invs,
-		rotationAxis.y * invs,
-		rotationAxis.z * invs);
-}
+// 	return vec4(
+// 		s * 0.5, 
+// 		rotationAxis.x * invs,
+// 		rotationAxis.y * invs,
+// 		rotationAxis.z * invs);
+// }
 
 vec4 bendBranch( vec3 pos,           // object space
                  vec3 branchOrigin,  // object space
                  vec3 trunkDirection,//object space 
 				 float branchPhase,  // this branch's animation phase
-				 float treePhase,
-				 float pseudoInertiaFactor,
-				 vec3 windDirection
+				 float treePhase,    // this tree's animation phase
+				 float pseudoInertiaFactor, // some offset or sth
+				 vec3 windDirection, // object space
+				 vec3 windTangent    // object space
 		       )  
 {
 	vec3 branchPos = pos - branchOrigin;
 	
 	// determine branch orientation relative to the wind
-	vec3 windTangent = vec3(-windDirection.z, windDirection.y, windDirection.x); 
 	float dota = dot(-normalize(branchPos), windDirection);
 	float dotb = dot(-normalize(branchPos), windTangent);
 
@@ -235,22 +219,17 @@ int countNonZero(uvec3 hierarchy)
 
 
 void main(){
-    passUVCoord = uvCoordAttribute;
-
-	// retrieve (wind manipulation simulated) orientation up until parent branch
 	int numParents  = countNonZero(hierarchyAttribute); // amount of branch indices that are not root
 
 	// initial properties of branch
-	vec3 branch_origin   = tree.branches[hierarchyAttribute[0]].origin;
-	vec4 branch_orientation = tree.branches[hierarchyAttribute[0]].orientation;
-
-	//float vertex_dist = length(positionAttribute.xyz);
-	//vec3  vertex_dir = normalize(positionAttribute.xyz);
-	vec3  vertex_pos = branch_origin + applyQuat(branch_orientation, positionAttribute.xyz);
-
 	float tree_phase = tree.phase;
 
-	vec3 windDirectionModel = (inverse(instancedModel) * vec4(windDirection,0.0)).xyz;
+	vec3 branch_origin   = tree.branches[hierarchyAttribute[0]].origin;         // the vertex's branch origin
+	vec4 branch_orientation = tree.branches[hierarchyAttribute[0]].orientation; // the vertex's branch orientation
+	vec3 vertex_pos = branch_origin + applyQuat(branch_orientation, positionAttribute.xyz); // initial vertex position
+
+	vec3 wind_direction_model = (inverse(instancedModel) * vec4(worldWindDirection.xyz,0.0)).xyz; // wind direction in object space
+	vec3 wind_tangent_model = vec3(-wind_direction_model.z, wind_direction_model.y, wind_direction_model.x); 
 
 	for (int i = 0; i <= numParents; i++) //not trunk
 	{	
@@ -261,7 +240,7 @@ void main(){
 		float branch_phase = 0.0;
 		float branch_pseudoInertiaFactor = 1.0;
 		float branch_weight = 1.0;
-		//float branch_stiffness = tree.branches[hierarchyAttribute[i]].stiffness;
+
 		if ( i == 0)
 		{
 			branch_weight = clamp(distance(branch_origin, vertex_pos),0.0,1.0);
@@ -280,7 +259,8 @@ void main(){
 				branch_phase,
 				tree_phase,
 				branch_pseudoInertiaFactor
-				, windDirectionModel
+				, wind_direction_model
+				, wind_tangent_model
 			);
 		}
 		vec3 new_pos =applyQuat(branch_orientation_offset, vertex_pos - branch_origin) + branch_origin;
@@ -288,23 +268,23 @@ void main(){
 		vertex_pos = mix(vertex_pos, new_pos, branch_weight);
 	}
 
+	float world_wind_power = sin(simTime) * (worldWindDirection.a / 2.0f) + worldWindDirection.a / 2.0f + (0.25f * sin(2.0f * worldWindDirection.a * simTime + 0.25f)); 
+	vec4 trunk_rotation_quat = quatAxisAngle(wind_tangent_model, world_wind_power);
+
+	vec4 trunk_rotated_vertex_pos = vec4( applyQuat(trunk_rotation_quat, vertex_pos),1.0);
 	float windRotationWeight = clamp( length(vertex_pos)/4.0, 0.0, 1.0);
-	vec4 final_pos = mix(vec4(vertex_pos,1.0), windRotation * vec4(vertex_pos, 1.0), windRotationWeight);
+	
+	vec4 final_vertex_pos = mix(vec4(vertex_pos,1.0), trunk_rotated_vertex_pos, windRotationWeight);
 
-	vec4 worldPos = instancedModel * final_pos;
-
+	vec4 worldPos = instancedModel * final_vertex_pos;
     passWorldPosition = worldPos.xyz;
     passPosition = (view * worldPos).xyz;
-    
-    gl_Position =  projection * view * instancedModel * final_pos;
+    gl_Position =  projection * view * worldPos;
+    passUVCoord = uvCoordAttribute;
 
     passWorldNormal = normalize( ( transpose( inverse( instancedModel ) ) * normalAttribute).xyz );
 	
 	mat4 normalMatrix = transpose( inverse( view * instancedModel ) ) ;
 	passNormal = normalize( normalMatrix * vec4(normalAttribute.xyz,0.0) ).xyz;
 	passTangent = normalize( normalMatrix * vec4(tangentAttribute.xyz,0.0) ).xyz;
-
-	VertexOut.texCoord = passUVCoord;	
-	VertexOut.normal = passNormal;
-	VertexOut.position = passPosition;
 }
