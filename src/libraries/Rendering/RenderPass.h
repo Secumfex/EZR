@@ -48,6 +48,7 @@ public:
 	virtual void preRender(); //!< executed before looping over all added Renderables, virtual method that may be overridden in a derived class  
 	virtual void uploadUniforms(); //!< @deprecated calls all Uniform objects omitted using addUniform to upload their values, executed per Renderable. Currently kinda outdated/deprecated, should be revised
 	virtual void render(); //!< execute this renderpass
+	virtual void renderInstanced(int numInstances); //!< like render(), but every renderable is drawn usin drawInstanced(numInstances)
 	virtual void postRender(); //!< executed after looping over all Renderables, virtual method that may be overridden in a derived class
 	virtual void restoreStates(); //!< resores all OpenGL states that were altered by enableStates and disableStates
 
