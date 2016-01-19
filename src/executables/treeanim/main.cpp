@@ -86,6 +86,7 @@ void generateRenderablesRecursively(TreeAnimation::Tree::Branch* branch, TreeEnt
 
 		auto foliageRenderable = TreeAnimation::generateFoliage(branch->children[i], 35);
 		s_renderable_color_map[foliageRenderable] = &s_foliage_color;
+		s_renderable_material_map[foliageRenderable] = 1;
 		
 		treeEntity.foliageRenderables.push_back(foliageRenderable);
 	}
@@ -176,6 +177,13 @@ int main()
 		if (texHandle != -1){ s_material_texture_handles[e.second.matIdx][e.first] = texHandle; }
 	}
 
+	// also add a dummy material info for the foliage
+	std::string foliageTexture = "foliage_texture.png";
+	auto foliageTexHandle = TextureTools::loadTextureFromResourceFolder(foliageTexture);
+	std::map<aiTextureType, GLuint > foliageMatTextures;
+	foliageMatTextures[aiTextureType_DIFFUSE] = foliageTexHandle;
+	s_material_texture_handles.push_back(foliageMatTextures);
+
 	/////////////////////    create Tree data           //////////////////////////
 	DEBUGLOG->log("Setup: generating trees"); DEBUGLOG->indent();
 	srand (time(NULL));	
@@ -229,21 +237,23 @@ int main()
 		 auto e = s_renderable_material_map.find(r);
 		 if( e != s_renderable_material_map.end() )
 		 {
-			 auto d = s_material_texture_handles[e->second].find(aiTextureType_DIFFUSE);
-			 if ( d != s_material_texture_handles[e->second].end())
-			 {
-				 shaderProgram.updateAndBindTexture("tex", 5, d->second);
-				 shaderProgram.update("mixTexture", 1.0f);
-			 }
-			 auto n = s_material_texture_handles[e->second].find(aiTextureType_NORMALS);
-			 if ( n != s_material_texture_handles[e->second].end())
-			 {
-				 shaderProgram.updateAndBindTexture("normalTex", 6, n->second);
-				 shaderProgram.update("hasNormalTex", true);
-			 }
-		 }
-		 else
-		 {
+			auto d = s_material_texture_handles[e->second].find(aiTextureType_DIFFUSE);
+			if ( d != s_material_texture_handles[e->second].end())
+			{
+				shaderProgram.updateAndBindTexture("tex", 5, d->second);
+				shaderProgram.update("mixTexture", 1.0f);
+			}else{
+				shaderProgram.update("mixTexture", 0.0);
+			}
+			auto n = s_material_texture_handles[e->second].find(aiTextureType_NORMALS);
+			if ( n != s_material_texture_handles[e->second].end())
+			{
+				shaderProgram.updateAndBindTexture("normalTex", 6, n->second);
+				shaderProgram.update("hasNormalTex", true);
+			}else{
+				shaderProgram.update("hasNormalTex", false);
+			}
+		 }else{
 			shaderProgram.update("mixTexture", 0.0);
 			shaderProgram.update("hasNormalTex", false);
 			shaderProgram.update("color", *s_renderable_color_map[r]);

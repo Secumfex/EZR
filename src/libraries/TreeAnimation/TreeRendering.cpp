@@ -44,6 +44,7 @@ Renderable* TreeAnimation::generateFoliage( TreeAnimation::Tree::Branch* branch,
 		std::vector<float> positions;
 		std::vector<unsigned int> indices;
 		std::vector<float> normals;
+		std::vector<float> uvs;
 
 		for ( int i = 0; i < numLeafs; i++)
 		{
@@ -57,6 +58,12 @@ Renderable* TreeAnimation::generateFoliage( TreeAnimation::Tree::Branch* branch,
 				v[temp] = glm::vec3(x,y,z);
 			};
 
+			auto addUV = [&](float s, float t) 
+			{
+				uvs.push_back(s);
+				uvs.push_back(t);
+			};
+
 			float rWidth = ((float) rand()) / ((float) RAND_MAX)* 0.1 + 0.03; //0.03..0.13
 			float rHeight = ((float) rand()) / ((float) RAND_MAX)* 0.1 + 0.03; //0.03..0.13
 			
@@ -68,6 +75,11 @@ Renderable* TreeAnimation::generateFoliage( TreeAnimation::Tree::Branch* branch,
 			addVert(-rWidth+ rOffsetX,rHeight + rOffsetY,rOffsetZ,1);
 			addVert(rWidth+ rOffsetX,rHeight+ rOffsetY,rOffsetZ,2);
 			addVert(rWidth+ rOffsetX,-rHeight+ rOffsetY,rOffsetZ,3);
+			
+			addUV(0.0f, 0.0f);
+			addUV(0.0f, 1.0f);
+			addUV(1.0f, 1.0f);
+			addUV(1.0f, 0.0f);
 
 			glm::vec3 n[4];
 			auto addNorm = [&](int i0, int i1, int i2, int temp) 
@@ -97,6 +109,9 @@ Renderable* TreeAnimation::generateFoliage( TreeAnimation::Tree::Branch* branch,
 
 		renderable->m_positions.m_vboHandle = Renderable::createVbo(positions, 3, 0);
 		renderable->m_positions.m_size = positions.size() / 3;
+
+		renderable->m_uvs.m_vboHandle = Renderable::createVbo(uvs, 2, 1);
+		renderable->m_uvs.m_size = normals.size() / 2;
 
 		renderable->m_normals.m_vboHandle = Renderable::createVbo(normals, 3, 2);
 		renderable->m_normals.m_size = normals.size() / 3;
