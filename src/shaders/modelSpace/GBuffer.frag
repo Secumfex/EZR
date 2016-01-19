@@ -6,12 +6,6 @@ in vec2 passUVCoord;
 in vec3 passNormal;
 in vec3 passTangent;
 
-in VertexData {
-	vec2 texCoord;
-	vec3 position;
-	vec3 normal;
-} VertexOut;
-
 uniform vec4  color;
 uniform float mixTexture;
 uniform sampler2D tex;
@@ -27,7 +21,7 @@ layout(location = 3) out vec4 fragUVCoord;
  
 void main(){
 	fragColor = color;
-	vec3 normalView = VertexOut.normal;
+	vec3 normalView = passNormal;
 
 	if ( mixTexture != 0.0)
 	{
@@ -49,12 +43,7 @@ void main(){
 		normalView = tangentSpaceView * normalTangentSpace;
 	}
 
-    // fragPosition = vec4(passPosition,1);
-    // fragUVCoord = vec4(passUVCoord,0,0);
-    // fragNormal = vec4(passNormal,0);
-
-    fragPosition = vec4(VertexOut.position,1);
-    fragUVCoord = vec4(VertexOut.texCoord,0,0);
-    //fragNormal = vec4(VertexOut.normal,0);
+	fragPosition = vec4(passPosition,1);
+	fragUVCoord = vec4(passUVCoord,0,0);
 	fragNormal = vec4(normalView,0);
 }
