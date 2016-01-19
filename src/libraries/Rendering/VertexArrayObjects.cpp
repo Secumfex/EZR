@@ -55,6 +55,22 @@ void Renderable::draw()
 	unbind();
 }
 
+void Renderable::drawInstanced(int numInstances)
+{
+    bind();
+
+	if (m_indices.m_size != 0) // indices have been provided, use these
+	{
+		glDrawElementsInstanced( m_mode, m_indices.m_size, GL_UNSIGNED_INT, 0, numInstances );
+	}
+	else // no index buffer has been provided, lets assume this has to be rendered in vertex order
+	{
+		glDrawArraysInstanced(m_mode, 0, m_positions.m_size, numInstances );
+	}
+	unbind();
+}
+
+
 GLuint Renderable::createIndexVbo(std::vector<unsigned int> content) 
 {
     

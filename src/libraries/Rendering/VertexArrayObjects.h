@@ -22,6 +22,8 @@ public:
 
     virtual void draw();
 
+	virtual void drawInstanced(int numInstances);
+
     void bind();
     void unbind();
 

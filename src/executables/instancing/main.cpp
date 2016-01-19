@@ -243,15 +243,7 @@ int main()
 		shaderProgram.use();
 
 		// render instanced
-		if (renderable[0].renderable->m_indices.m_size != 0) // indices have been provided, use these
-		{
-			glDrawElementsInstanced( renderable[0].renderable->m_mode, renderable[0].renderable->m_indices.m_size, GL_UNSIGNED_INT, 0, NUM_INSTANCES );
-		}
-		else // no index buffer has been provided, lets assume this has to be rendered in vertex order
-		{
-			glDrawArraysInstanced(renderable[0].renderable->m_mode, 0, renderable[0].renderable->m_positions.m_size, NUM_INSTANCES );
-		}
-		glBindVertexArray(0);
+		renderable[0].renderable->drawInstanced(NUM_INSTANCES);
 	
 		// ImGui::Render();
 		// glDisable(GL_BLEND);
