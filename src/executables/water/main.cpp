@@ -32,7 +32,7 @@
 ////////////////////// PARAMETERS /////////////////////////////
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 
-.....
+//.....
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -47,7 +47,7 @@ int main()
 	/////////////////////// INIT /////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-.....
+//.....
 // neues render target erstellen (reflection)
 // neues render target erstellen (refraction)
 
@@ -71,7 +71,61 @@ int main()
 
 		/////////////////////// 	Renderpasses     ///////////////////////////
 
-.....
+//.....
+		// todo: entsprechend abändern/verschieben
+void renderReflection(){
+	glViewport(0,0, texSize, texSize);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glLoadIdentity();
+	gluLookAt(......)
+
+	glPushMatrix();
+	glTranslatef(0.0f, 0.0f, 0.0f);
+	glScalef(1.0, -1.0, 1.0);
+	double plane[4] = {0.0, 1.0, 0.0, 0.0}; //water at y=0
+	glEnable(GL_CLIP_PLANE0);
+	glClipPlane(GL_CLIP_PLANE0, plane);
+	RenderScene();
+	glDisable(GL_CLIP_PLANE0);
+	glPopMatrix();
+
+	//render reflection to texture
+	glBindTexture(GL_TEXTURE_2D, reflection);
+	//glCopyTexSubImage2D copies the frame buffer
+	//to the bound texture
+	glCopyTexSubImage2D(GL_TEXTURE_2D,0,0,0,0,0,texSize, texSize);
+}
+
+// todo: entsprechend abändern/verschieben
+void renderRefractionAndDepth(){
+	glViewport(0,0, texSize, texSize);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glLoadIdentity();
+	gluLookAt(......)
+
+	glPushMatrix();
+	glTranslatef(0.0f, 0.0f, 0.0f);
+	//normal pointing along negative y
+	double plane[4] = {0.0, -1.0, 0.0, 0.0};
+	glEnable(GL_CLIP_PLANE0);
+	glClipPlane(GL_CLIP_PLANE0, plane);
+	RenderScene();
+	glDisable(GL_CLIP_PLANE0);
+	glPopMatrix();
+
+	//render color buffer to texture
+	glBindTexture(GL_TEXTURE_2D, refraction);
+	glCopyTexSubImage2D(GL_TEXTURE_2D,0,0,0,0,0,texSize, texSize);
+
+	//render depth to texture
+	glBindTexture(GL_TEXTURE_2D, depth);
+	glCopyTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT, 0,0, texSize,texSize, 0);
+}
+
+// todo: entsprechend abändern/verschieben
+void renderWater(){
+	// s. 5-7
+}
 
 //////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
@@ -229,7 +283,7 @@ int main()
 
 		shaderProgram.update("tree.phase", tree_phase); //front
 
-		.....
+		//.....
 
 		////////////////////////////////  RENDERING //// /////////////////////////////
 				renderPass.render();
