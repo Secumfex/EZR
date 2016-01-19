@@ -38,13 +38,15 @@ Renderable* TreeAnimation::generateRenderable(TreeAnimation::Tree::Branch* branc
 	return renderable;
 }
 
-Renderable* TreeAnimation::generateFoliage( TreeAnimation::Tree::Branch* branch, int numLeafs)
+Renderable* TreeAnimation::generateFoliage( TreeAnimation::Tree::Branch* branch, int numLeafs, const aiScene* foliageModel)
 	{		
 		Renderable* renderable = new Renderable();
 		std::vector<float> positions;
 		std::vector<unsigned int> indices;
 		std::vector<float> normals;
 		std::vector<float> uvs;
+
+		//TODO the foliagemodel-variant of this stuff
 
 		for ( int i = 0; i < numLeafs; i++)
 		{
@@ -64,8 +66,8 @@ Renderable* TreeAnimation::generateFoliage( TreeAnimation::Tree::Branch* branch,
 				uvs.push_back(t);
 			};
 
-			float rWidth = ((float) rand()) / ((float) RAND_MAX)* 0.1 + 0.03; //0.03..0.13
-			float rHeight = ((float) rand()) / ((float) RAND_MAX)* 0.1 + 0.03; //0.03..0.13
+			float rWidth = ((float) rand()) / ((float) RAND_MAX)* 0.2 + 0.03; //0.03..0.23
+			float rHeight = ((float) rand()) / ((float) RAND_MAX)* 0.2 + 0.03; //0.03..0.23
 			
 			float rOffsetX = ((float) rand()) / ((float) RAND_MAX) * (branch->length / 2.0) - (branch->length / 4.0); //0..0.1
 			float rOffsetY = ((float) rand()) / ((float) RAND_MAX) * branch->length; //-branchLength/4 .. branchLegnth/4

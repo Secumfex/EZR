@@ -11,9 +11,6 @@ struct Branch
 	vec4  orientation;
 	float phase;
 	float pseudoInertiaFactor;
-	//uint   parentIdx;
-	//float stiffness;
-	//vec3  tangent;
 };
 
 struct Tree 
@@ -28,10 +25,11 @@ layout(location = 1) in vec2 uvCoordAttribute;
 layout(location = 2) in vec4 normalAttribute;
 layout(location = 3) in vec4 tangentAttribute;
 layout(location = 4) in uvec3 hierarchyAttribute;//!< contains the indices of this and the parent branches
+layout(location = 5) in mat4 instancedModel;//!< contains the indices of this and the parent branches
  //layout(location = 5) in vec2 branchWeights; //!< ToDo: should contain the weights of the vertex' branch and the parent's branch
 
 //!< uniforms
-uniform mat4 model;
+//uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
@@ -180,10 +178,10 @@ vec4 rotation(vec3 orig, vec3 dest)
 vec4 bendBranch( vec3 pos,           // object space
                  vec3 branchOrigin,  // object space
                  vec3 trunkDirection,//object space 
-                 float branchPhase, // this branch's animation phase
+				 float branchPhase,  // this branch's animation phase
 				 float treePhase,
-				 float pseudoInertiaFactor
-				 //, float stiffness
+				 float pseudoInertiaFactor,
+				 vec3 windDirection
 		       )  
 {
 	vec3 branchPos = pos - branchOrigin;
@@ -252,6 +250,8 @@ void main(){
 
 	float tree_phase = tree.phase;
 
+	vec3 windDirectionModel = (inverse(instancedModel) * vec4(windDirection,0.0)).xyz;
+
 	for (int i = 0; i <= numParents; i++) //not trunk
 	{	
 		//simulated properties of parent
@@ -280,7 +280,7 @@ void main(){
 				branch_phase,
 				tree_phase,
 				branch_pseudoInertiaFactor
-				//,branch_stiffness
+				, windDirectionModel
 			);
 		}
 		vec3 new_pos =applyQuat(branch_orientation_offset, vertex_pos - branch_origin) + branch_origin;
@@ -288,22 +288,19 @@ void main(){
 		vertex_pos = mix(vertex_pos, new_pos, branch_weight);
 	}
 
-	//float trunk_stiffness = tree.branches[0].stiffness;
-	//float windRotationWeight = clamp( (length(vertex_pos) / 4.0) * (1.0 / trunk_stiffness), 0.0, 1.0);
-
 	float windRotationWeight = clamp( length(vertex_pos)/4.0, 0.0, 1.0);
 	vec4 final_pos = mix(vec4(vertex_pos,1.0), windRotation * vec4(vertex_pos, 1.0), windRotationWeight);
 
-	vec4 worldPos = model * final_pos;
+	vec4 worldPos = instancedModel * final_pos;
 
     passWorldPosition = worldPos.xyz;
     passPosition = (view * worldPos).xyz;
     
-    gl_Position =  projection * view * model * final_pos;
+    gl_Position =  projection * view * instancedModel * final_pos;
 
-    passWorldNormal = normalize( ( transpose( inverse( model ) ) * normalAttribute).xyz );
+    passWorldNormal = normalize( ( transpose( inverse( instancedModel ) ) * normalAttribute).xyz );
 	
-	mat4 normalMatrix = transpose( inverse( view * model ) ) ;
+	mat4 normalMatrix = transpose( inverse( view * instancedModel ) ) ;
 	passNormal = normalize( normalMatrix * vec4(normalAttribute.xyz,0.0) ).xyz;
 	passTangent = normalize( normalMatrix * vec4(tangentAttribute.xyz,0.0) ).xyz;
 

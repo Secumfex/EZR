@@ -50,6 +50,8 @@ static bool  s_isRotating = false;
 
 static float s_simulationTime = 0.0f;
 
+static float s_eye_distance = 10.0f;
+
 static std::map<Renderable*, glm::vec4*> s_renderable_color_map;
 static std::map<Renderable*, int> s_renderable_material_map; //!< mapping a renderable to a material index
 static std::vector<std::map<aiTextureType, GLuint>> s_material_texture_handles; //!< mapping material texture types to texture handles
@@ -67,13 +69,13 @@ float randFloat(float min, float max) //!< returns a random number between min a
 
 struct TreeEntity { 
 	TreeAnimation::Tree* tree;
-	glm::vec3 position;
+	//glm::vec3 position;
 	std::vector< Renderable* > branchRenderables;
 	std::vector< Renderable* > foliageRenderables;
 };
 
 // generate one renderable per branch and one per foliage
-void generateRenderablesRecursively(TreeAnimation::Tree::Branch* branch, TreeEntity& treeEntity, const aiScene* branchModel)
+void generateRenderablesRecursively(TreeAnimation::Tree::Branch* branch, TreeEntity& treeEntity, const aiScene* branchModel, const aiScene* foliageModel)
 {
 	auto branchRenderable = TreeAnimation::generateRenderable(branch, branchModel); 
 	if (branchModel!= NULL) s_renderable_material_map[branchRenderable] = 0;
@@ -82,9 +84,9 @@ void generateRenderablesRecursively(TreeAnimation::Tree::Branch* branch, TreeEnt
 
 	for (int i = 0; i < branch->children.size(); i++)
 	{
-		generateRenderablesRecursively(branch->children[i], treeEntity, branchModel);
+		generateRenderablesRecursively(branch->children[i], treeEntity, branchModel, foliageModel);
 
-		auto foliageRenderable = TreeAnimation::generateFoliage(branch->children[i], 35);
+		auto foliageRenderable = TreeAnimation::generateFoliage(branch->children[i], 35, foliageModel);
 		s_renderable_color_map[foliageRenderable] = &s_foliage_color;
 		s_renderable_material_map[foliageRenderable] = 1;
 		
@@ -92,24 +94,38 @@ void generateRenderablesRecursively(TreeAnimation::Tree::Branch* branch, TreeEnt
 	}
 };
 
-std::vector<TreeEntity* > generateForest(int numTrees, float xSize, float zSize, const aiScene* branchModel = NULL)
+std::vector<glm::mat4 > generateModelMatrices(int numObjects, float xSize, float zSize)
+{
+	std::vector<glm::mat4> models(numObjects);
+
+	for (int i = 0; i < models.size(); i++)
+	{
+
+		// generate random position on x/z plane
+		float x = randFloat(-xSize * 0.5f, xSize * 0.5f);
+		float z = randFloat(-zSize * 0.5f, zSize * 0.5f);
+		//float y = randFloat(-5.0f, 5.0f);
+		float y = 0.0f;
+		float rRotY = randFloat(-glm::pi<float>(),glm::pi<float>() );
+		models[i] = glm::rotate(rRotY, glm::vec3(0.0f, 1.0f, 0.0f));
+		models[i] = glm::translate(glm::vec3(x, y, z)) * models[i];
+	}
+	return models;
+}
+
+std::vector<TreeEntity* > generateTreeVariants(int numTrees, const aiScene* branchModel = NULL, const aiScene* foliageModel = NULL)
 {
 	std::vector<TreeEntity* > treeEntities(numTrees);
 	for (int i = 0; i < numTrees; i++)
 	{
 		treeEntities[i] = new TreeEntity;
 
-		// generate random position on x/z plane
-		float x = randFloat(-xSize * 0.5f, xSize * 0.5f);
-		float z = randFloat(-zSize * 0.5f, zSize * 0.5f);
-		treeEntities[i]->position = glm::vec3(x, 0.0, z);
-
 		// generate a tree
 		TreeAnimation::Tree* tree = TreeAnimation::Tree::generateTree(TREE_HEIGHT, TREE_WIDTH, NUM_MAIN_BRANCHES, NUM_SUB_BRANCHES);
 		treeEntities[i]->tree = tree;
 
 		// generate branch renderables & generate foliage renderables
-		generateRenderablesRecursively(&tree->m_trunk, *treeEntities[i], branchModel);
+		generateRenderablesRecursively(&tree->m_trunk, *treeEntities[i], branchModel, foliageModel);
 	}
 	return treeEntities;
 }
@@ -119,9 +135,6 @@ void updateTreeUniforms(ShaderProgram& shaderProgram, TreeEntity& treeEntity)
 {	
 	TreeAnimation::Tree* tree = treeEntity.tree; 
 	shaderProgram.update("tree.phase", tree->m_phase); //front
-	
-	//glm::mat4 model = glm::translate(treeEntity.position);
-	//shaderProgram.update("model" , model);
 
 	auto branches = tree->m_branchesIndexed;
 
@@ -189,8 +202,46 @@ int main()
 	srand (time(NULL));	
 
 	// generate a forest randomly, including renderables
-	int numTrees = 10;
-	std::vector<TreeEntity* > trees = generateForest(numTrees, -10.0f, 10.0f, scene);
+	int numTreeVariants = 1;
+	int numTreesPerVariant = 100;
+	std::vector<TreeEntity* > treeVariants = generateTreeVariants(numTreeVariants, scene);
+	std::vector<glm::mat4 > treeModelMatrices = generateModelMatrices(numTreesPerVariant * numTreeVariants, 30.0f, 30.0f);
+
+	auto mat4VertexAttribute = [&](Renderable*r, int attributeLocation)
+	{
+		r->bind();
+		// mat4 Vertex Attribute == 4 x vec4 attributes (consecutively)
+		GLsizei vec4Size = sizeof(glm::vec4);
+		glEnableVertexAttribArray(attributeLocation); 
+		glVertexAttribPointer(attributeLocation, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (GLvoid*)0); // offset = 0 x vec4 size , stride = 4x vec4 size
+		glEnableVertexAttribArray(attributeLocation+1); 
+		glVertexAttribPointer(attributeLocation+1, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (GLvoid*)(vec4Size)); //offset = 1 x vec4 size
+		glEnableVertexAttribArray(attributeLocation+2); 
+		glVertexAttribPointer(attributeLocation+2, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (GLvoid*)(2 * vec4Size)); //offset = 2 x vec4 size
+		glEnableVertexAttribArray(attributeLocation+3); 
+		glVertexAttribPointer(attributeLocation+3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (GLvoid*)(3 * vec4Size)); // offset = 2x vec4 size
+
+		// enable instanced attribute processing
+		glVertexAttribDivisor(attributeLocation,   1);
+		glVertexAttribDivisor(attributeLocation+1, 1);
+		glVertexAttribDivisor(attributeLocation+2, 1);
+		glVertexAttribDivisor(attributeLocation+3, 1);
+		r->unbind();
+	};
+
+	// create vbo from treemodelmatrices and assing to all renderables
+	GLuint instanceModelBufferHandle = bufferData<glm::mat4>(treeModelMatrices, GL_STATIC_DRAW);	
+	for ( auto t : treeVariants)
+	{ 
+		GLuint attributeLocation = 5; // beginning attribute location (0..4 are reserved for pos,uv,norm,tangents, tree hierarchy
+		for ( auto b : t->branchRenderables) {
+			mat4VertexAttribute(b, attributeLocation);
+		}
+		for ( auto f : t->foliageRenderables) {
+			mat4VertexAttribute(f, attributeLocation);
+		}
+	}
+
 	DEBUGLOG->outdent();
 
 	/////////////////////    create wind field          //////////////////////////
@@ -203,40 +254,48 @@ int main()
 	//////////////////////////////////////////////////////////////////////////////
 	
 	/////////////////////     Scene / View Settings     //////////////////////////
-	glm::vec4 eye(0.0f, 0.0f, 3.0f, 1.0f);
+	glm::vec4 eye(0.0f, 0.0, s_eye_distance, 1.0f);
 	glm::vec4 center(0.0f,0.0f,0.0f,1.0f);
 	glm::mat4 view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0,1,0));
 
 	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.5f, 100.f);
-	
-	DEBUGLOG->log("Setup: model matrices"); DEBUGLOG->indent();
-	std::vector< glm::mat4> model(numTrees);
-	for ( unsigned int i = 0; i < trees.size(); i++) {model[i] = glm::translate(trees[i]->position);}
-	DEBUGLOG->outdent();
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
-	 // regular GBuffer
-	 DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
-	 ShaderProgram shaderProgram("/treeAnim/tree.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
-	 shaderProgram.update("view", view);
-	 shaderProgram.update("projection", perspective);
-	 updateTreeUniforms(shaderProgram, *trees[0]);
-	 DEBUGLOG->outdent();
+	// regular GBuffer
+	DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
+	ShaderProgram shaderProgram("/treeAnim/tree.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
+	shaderProgram.update("view", view);
+	shaderProgram.update("projection", perspective);
 
-	 DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
-	 FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
-	 FrameBufferObject fbo(shaderProgram.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
-	 FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
-	 DEBUGLOG->outdent();
+	static glm::vec3 angleshifts[3] ={glm::vec3(0.0),glm::vec3(0.0),glm::vec3(0.0)};
+	static glm::vec3 amplitudes[3] = {glm::vec3(0.3f),glm::vec3(0.3f),glm::vec3(0.3f)};
+	static glm::vec3 frequencies(1.0f);
+	shaderProgram.update("vAngleShiftFront", angleshifts[0]); //front
+	shaderProgram.update("vAngleShiftBack", angleshifts[1]); //back
+	shaderProgram.update("vAngleShiftSide", angleshifts[2]); //side
+	shaderProgram.update("vAmplitudesFront", amplitudes[0]); //front
+	shaderProgram.update("vAmplitudesBack", amplitudes[1]); //back
+	shaderProgram.update("vAmplitudesSide", amplitudes[2]); //side
+	shaderProgram.update("fFrequencyFront", frequencies.x); //front
+	shaderProgram.update("fFrequencyBack", frequencies.y); //back
+	shaderProgram.update("fFrequencySide", frequencies.z); //side
 
-	 DEBUGLOG->log("RenderPasses Creation: Trees GBuffer"); DEBUGLOG->indent();
-	 DEBUGLOG->log("creating " + DebugLog::to_string(trees.size()) + " RenderPasses");
+	DEBUGLOG->outdent();
 
-	 std::function<void(Renderable*)> perRenderableFunc = [&] (Renderable* r)
-	 {
-		 auto e = s_renderable_material_map.find(r);
-		 if( e != s_renderable_material_map.end() )
-		 {
+	DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
+	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
+	FrameBufferObject fbo(shaderProgram.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
+	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
+	DEBUGLOG->outdent();
+
+	DEBUGLOG->log("RenderPasses Creation: Trees GBuffer"); DEBUGLOG->indent();
+	DEBUGLOG->log("creating " + DebugLog::to_string(treeVariants.size()) + " RenderPasses");
+
+	std::function<void(Renderable*)> perRenderableFunc = [&] (Renderable* r)
+	{
+		auto e = s_renderable_material_map.find(r);
+		if( e != s_renderable_material_map.end() )
+		{
 			auto d = s_material_texture_handles[e->second].find(aiTextureType_DIFFUSE);
 			if ( d != s_material_texture_handles[e->second].end())
 			{
@@ -257,45 +316,45 @@ int main()
 			shaderProgram.update("mixTexture", 0.0);
 			shaderProgram.update("hasNormalTex", false);
 			shaderProgram.update("color", *s_renderable_color_map[r]);
-		 }
-	 };
+		}
+	};
 
-	 // create one render pass per tree, assign uniforms
-	 std::vector<RenderPass* > treeRenderpasses(numTrees);
-	 for ( int i = 0; i < trees.size(); i++)
-	 {
-		 treeRenderpasses[i] = new RenderPass(&shaderProgram, &fbo);
-		 for ( auto r : trees[i]->branchRenderables )
-		 {
-			 treeRenderpasses[i]->addRenderable(r);
-		 }
-		 for ( auto r : trees[i]->foliageRenderables )
-		 {
-			 treeRenderpasses[i]->addRenderable(r);
-		 }
-		 treeRenderpasses[i]->addEnable(GL_DEPTH_TEST);
-		 treeRenderpasses[i]->setPerRenderableFunction(&perRenderableFunc);
-	 }
+	// create one render pass per tree type
+	std::vector<RenderPass* > treeRenderpasses(numTreeVariants);
+	for ( int i = 0; i < treeVariants.size(); i++)
+	{
+		treeRenderpasses[i] = new RenderPass(&shaderProgram, &fbo);
+		for ( auto r : treeVariants[i]->branchRenderables )
+		{
+			treeRenderpasses[i]->addRenderable(r);
+		}
+		for ( auto r : treeVariants[i]->foliageRenderables )
+		{
+			treeRenderpasses[i]->addRenderable(r);
+		}
+		treeRenderpasses[i]->setPerRenderableFunction( &perRenderableFunc );
+		treeRenderpasses[i]->addEnable(GL_ALPHA_TEST); // for foliage
+		treeRenderpasses[i]->addEnable(GL_DEPTH_TEST);
+	}
+	treeRenderpasses[0]->setClearColor(0.0,0.0,0.0,0.0);
+	treeRenderpasses[0]->addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	glAlphaFunc(GL_GREATER, 0);
+	DEBUGLOG->outdent();
 
-	 // first renderpass also clears the fbo
-	 treeRenderpasses[0]->setClearColor(0.0,0.0,0.0,0.0);
-	 treeRenderpasses[0]->addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	 DEBUGLOG->outdent();
+	// regular GBuffer compositing
+	DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
+	ShaderProgram compShader("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing.frag"); DEBUGLOG->outdent();
+	compShader.bindTextureOnUse("colorMap", 	 fbo.getBuffer("fragColor"));
+	compShader.bindTextureOnUse("normalMap", 	 fbo.getBuffer("fragNormal"));
+	compShader.bindTextureOnUse("positionMap",  fbo.getBuffer("fragPosition"));
 
-	 // regular GBuffer compositing
-	 DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
-	 ShaderProgram compShader("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing.frag"); DEBUGLOG->outdent();
-	 compShader.bindTextureOnUse("colorMap", 	 fbo.getBuffer("fragColor"));
-	 compShader.bindTextureOnUse("normalMap", 	 fbo.getBuffer("fragNormal"));
-	 compShader.bindTextureOnUse("positionMap",  fbo.getBuffer("fragPosition"));
-
-	 DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
-	 Quad quad;
-	 RenderPass compositing(&compShader, 0);
-	 compositing.addClearBit(GL_COLOR_BUFFER_BIT);
-	 compositing.setClearColor(0.25,0.25,0.35,0.0);
-	 compositing.addDisable(GL_DEPTH_TEST);
-	 compositing.addRenderable(&quad);
+	DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
+	Quad quad;
+	RenderPass compositing(&compShader, 0);
+	compositing.addClearBit(GL_COLOR_BUFFER_BIT);
+	compositing.setClearColor(0.25,0.25,0.35,0.0);
+	compositing.addDisable(GL_DEPTH_TEST);
+	compositing.addRenderable(&quad);
 
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
@@ -346,21 +405,21 @@ int main()
 	 	if (a == GLFW_RELEASE) {return;} 
 		switch(k){
 	 	case GLFW_KEY_W:
-	 		eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
-	 		center += glm::inverse(view) * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
+			s_eye_distance -= 0.5f;
+	 		eye = glm::vec4(eye.x, eye.y, s_eye_distance, 1.0f);
 	 		break;
-	 	case GLFW_KEY_A:
-	 		eye += glm::inverse(view)	 * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
-	 		center += glm::inverse(view) * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
-	 		break;
+	 	//case GLFW_KEY_A:
+	 	//	eye += glm::vec4(-0.1f,0.0f,0.0f,0.0f);
+	 	//	center += glm::inverse(view) * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
+	 	//	break;
 	 	case GLFW_KEY_S:
-	 		eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,0.1f,0.0f);
-	 		center += glm::inverse(view) * glm::vec4(0.0f,0.0f,0.1f,0.0f);
+			s_eye_distance += 0.5f;
+	 		eye = glm::vec4(eye.x, eye.y, s_eye_distance, 1.0f);
 	 		break;
-	 	case GLFW_KEY_D:
-	 		eye += glm::inverse(view)    * glm::vec4(0.1f,0.0f,0.0f,0.0f);
-	 		center += glm::inverse(view) * glm::vec4(0.1f,0.0f,0.0f,0.0f);
-	 		break;
+	 	//case GLFW_KEY_D:
+	 	//	eye += glm::vec4(0.1f,0.0f,0.0f,0.0f);
+	 	//	center += glm::inverse(view) * glm::vec4(0.1f,0.0f,0.0f,0.0f);
+	 	//	break;
 	 	default:
 	 		break;
 		}
@@ -391,7 +450,6 @@ int main()
 		ImGui::SliderFloat("windDirection", &s_wind_angle, 0.0f, 360.0f); 
 		ImGui::SliderFloat("windPower", &s_wind_power, 0.0f, 4.0f); 
 
-		static glm::vec3 angleshifts[3] ={glm::vec3(0.0),glm::vec3(0.0),glm::vec3(0.0)};
 		bool updateAngleShifts = false;
 		if (ImGui::CollapsingHeader("Angle Shifts"))
 		{   ImGui::SliderFloat3("vAngleShiftFront", glm::value_ptr( angleshifts[0]), -1.0f, 1.0f);
@@ -401,7 +459,6 @@ int main()
 		}else {updateAngleShifts = false;}
 		
 		bool updateAmplitudes = false;
-		static glm::vec3 amplitudes[3] = {glm::vec3(0.3f),glm::vec3(0.3f),glm::vec3(0.3f)};
 		if (ImGui::CollapsingHeader("Amplitudes"))
 		{   ImGui::SliderFloat3("vAmplitudesFront", glm::value_ptr( amplitudes[0]), -1.0f, 1.0f);
 			ImGui::SliderFloat3("vAmplitudesBack", glm::value_ptr( amplitudes[1]), -1.0f, 1.0f);
@@ -409,7 +466,6 @@ int main()
 			updateAmplitudes = true;
 		}else{updateAmplitudes = false;}
 
-		static glm::vec3 frequencies(1.0f);
 		bool updateFrequencies = false;
 		if (ImGui::CollapsingHeader("Frequencies"))
 		{   ImGui::SliderFloat3("fFrequencies", glm::value_ptr( frequencies), 0.0f, 3.0f);
@@ -420,7 +476,7 @@ int main()
         //////////////////////////////////////////////////////////////////////////////
 
 		///////////////////////////// MATRIX UPDATING ///////////////////////////////
-		view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0.0f, 1.0f, 0.0f));
+		view = glm::lookAt(glm::vec3(turntable.getRotationMatrix() * eye), glm::vec3(center), glm::vec3(0.0f, 1.0f, 0.0f));
 		//////////////////////////////////////////////////////////////////////////////
 				
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
@@ -460,13 +516,11 @@ int main()
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
-		int i = 0; 
-		for(auto r : treeRenderpasses)
+		for(int i = 0; i < treeRenderpasses.size(); i++)
 		{
-			shaderProgram.update("model", turntable.getRotationMatrix() * model[i]);
-			//updateTreeUniforms(shaderProgram, *trees[i]);
-			r->render();
-			i++;
+			// configure shader for this tree type
+			updateTreeUniforms(shaderProgram, *treeVariants[i]);
+			treeRenderpasses[i]->renderInstanced(numTreesPerVariant);
 		}
 		
 		compositing.render();
