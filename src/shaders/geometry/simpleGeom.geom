@@ -38,13 +38,17 @@ vec4 centerPos(vec4 pos1, vec4 pos2, vec4 pos3)
 
 void main()
 {
+	// model space of triangle
 	vec4 pos1 = vec4(gl_in[0].gl_Position.xyz, 1.0);
 	vec4 pos2 = vec4(gl_in[1].gl_Position.xyz, 1.0);
 	vec4 pos3 = vec4(gl_in[2].gl_Position.xyz, 1.0);
 	
+	// center of triangle
 	vec4 center = centerPos(pos1,pos2,pos3);
-	vec4 centerView = (view * model * center);
-
+	vec4 centerView = (view * model * center); // center in view space
+	vec4 upView = inverse(transpose(view * model)) * vec4(0.0,0.0,strength*2.0,0.0); // up vector in view space
+	
+	// vec2 offset in xz-plane according to wind field
 	vec4 offset = (texture(vectorTexture,VertexIn[0].texCoord) * 2.0 - 1.0 ) * strength;
 	offset.z = offset.y;
 	offset.y = 0.0;
@@ -63,7 +67,7 @@ void main()
 	gl_Position = projection * point;
 	EmitVertex();
 
-	point = vec4(-strength, strength*2.0, 0.0, 0.0) + centerView;
+	point = vec4(-strength, 0.0, 0.0, 0.0) + upView + centerView;
 	point += offset;
 	VertexOut.texCoord = vec2(0.0,1.0);
 	VertexOut.position = point.xyz;
@@ -86,7 +90,7 @@ void main()
 	gl_Position = projection * point;
 	EmitVertex();
 	
-	point = ( vec4(strength, strength*2.0, 0.0, 0.0)  + centerView);
+	point = vec4(strength, 0.0, 0.0, 0.0) + upView + centerView;
 	point += offset;
 	VertexOut.texCoord = vec2(1.0,1.0);
 	VertexOut.position = point.xyz;
