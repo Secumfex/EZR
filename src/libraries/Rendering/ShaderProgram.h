@@ -161,7 +161,7 @@ public:
 	 * @brief Updates a list of 2D vector uniform variables
 	 * 
 	 * @param name 	Name of the uniform variable in GLSL
-	 * @param value The vector witch stores the values to update the unform with
+	 * @param value The vector which stores the values to update the unform with
 	 * 
 	 * @return The shader program
 	 */
@@ -170,7 +170,7 @@ public:
 	 * @brief Updates a list of 3D vector uniform variables
 	 * 
 	 * @param name 	Name of the uniform variable in GLSL
-	 * @param value The vector witch stores the values to update the unform with
+	 * @param value The vector which stores the values to update the unform with
 	 * 
 	 * @return The shader program
 	 */
@@ -179,11 +179,20 @@ public:
 	 * @brief Updates a list of 4D vector uniform variables
 	 * 
 	 * @param name 	Name of the uniform variable in GLSL
-	 * @param value The vector witch stores the values to update the unform with
+	 * @param value The vector which stores the values to update the unform with
 	 * 
 	 * @return The shader program
 	 */
 	ShaderProgram* update(std::string name, const std::vector<glm::vec4>& vector);
+
+	/**
+	 * @brief binds a texture to a OpenGL texture unit and updates the corresponding uniform
+	 * @param name 	Name of the (sampler) uniform variable in GLSL
+	 * @param texUnit texture unit to bind the texture to (make sure it doesn't colide with the TextureMap size)
+	 * @param textureHandle the texture to bind
+	 * @return The shader program
+	 */
+	ShaderProgram* updateAndBindTexture(std::string name, int texUnit, GLuint textureHandle, GLenum textureType = GL_TEXTURE_2D);
 
 	/**
 	 * @brief Method to add an already existing texture to the shader, which will be bound automatically wenn use() is called

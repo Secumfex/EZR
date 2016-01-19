@@ -150,6 +150,14 @@ void ShaderProgram::bindTextureOnUse(const std::string &textureName, GLuint text
 	m_textureMap[textureName] = textureHandle;
 }
 
+ShaderProgram* ShaderProgram::updateAndBindTexture(std::string name, int texUnit, GLuint textureHandle, GLenum textureType)
+{
+	glActiveTexture(GL_TEXTURE0 + texUnit);
+	glBindTexture(textureType, textureHandle);
+	update(name, texUnit);
+	return this;
+}
+
 GLuint ShaderProgram::uniform(const std::string &uniform)
 {
 	// Note: You could do this method with the single line:

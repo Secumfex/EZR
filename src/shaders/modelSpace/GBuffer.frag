@@ -36,11 +36,13 @@ void main(){
 
 	if (hasNormalTex)
 	{
-		vec3 binormalView = normalize(cross(passNormal, passTangent));
+		vec3 nrm = normalize(passNormal);
+		vec3 tan = normalize(passTangent);
+		vec3 binormalView = normalize(cross(nrm, tan));
 		mat3 tangentSpaceView = mat3(
-			passTangent.x,  passTangent.y,   passTangent.z,  // first column
+			tan.x,  tan.y,   tan.z,  // first column
 			binormalView.x, binormalView.y,  binormalView.z, // second column
-			passNormal.x,   passNormal.y,     passNormal.z   // third column
+			nrm.x,   nrm.y,     nrm.z   // third column
 		);
 		vec3 normalTangentSpace = texture(normalTex, passUVCoord).xyz;
 

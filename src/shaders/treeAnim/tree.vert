@@ -9,11 +9,11 @@ struct Branch
 {
 	vec3  origin;
 	vec4  orientation;
-	vec3  tangent;
 	float phase;
-	float stiffness;
 	float pseudoInertiaFactor;
-	uint   parentIdx;
+	//uint   parentIdx;
+	//float stiffness;
+	//vec3  tangent;
 };
 
 struct Tree 
@@ -26,6 +26,7 @@ struct Tree
 layout(location = 0) in vec4 positionAttribute;
 layout(location = 1) in vec2 uvCoordAttribute;
 layout(location = 2) in vec4 normalAttribute;
+layout(location = 3) in vec4 tangentAttribute;
 layout(location = 4) in uvec3 hierarchyAttribute;//!< contains the indices of this and the parent branches
  //layout(location = 5) in vec2 branchWeights; //!< ToDo: should contain the weights of the vertex' branch and the parent's branch
 
@@ -58,6 +59,7 @@ out vec3 passPosition;
 out vec2 passUVCoord;
 out vec3 passWorldNormal;
 out vec3 passNormal;
+out vec3 passTangent;
 
 out VertexData {
 	vec2 texCoord;
@@ -100,30 +102,30 @@ vec4 quatAroundY(float angle)
 	return vec4(0, sinha, 0, cosha);
 }
 
-mat3 quatToMatrix( vec4 q)
-{
-	// add: 15 = 6 + 9
-	// mul: 16 = 12 + 4
-	// div:	 1
-
-	float dxy = q.x * q.y * 2.0f;
-	float dxz = q.x * q.z * 2.0f;
-	float dyz = q.y * q.z * 2.0f;
-	float dwx = q.w * q.x * 2.0f;
-	float dwy = q.w * q.y * 2.0f;
-	float dwz = q.w * q.z * 2.0f;
-	
-	float x2 = q.x * q.x;
-	float y2 = q.y * q.y;
-	float z2 = q.z * q.z;
-	float w2 = q.w * q.w;
-	
-	mat3 r = mat3(
-			w2+x2-y2-z2,	dxy+dwz,		dxz-dwy,
-			dxy-dwz,		w2-x2+y2-z2,	dyz+dwz,
-			dxz-dwy,		dyz-dwx,		w2-x2-y2+z2 );				
-	return r;
-}
+//mat3 quatToMatrix( vec4 q)
+//{
+//	// add: 15 = 6 + 9
+//	// mul: 16 = 12 + 4
+//	// div:	 1
+//
+//	float dxy = q.x * q.y * 2.0f;
+//	float dxz = q.x * q.z * 2.0f;
+//	float dyz = q.y * q.z * 2.0f;
+//	float dwx = q.w * q.x * 2.0f;
+//	float dwy = q.w * q.y * 2.0f;
+//	float dwz = q.w * q.z * 2.0f;
+//	
+//	float x2 = q.x * q.x;
+//	float y2 = q.y * q.y;
+//	float z2 = q.z * q.z;
+//	float w2 = q.w * q.w;
+//	
+//	mat3 r = mat3(
+//			w2+x2-y2-z2,	dxy+dwz,		dxz-dwy,
+//			dxy-dwz,		w2-x2+y2-z2,	dyz+dwz,
+//			dxz-dwy,		dyz-dwx,		w2-x2-y2+z2 );				
+//	return r;
+//}
 
 vec3 applyQuat(vec4 q, vec3 v)
 {
@@ -134,15 +136,15 @@ vec3 applyQuat(vec4 q, vec3 v)
 	return v + ((uv * q.w) + uuv) * 2.0;
 }
 
-vec4 multQuat(vec4 q, vec4 p) // p first, then q
-{
-	vec4 result;
-	result.w = p.w * q.w - p.x * q.x - p.y * q.y - p.z * q.z;
-	result.x = p.w * q.x + p.x * q.w + p.y * q.z - p.z * q.y;
-	result.y = p.w * q.y + p.y * q.w + p.z * q.x - p.x * q.z;
-	result.z = p.w * q.z + p.z * q.w + p.x * q.y - p.y * q.x;
-	return result;
-}
+//vec4 multQuat(vec4 q, vec4 p) // p first, then q
+//{
+//	vec4 result;
+//	result.w = p.w * q.w - p.x * q.x - p.y * q.y - p.z * q.z;
+//	result.x = p.w * q.x + p.x * q.w + p.y * q.z - p.z * q.y;
+//	result.y = p.w * q.y + p.y * q.w + p.z * q.x - p.x * q.z;
+//	result.z = p.w * q.z + p.z * q.w + p.x * q.y - p.y * q.x;
+//	return result;
+//}
 
 
 vec4 rotation(vec3 orig, vec3 dest)
@@ -181,6 +183,7 @@ vec4 bendBranch( vec3 pos,           // object space
                  float branchPhase, // this branch's animation phase
 				 float treePhase,
 				 float pseudoInertiaFactor
+				 //, float stiffness
 		       )  
 {
 	vec3 branchPos = pos - branchOrigin;
@@ -213,7 +216,7 @@ vec4 bendBranch( vec3 pos,           // object space
 
 	// cacluate quaternion representing bending of the branch due to wind load
 	// along direction of the wind
-	vec4 q0 = quatAxisAngle(windTangent,   angleShift0 + amplitude0 * sin((branchPhase + treePhase + simTime) * frequency0));
+	vec4 q0 = quatAxisAngle(windTangent,    angleShift0 + amplitude0 * sin((branchPhase + treePhase + simTime) * frequency0));
 	
 	// cacluate quaternion representing bending of the branch perpendicular to main trunk
 	vec4 q1 = quatAxisAngle(trunkDirection, angleShift1 + amplitude1 * sin((branchPhase + treePhase + simTime) * frequency1));
@@ -258,16 +261,16 @@ void main(){
 		float branch_phase = 0.0;
 		float branch_pseudoInertiaFactor = 1.0;
 		float branch_weight = 1.0;
+		//float branch_stiffness = tree.branches[hierarchyAttribute[i]].stiffness;
 		if ( i == 0)
 		{
 			branch_weight = clamp(distance(branch_origin, vertex_pos),0.0,1.0);
 		}
 
-
 		if ( hierarchyAttribute[i] > 0 )
 		{
 			branch_origin      = tree.branches[hierarchyAttribute[i]].origin;
-			branch_phase = tree.branches[hierarchyAttribute[i]].phase;
+			branch_phase       = tree.branches[hierarchyAttribute[i]].phase;
 			branch_pseudoInertiaFactor = tree.branches[hierarchyAttribute[i]].pseudoInertiaFactor;
 
 			branch_orientation_offset = bendBranch(
@@ -277,12 +280,16 @@ void main(){
 				branch_phase,
 				tree_phase,
 				branch_pseudoInertiaFactor
+				//,branch_stiffness
 			);
 		}
 		vec3 new_pos =applyQuat(branch_orientation_offset, vertex_pos - branch_origin) + branch_origin;
 		
 		vertex_pos = mix(vertex_pos, new_pos, branch_weight);
 	}
+
+	//float trunk_stiffness = tree.branches[0].stiffness;
+	//float windRotationWeight = clamp( (length(vertex_pos) / 4.0) * (1.0 / trunk_stiffness), 0.0, 1.0);
 
 	float windRotationWeight = clamp( length(vertex_pos)/4.0, 0.0, 1.0);
 	vec4 final_pos = mix(vec4(vertex_pos,1.0), windRotation * vec4(vertex_pos, 1.0), windRotationWeight);
@@ -295,7 +302,10 @@ void main(){
     gl_Position =  projection * view * model * final_pos;
 
     passWorldNormal = normalize( ( transpose( inverse( model ) ) * normalAttribute).xyz );
-	passNormal = normalize( ( transpose( inverse( view * model ) ) * normalAttribute ).xyz );
+	
+	mat4 normalMatrix = transpose( inverse( view * model ) ) ;
+	passNormal = normalize( normalMatrix * vec4(normalAttribute.xyz,0.0) ).xyz;
+	passTangent = normalize( normalMatrix * vec4(tangentAttribute.xyz,0.0) ).xyz;
 
 	VertexOut.texCoord = passUVCoord;	
 	VertexOut.normal = passNormal;

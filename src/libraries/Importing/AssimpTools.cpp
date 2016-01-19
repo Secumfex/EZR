@@ -64,8 +64,9 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 			{
 
 				glm::vec3 norm = toVec3( m->mNormals[n] );
-				norm = glm::vec3( glm::transpose(glm::inverse(vertexTransform)) * glm::vec4(norm, 0.0f));
-
+				norm = glm::normalize(glm::vec3( glm::transpose(glm::inverse(vertexTransform)) * glm::vec4(norm, 0.0f)));
+				//DEBUGLOG->log("normal  " + DebugLog::to_string(n) + ": ", norm); 
+				//DEBUGLOG->log("nrmlgth " + DebugLog::to_string(n) + ": ", glm::length(norm)); 
 				normals.push_back(norm.x);
 				normals.push_back(norm.y);
 				normals.push_back(norm.z);
@@ -89,7 +90,7 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 			for (unsigned int t = 0; t < m->mNumVertices; t++)
 			{
 				glm::vec3 tangent = toVec3( m->mTangents[t]);
-				tangent = glm::vec3( glm::transpose(glm::inverse(vertexTransform)) * glm::vec4(tangent, 0.0f));
+				tangent = glm::normalize(glm::vec3( glm::transpose(glm::inverse(vertexTransform)) * glm::vec4(tangent, 0.0f)));
 				
 				tangents.push_back(tangent.x);
 				tangents.push_back(tangent.y);

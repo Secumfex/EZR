@@ -41,7 +41,12 @@ void main() {
     // }
     // glow /= glowRadius * glowRadius * 4;
 
-    fragmentColor = vec4(color.rgb * ambient + color.rgb * diffuse + vec3(specular), color.a);
+    fragmentColor = vec4(
+	color.rgb * ambient 
+	+ color.rgb * diffuse 
+	+ vec3(specular)
+	, 
+	color.a);
     
     // fragmentColor += glow;
     // fragmentColor = vec4(nReflection.rgb, 1.0);
