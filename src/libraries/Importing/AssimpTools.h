@@ -34,7 +34,19 @@ namespace AssimpTools {
 	 */
 	std::vector<RenderableInfo > createSimpleRenderablesFromScene( const aiScene* scene, glm::mat4 vertexTransform = glm::mat4(1.0f), bool createTangentsAndBitangents = true); 
 
+	struct VertexData
+	{
+		std::vector<unsigned int> indices;
+		std::vector<float> positions;
+		std::vector<float> uvs;
+		std::vector<float> normals;
+		std::vector<float> tangents;
+	};
+	std::vector<VertexData> createVertexDataInstancesFromScene( const aiScene* scene, glm::mat4 vertexTransform = glm::mat4(1.0f), bool createTangentsAndBitangents = true);
+	std::vector<Renderable* > createSimpleRenderablesFromVertexDataInstances(std::vector<VertexData>& vertexDataInstances);
+
 	BoundingBox computeBoundingBox(const aiMesh* mesh); //!< computes the bounding box of the given mesh
+	BoundingBox computeBoundingBox(VertexData& mesh); //!< computes the bounding box of the given mesh
 
 	/**
 	* @brief imports an asset from the resource folder
