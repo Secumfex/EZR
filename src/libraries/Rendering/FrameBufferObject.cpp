@@ -242,7 +242,10 @@ FrameBufferObject::FrameBufferObject(std::map<std::string, ShaderProgram::Info>*
 	    i++;
     }
 
-    glDrawBuffers(size, &drawBufferHandles[0]);
+	if (!drawBufferHandles.empty() )
+    {
+		glDrawBuffers(size, &drawBufferHandles[0]);
+	}
 
 	glGenTextures( 1, &m_depthTextureHandle);
 	glBindTexture( GL_TEXTURE_2D, m_depthTextureHandle);

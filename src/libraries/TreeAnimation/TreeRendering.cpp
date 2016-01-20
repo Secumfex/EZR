@@ -137,7 +137,7 @@ Renderable* TreeAnimation::generateFoliage( TreeAnimation::Tree::Branch* branch,
 		return renderable;
 	};
 
-void TreeAnimation::generateFoliagVertexData( TreeAnimation::Tree::Branch* branch, int numLeafs, TreeAnimation::FoliageVertexData& target)
+void TreeAnimation::generateFoliageVertexData( TreeAnimation::Tree::Branch* branch, int numLeafs, TreeAnimation::FoliageVertexData& target)
 {		
 	for ( int i = 0; i < numLeafs; i++)
 	{
@@ -230,6 +230,76 @@ Renderable* TreeAnimation::generateFoliageRenderable(TreeAnimation::FoliageVerte
 	Renderable::createVbo<unsigned int>(source.hierarchy, 3, 4, GL_UNSIGNED_INT, true); 
 
 	glBindVertexArray(0); 
+
+	return renderable;
+}
+
+#include <Core/DebugLog.h>
+void TreeAnimation::generateBranchVertexData(TreeAnimation::Tree::Branch* branch, TreeAnimation::BranchesVertexData& target, const aiScene* scene)
+{
+	if (scene != NULL)
+	{
+		glm::mat4 transform = glm::scale( glm::vec3(branch->thickness / 2.0f, branch->length, branch->thickness / 2.0f) );
+		
+		int indexOffset = target.positions.size() / 3;
+
+		auto vertexData = AssimpTools::createVertexDataInstancesFromScene(scene, transform)[0];
+		target.positions.insert(target.positions.end(), vertexData.positions.begin(), vertexData.positions.end());
+		target.uvs.insert(target.uvs.end(), vertexData.uvs.begin(), vertexData.uvs.end());
+		target.normals.insert(target.normals.end(), vertexData.normals.begin(), vertexData.normals.end());
+		target.tangents.insert(target.tangents.end(), vertexData.tangents.begin(), vertexData.tangents.end());
+
+		for ( int i = 0; i < vertexData.indices.size(); i++)
+		{
+			vertexData.indices[i] += indexOffset;
+		}
+		target.indices.insert(target.indices.end(), vertexData.indices.begin(), vertexData.indices.end());
+
+		for (int v = 0; v < vertexData.positions.size(); v = v + 3)
+		{
+			TreeAnimation::Tree::hierarchy(branch, &target.hierarchy);
+		}
+	}else{
+		// generate regular Truncated Cone
+		auto vertexData = TruncatedCone::generateVertexData( branch->length, branch->thickness / 2.0f, 0.0f, 20, 0.0f);
+
+		int indexOffset = target.positions.size() / 3;
+
+		target.positions.insert(target.positions.end(), vertexData.positions.begin(), vertexData.positions.end());
+		target.uvs.insert(target.uvs.end(), vertexData.uv_coords.begin(), vertexData.uv_coords.end());
+		target.normals.insert(target.normals.end(), vertexData.normals.begin(), vertexData.normals.end());
+		//target.tangents.insert(target.tangents.end(), vertexData.tangents.begin(), vertexData.tangents.end());
+
+		for ( int i = 0; i < vertexData.indices.size(); i++)
+		{
+			vertexData.indices[i] += indexOffset;
+		}
+		target.indices.insert(target.indices.end(), vertexData.indices.begin(), vertexData.indices.end());
+
+		for (int v = 0; v < vertexData.positions.size(); v = v + 3)
+		{
+			TreeAnimation::Tree::hierarchy(branch, &target.hierarchy);
+		}
+	}
+}
+
+Renderable* TreeAnimation::generateBranchesRenderable(TreeAnimation::BranchesVertexData& source)
+{
+	Renderable* renderable = new Renderable();
+
+	std::vector<AssimpTools::VertexData> vd(1);
+	vd[0].indices = source.indices;
+	vd[0].positions= source.positions;
+	vd[0].uvs = source.uvs;
+	vd[0].normals = source.normals;
+	vd[0].tangents = source.tangents;
+	renderable = AssimpTools::createSimpleRenderablesFromVertexDataInstances(vd)[0];
+
+	renderable->bind();
+	// add another vertex attribute which contains the tree hierarchy
+	Renderable::createVbo<unsigned int>(source.hierarchy, 3, 4, GL_UNSIGNED_INT, true); 
+
+	renderable->unbind(); 
 
 	return renderable;
 }

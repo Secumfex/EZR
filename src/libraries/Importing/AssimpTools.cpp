@@ -288,6 +288,7 @@ std::vector<AssimpTools::VertexData> AssimpTools::createVertexDataInstancesFromS
 
 			}}
 
+			unsigned int maxIdx = 0;
 			if ( m->HasFaces()){
 			for ( unsigned int f = 0; f < m->mNumFaces; f++)
 			{
@@ -295,8 +296,11 @@ std::vector<AssimpTools::VertexData> AssimpTools::createVertexDataInstancesFromS
 				for ( unsigned int idx = 0; idx < face.mNumIndices; idx++) 
 				{
 					indices.push_back(face.mIndices[idx]);
+					maxIdx = std::max(face.mIndices[idx], maxIdx);
 				}
 			}}
+
+			//DEBUGLOG->log("max index", maxIdx);
 
 			resultVector[i].indices = indices;
 			resultVector[i].positions = vertices;

@@ -152,7 +152,7 @@ TreeAnimation::Tree* TreeAnimation::Tree::generateTree(float approxHeight, float
 			auto subBranch = tree->addRandomBranch( 
 				branch,
 				s_r_pos_min_sub,
-				s_r_pos_min_sub,
+				s_r_pos_max_sub,
 				branch->length * s_r_length_min_sub,
 				branch->length * s_r_length_max_sub,
 				glm::radians(s_r_pitch_min_sub),

@@ -25,8 +25,23 @@ struct FoliageVertexData
 	std::vector<unsigned int> hierarchy;
 };
 
-void generateFoliagVertexData(TreeAnimation::Tree::Branch* branch, int numLeafs, FoliageVertexData& target);
+void generateFoliageVertexData(TreeAnimation::Tree::Branch* branch, int numLeafs, FoliageVertexData& target);
 Renderable* generateFoliageRenderable(FoliageVertexData& source); // use this source to generate a single renderable
+
+
+struct BranchesVertexData
+{
+	std::vector<float> positions;
+	std::vector<unsigned int> indices;
+	std::vector<float> normals;
+	std::vector<float> uvs;
+	std::vector<float> tangents;
+	std::vector<unsigned int> hierarchy;
+};
+
+void generateBranchVertexData(TreeAnimation::Tree::Branch* branch, BranchesVertexData& target, const aiScene* scene = NULL);
+Renderable* generateBranchesRenderable(BranchesVertexData& source); // use this source to generate a single renderable
+
 
 } // TreeAnimation
 #endif

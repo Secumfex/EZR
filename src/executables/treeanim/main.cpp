@@ -33,8 +33,10 @@
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 const float TREE_HEIGHT = 4.0f;
 const float TREE_WIDTH = TREE_HEIGHT / 10.0f;
-const int NUM_MAIN_BRANCHES = 7;
-const int NUM_SUB_BRANCHES  = 3;
+const int NUM_MAIN_BRANCHES = 3;
+const int NUM_SUB_BRANCHES  = 7;
+const int NUM_TREE_VARIANTS = 3;
+const int NUM_TREES_PER_VARIANT = 30;
 
 static glm::vec4 s_trunk_color =  glm::vec4(107.0f / 255.0f , 68.0f / 255.0f , 35.0f /255.0f, 1.0f); // brown
 static glm::vec4 s_foliage_color = glm::vec4(22.0f / 255.0f , 111.0f / 255.0f , 22.0f /255.0f, 1.0f); // green
@@ -74,26 +76,6 @@ struct TreeEntity {
 	std::vector< Renderable* > foliageRenderables;
 };
 
-// generate one renderable per branch and one per foliage
-void generateRenderablesRecursively(TreeAnimation::Tree::Branch* branch, TreeEntity& treeEntity, const aiScene* branchModel, const aiScene* foliageModel)
-{
-	auto branchRenderable = TreeAnimation::generateRenderable(branch, branchModel); 
-	if (branchModel!= NULL) s_renderable_material_map[branchRenderable] = 0;
-	s_renderable_color_map[branchRenderable] = &s_trunk_color;
-	treeEntity.branchRenderables.push_back( branchRenderable );
-
-	for (int i = 0; i < branch->children.size(); i++)
-	{
-		generateRenderablesRecursively(branch->children[i], treeEntity, branchModel, foliageModel);
-
-		//auto foliageRenderable = TreeAnimation::generateFoliage(branch->children[i], 35, foliageModel);
-		//s_renderable_color_map[foliageRenderable] = &s_foliage_color;
-		//s_renderable_material_map[foliageRenderable] = 1;
-		//
-		//treeEntity.foliageRenderables.push_back(foliageRenderable);
-	}
-};
-
 std::vector<glm::mat4 > generateModelMatrices(int numObjects, float xSize, float zSize)
 {
 	std::vector<glm::mat4> models(numObjects);
@@ -126,23 +108,36 @@ std::vector<TreeEntity* > generateTreeVariants(int numTrees, const aiScene* bran
 		// generate a tree
 		TreeAnimation::Tree* tree = TreeAnimation::Tree::generateTree(TREE_HEIGHT, TREE_WIDTH, NUM_MAIN_BRANCHES, NUM_SUB_BRANCHES);
 		treeEntities[i]->tree = tree;
-
-		// generate branch renderables & generate foliage renderables
-		generateRenderablesRecursively(&tree->m_trunk, *treeEntities[i], branchModel, foliageModel);
 		
-		TreeAnimation::FoliageVertexData f;
+		TreeAnimation::FoliageVertexData fData;
+		TreeAnimation::BranchesVertexData bData;
+		
+		TreeAnimation::generateBranchVertexData(&tree->m_trunk, bData, branchModel);
 		for (auto b : tree->m_trunk.children)
 		{
-			TreeAnimation::generateFoliagVertexData(b, 35, f);
+			TreeAnimation::generateBranchVertexData(b, bData, branchModel);
+			TreeAnimation::generateFoliageVertexData(b, 35, fData);
 			for ( auto c : b->children)
 			{
-				TreeAnimation::generateFoliagVertexData(c, 35, f);
+				TreeAnimation::generateFoliageVertexData(c, 35, fData);
+				TreeAnimation::generateBranchVertexData(c, bData, branchModel);
 			}
 		}
-		auto r =TreeAnimation::generateFoliageRenderable(f);
-		s_renderable_color_map[r] = &s_foliage_color;
-		s_renderable_material_map[r] = 1;
-		treeEntities[i]->foliageRenderables.push_back(r);
+
+		if ( !fData.positions.empty())
+		{
+			auto fRender =TreeAnimation::generateFoliageRenderable(fData);
+		
+			s_renderable_color_map[fRender] = &s_foliage_color;
+			s_renderable_material_map[fRender] = 1;
+			treeEntities[i]->foliageRenderables.push_back(fRender);
+		}
+
+		auto bRender = TreeAnimation::generateBranchesRenderable(bData);
+
+		s_renderable_color_map[bRender] = &s_trunk_color;
+		if(branchModel!= NULL)s_renderable_material_map[bRender] = branchModel->mMeshes[0]->mMaterialIndex;
+		treeEntities[i]->branchRenderables.push_back(bRender);
 	}
 	return treeEntities;
 }
@@ -170,14 +165,6 @@ void updateTreeUniforms(ShaderProgram& shaderProgram, TreeEntity& treeEntity)
 		shaderProgram.update(prefix + "orientation", quatAsVec4);
 	}
 }
-
-//class UploadTreeUniforms: public Uploadable 
-//{
-//public:
-//	TreeEntity* p_treeEntity;
-//	void uploadUniform(ShaderProgram* shader)
-//	{updateTreeUniforms(*shader, *p_treeEntity);}
-//};
 
 int main()
 {
@@ -219,10 +206,8 @@ int main()
 	srand (time(NULL));	
 
 	// generate a forest randomly, including renderables
-	int numTreeVariants = 3;
-	int numTreesPerVariant = 30;
-	std::vector<TreeEntity* > treeVariants = generateTreeVariants(numTreeVariants, scene);
-	std::vector<glm::mat4 > treeModelMatrices = generateModelMatrices(numTreesPerVariant * numTreeVariants, 30.0f, 30.0f);
+	std::vector<TreeEntity* > treeVariants = generateTreeVariants(NUM_TREE_VARIANTS, scene);
+	std::vector<glm::mat4 > treeModelMatrices = generateModelMatrices(NUM_TREES_PER_VARIANT * NUM_TREE_VARIANTS, 30.0f, 30.0f);
 
 	auto mat4VertexAttribute = [&](Renderable*r, int attributeLocation)
 	{
@@ -286,7 +271,7 @@ int main()
 
 	static glm::vec3 angleshifts[3] ={glm::vec3(0.0),glm::vec3(0.0),glm::vec3(0.0)};
 	static glm::vec3 amplitudes[3] = {glm::vec3(0.3f),glm::vec3(0.3f),glm::vec3(0.3f)};
-	static glm::vec3 frequencies(1.0f);
+	static glm::vec3 frequencies(2.5f);
 	shaderProgram.update("vAngleShiftFront", angleshifts[0]); //front
 	shaderProgram.update("vAngleShiftBack", angleshifts[1]); //back
 	shaderProgram.update("vAngleShiftSide", angleshifts[2]); //side
@@ -337,7 +322,7 @@ int main()
 	};
 
 	// create one render pass per tree type
-	std::vector<RenderPass* > treeRenderpasses(numTreeVariants);
+	std::vector<RenderPass* > treeRenderpasses(NUM_TREE_VARIANTS);
 	for ( int i = 0; i < treeVariants.size(); i++)
 	{
 		treeRenderpasses[i] = new RenderPass(&shaderProgram, &fbo);
@@ -532,7 +517,7 @@ int main()
 		{
 			// configure shader for this tree type
 			updateTreeUniforms(shaderProgram, *treeVariants[i]);
-			treeRenderpasses[i]->renderInstanced(numTreesPerVariant);
+			treeRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
 		
 		compositing.render();
