@@ -47,7 +47,7 @@ static glm::vec3 s_wind_direction = glm::rotateY(glm::vec3(1.0f,0.0f,0.0f), glm:
 static glm::mat4 s_wind_rotation = glm::mat4(1.0f);
 static float s_wind_power = 1.0f;
 
-static float s_strength = 1.0f;
+static float s_foliage_size = 1.0f;
 static bool  s_isRotating = false;
 
 static float s_simulationTime = 0.0f;
@@ -116,17 +116,17 @@ std::vector<TreeEntity* > generateTreeVariants(int numTrees, const aiScene* bran
 		for (auto b : tree->m_trunk.children)
 		{
 			TreeAnimation::generateBranchVertexData(b, bData, branchModel);
-			TreeAnimation::generateFoliageVertexData(b, 35, fData);
+			TreeAnimation::generateFoliageGeometryShaderVertexData(b, 35, fData);
 			for ( auto c : b->children)
 			{
-				TreeAnimation::generateFoliageVertexData(c, 35, fData);
+				TreeAnimation::generateFoliageGeometryShaderVertexData(c, 35, fData);
 				TreeAnimation::generateBranchVertexData(c, bData, branchModel);
 			}
 		}
 
 		if ( !fData.positions.empty())
 		{
-			auto fRender =TreeAnimation::generateFoliageRenderable(fData);
+			auto fRender =TreeAnimation::generateFoliageGeometryShaderRenderable(fData);
 		
 			s_renderable_color_map[fRender] = &s_foliage_color;
 			s_renderable_material_map[fRender] = 1;
@@ -247,10 +247,13 @@ int main()
 	TreeAnimation::updateSimulationUniforms(branchShader, simulation);
 
 	DEBUGLOG->log("Shader Compilation: FoliageToGBuffer"); DEBUGLOG->indent();
-	ShaderProgram foliageShader("/treeAnim/tree.vert", "/modelSpace/GBuffer.frag" /*, "/treeAnim/foliage.geom" */); DEBUGLOG->outdent();
+	ShaderProgram foliageShader("/treeAnim/tree.vert", "/modelSpace/GBuffer.frag" , "/treeAnim/foliage.geom" ); DEBUGLOG->outdent();
+	foliageShader.printShaderProgramInfoLog();
 	foliageShader.update("view", view);
 	foliageShader.update("projection", perspective);
 	TreeAnimation::updateSimulationUniforms(foliageShader, simulation);
+	glPointSize(10.0f);
+	glLineWidth(5.0f);
 
 	// regular GBuffer
 	DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
@@ -428,6 +431,7 @@ int main()
 		
 		ImGui::SliderFloat("windDirection", &s_wind_angle, 0.0f, 360.0f); 
 		ImGui::SliderFloat("windPower", &s_wind_power, 0.0f, 4.0f); 
+		ImGui::SliderFloat("foliageSize", &s_foliage_size, 0.0f, 5.0f);	
 
 		bool updateAngleShifts = false;
 		if (ImGui::CollapsingHeader("Angle Shifts"))
@@ -450,7 +454,7 @@ int main()
 		{   ImGui::SliderFloat3("fFrequencies", glm::value_ptr( simulation.frequencies), 0.0f, 3.0f);
 			updateFrequencies = true;
 		}else{ updateFrequencies =false; }
-		
+
 		ImGui::PopItemWidth();
         //////////////////////////////////////////////////////////////////////////////
 
@@ -471,6 +475,7 @@ int main()
 		s_wind_direction = glm::rotateY(glm::vec3(0.0f,0.0f,1.0f), glm::radians(s_wind_angle));
 		branchShader.update( "worldWindDirection", glm::vec4(s_wind_direction,s_wind_power));
 		foliageShader.update("worldWindDirection", glm::vec4(s_wind_direction,s_wind_power)); //front
+		foliageShader.update("foliageSize", s_foliage_size);
 		
 		if (updateAngleShifts){
 		branchShader.update("vAngleShiftFront", simulation.angleshifts[0]); //front

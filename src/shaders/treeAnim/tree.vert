@@ -57,6 +57,14 @@ out vec3 passWorldNormal;
 out vec3 passNormal;
 out vec3 passTangent;
 
+// for geometry shader
+out VertexData {
+	vec2 texCoord;
+	vec3 position;
+	vec3 normal;
+	vec3 tangent;
+} VertexGeom;
+
 float mix3(float a, float b, float c, float t)
 {
 	return 
@@ -287,4 +295,9 @@ void main(){
 	mat4 normalMatrix = transpose( inverse( view * instancedModel ) ) ;
 	passNormal = normalize( normalMatrix * vec4(normalAttribute.xyz,0.0) ).xyz;
 	passTangent = normalize( normalMatrix * vec4(tangentAttribute.xyz,0.0) ).xyz;
+
+    VertexGeom.texCoord = passUVCoord;
+	VertexGeom.position = passPosition;
+	VertexGeom.normal   = passNormal;
+	VertexGeom.tangent  =  passTangent;
 }
