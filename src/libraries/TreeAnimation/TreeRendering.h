@@ -6,6 +6,7 @@
 
 #include "Tree.h"
 #include <Rendering/VertexArrayObjects.h>
+#include <Rendering/ShaderProgram.h>
 
 class aiScene;
 
@@ -28,6 +29,25 @@ struct FoliageVertexData
 void generateFoliageVertexData(TreeAnimation::Tree::Branch* branch, int numLeafs, FoliageVertexData& target);
 Renderable* generateFoliageRenderable(FoliageVertexData& source); // use this source to generate a single renderable
 
+
+void updateTreeUniforms(ShaderProgram& shaderProgram, TreeAnimation::Tree* tree);
+
+struct SimulationProperties
+{
+	glm::vec3 angleshifts[3];
+	glm::vec3 amplitudes[3];
+	glm::vec3 frequencies;
+	SimulationProperties()
+		: frequencies(2.5f) {
+		amplitudes[0] = glm::vec3(0.3f);
+		amplitudes[1] = glm::vec3(0.3f);
+		amplitudes[2] = glm::vec3(0.3f);
+		angleshifts[0] = glm::vec3(0.0);
+		angleshifts[1] = glm::vec3(0.0);
+		angleshifts[2] = glm::vec3(0.0);
+	}
+};
+void updateSimulationUniforms(ShaderProgram& shaderProgram, TreeAnimation::SimulationProperties& simulation);
 
 struct BranchesVertexData
 {

@@ -142,30 +142,6 @@ std::vector<TreeEntity* > generateTreeVariants(int numTrees, const aiScene* bran
 	return treeEntities;
 }
 
-// update Tree-Simulation related uniforms
-void updateTreeUniforms(ShaderProgram& shaderProgram, TreeEntity& treeEntity)
-{	
-	TreeAnimation::Tree* tree = treeEntity.tree; 
-	shaderProgram.update("tree.phase", tree->m_phase); //front
-
-	auto branches = tree->m_branchesIndexed;
-
-	// upload tree uniforms
-	for (unsigned int i = 0; i < branches.size(); i++)
-	{
-		std::string prefix = "tree.branches[" + DebugLog::to_string(i) + "].";
-
-		shaderProgram.update(prefix + "origin", branches[i]->origin);
-		shaderProgram.update(prefix + "phase", branches[i]->phase);	
-		shaderProgram.update(prefix + "pseudoInertiaFactor", 1.0f);
-			
-		// orientation is computed from object space direction relative to optimal branch axis
-		glm::quat orientation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), branches[i]->direction);
-		glm::vec4 quatAsVec4 = glm::vec4(orientation.x, orientation.y, orientation.z, orientation.w);
-		shaderProgram.update(prefix + "orientation", quatAsVec4);
-	}
-}
-
 int main()
 {
 	DEBUGLOG->setAutoPrint(true);
@@ -208,6 +184,7 @@ int main()
 	// generate a forest randomly, including renderables
 	std::vector<TreeEntity* > treeVariants = generateTreeVariants(NUM_TREE_VARIANTS, scene);
 	std::vector<glm::mat4 > treeModelMatrices = generateModelMatrices(NUM_TREES_PER_VARIANT * NUM_TREE_VARIANTS, 30.0f, 30.0f);
+	TreeAnimation::SimulationProperties simulation;
 
 	auto mat4VertexAttribute = [&](Renderable*r, int attributeLocation)
 	{
@@ -263,37 +240,29 @@ int main()
 	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.5f, 100.f);
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
+	DEBUGLOG->log("Shader Compilation: BranchToGBuffer"); DEBUGLOG->indent();
+	ShaderProgram branchShader("/treeAnim/tree.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
+	branchShader.update("view", view);
+	branchShader.update("projection", perspective);
+	TreeAnimation::updateSimulationUniforms(branchShader, simulation);
+
+	DEBUGLOG->log("Shader Compilation: FoliageToGBuffer"); DEBUGLOG->indent();
+	ShaderProgram foliageShader("/treeAnim/tree.vert", "/modelSpace/GBuffer.frag" /*, "/treeAnim/foliage.geom" */); DEBUGLOG->outdent();
+	foliageShader.update("view", view);
+	foliageShader.update("projection", perspective);
+	TreeAnimation::updateSimulationUniforms(foliageShader, simulation);
+
 	// regular GBuffer
-	DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
-	ShaderProgram shaderProgram("/treeAnim/tree.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
-	shaderProgram.update("view", view);
-	shaderProgram.update("projection", perspective);
-
-	static glm::vec3 angleshifts[3] ={glm::vec3(0.0),glm::vec3(0.0),glm::vec3(0.0)};
-	static glm::vec3 amplitudes[3] = {glm::vec3(0.3f),glm::vec3(0.3f),glm::vec3(0.3f)};
-	static glm::vec3 frequencies(2.5f);
-	shaderProgram.update("vAngleShiftFront", angleshifts[0]); //front
-	shaderProgram.update("vAngleShiftBack", angleshifts[1]); //back
-	shaderProgram.update("vAngleShiftSide", angleshifts[2]); //side
-	shaderProgram.update("vAmplitudesFront", amplitudes[0]); //front
-	shaderProgram.update("vAmplitudesBack", amplitudes[1]); //back
-	shaderProgram.update("vAmplitudesSide", amplitudes[2]); //side
-	shaderProgram.update("fFrequencyFront", frequencies.x); //front
-	shaderProgram.update("fFrequencyBack", frequencies.y); //back
-	shaderProgram.update("fFrequencySide", frequencies.z); //side
-
-	DEBUGLOG->outdent();
-
 	DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
 	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
-	FrameBufferObject fbo(shaderProgram.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
+	FrameBufferObject fbo(branchShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
 	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
 	DEBUGLOG->outdent();
 
 	DEBUGLOG->log("RenderPasses Creation: Trees GBuffer"); DEBUGLOG->indent();
 	DEBUGLOG->log("creating " + DebugLog::to_string(treeVariants.size()) + " RenderPasses");
 
-	std::function<void(Renderable*)> perRenderableFunc = [&] (Renderable* r)
+	std::function<void(ShaderProgram*, Renderable*)> perRenderableFunc = [&] (ShaderProgram* shaderProgram, Renderable* r)
 	{
 		auto e = s_renderable_material_map.find(r);
 		if( e != s_renderable_material_map.end() )
@@ -301,42 +270,50 @@ int main()
 			auto d = s_material_texture_handles[e->second].find(aiTextureType_DIFFUSE);
 			if ( d != s_material_texture_handles[e->second].end())
 			{
-				shaderProgram.updateAndBindTexture("tex", 5, d->second);
-				shaderProgram.update("mixTexture", 1.0f);
+				shaderProgram->updateAndBindTexture("tex", 5, d->second);
+				shaderProgram->update("mixTexture", 1.0f);
 			}else{
-				shaderProgram.update("mixTexture", 0.0);
+				shaderProgram->update("mixTexture", 0.0);
 			}
 			auto n = s_material_texture_handles[e->second].find(aiTextureType_NORMALS);
 			if ( n != s_material_texture_handles[e->second].end())
 			{
-				shaderProgram.updateAndBindTexture("normalTex", 6, n->second);
-				shaderProgram.update("hasNormalTex", true);
+				shaderProgram->updateAndBindTexture("normalTex", 6, n->second);
+				shaderProgram->update("hasNormalTex", true);
 			}else{
-				shaderProgram.update("hasNormalTex", false);
+				shaderProgram->update("hasNormalTex", false);
 			}
 		 }else{
-			shaderProgram.update("mixTexture", 0.0);
-			shaderProgram.update("hasNormalTex", false);
-			shaderProgram.update("color", *s_renderable_color_map[r]);
+			shaderProgram->update("mixTexture", 0.0);
+			shaderProgram->update("hasNormalTex", false);
+			shaderProgram->update("color", *s_renderable_color_map[r]);
 		}
 	};
 
+	std::function<void(Renderable*) > branchPerRenderableFunction = std::bind(perRenderableFunc, &branchShader, std::placeholders::_1);
+	std::function<void(Renderable*) > foliagePerRenderableFunction = std::bind(perRenderableFunc, &foliageShader, std::placeholders::_1);
+
 	// create one render pass per tree type
 	std::vector<RenderPass* > treeRenderpasses(NUM_TREE_VARIANTS);
+	std::vector<RenderPass* > foliageRenderpasses(NUM_TREE_VARIANTS);
 	for ( int i = 0; i < treeVariants.size(); i++)
 	{
-		treeRenderpasses[i] = new RenderPass(&shaderProgram, &fbo);
+		treeRenderpasses[i] = new RenderPass(&branchShader, &fbo);
 		for ( auto r : treeVariants[i]->branchRenderables )
 		{
 			treeRenderpasses[i]->addRenderable(r);
 		}
+		treeRenderpasses[i]->setPerRenderableFunction( &branchPerRenderableFunction );
+		treeRenderpasses[i]->addEnable(GL_DEPTH_TEST);
+
+		foliageRenderpasses[i] = new RenderPass(&foliageShader, &fbo);
 		for ( auto r : treeVariants[i]->foliageRenderables )
 		{
-			treeRenderpasses[i]->addRenderable(r);
+			foliageRenderpasses[i]->addRenderable(r);
 		}
-		treeRenderpasses[i]->setPerRenderableFunction( &perRenderableFunc );
-		treeRenderpasses[i]->addEnable(GL_ALPHA_TEST); // for foliage
-		treeRenderpasses[i]->addEnable(GL_DEPTH_TEST);
+		foliageRenderpasses[i]->setPerRenderableFunction( &foliagePerRenderableFunction );
+		foliageRenderpasses[i]->addEnable(GL_ALPHA_TEST); // for foliage
+		foliageRenderpasses[i]->addEnable(GL_DEPTH_TEST);
 	}
 	treeRenderpasses[0]->setClearColor(0.0,0.0,0.0,0.0);
 	treeRenderpasses[0]->addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
@@ -454,23 +431,23 @@ int main()
 
 		bool updateAngleShifts = false;
 		if (ImGui::CollapsingHeader("Angle Shifts"))
-		{   ImGui::SliderFloat3("vAngleShiftFront", glm::value_ptr( angleshifts[0]), -1.0f, 1.0f);
-			ImGui::SliderFloat3("vAngleShiftBack", glm::value_ptr( angleshifts[1]), -1.0f, 1.0f);
-			ImGui::SliderFloat3("vAngleShiftSide", glm::value_ptr( angleshifts[2]), -1.0f, 1.0f);
+		{   ImGui::SliderFloat3("vAngleShiftFront", glm::value_ptr( simulation.angleshifts[0]), -1.0f, 1.0f);
+			ImGui::SliderFloat3("vAngleShiftBack", glm::value_ptr( simulation.angleshifts[1]), -1.0f, 1.0f);
+			ImGui::SliderFloat3("vAngleShiftSide", glm::value_ptr( simulation.angleshifts[2]), -1.0f, 1.0f);
 			updateAngleShifts = true;
 		}else {updateAngleShifts = false;}
 		
 		bool updateAmplitudes = false;
 		if (ImGui::CollapsingHeader("Amplitudes"))
-		{   ImGui::SliderFloat3("vAmplitudesFront", glm::value_ptr( amplitudes[0]), -1.0f, 1.0f);
-			ImGui::SliderFloat3("vAmplitudesBack", glm::value_ptr( amplitudes[1]), -1.0f, 1.0f);
-			ImGui::SliderFloat3("vAmplitudesSide", glm::value_ptr( amplitudes[2]), -1.0f, 1.0f); 
+		{   ImGui::SliderFloat3("vAmplitudesFront", glm::value_ptr( simulation.amplitudes[0]), -1.0f, 1.0f);
+			ImGui::SliderFloat3("vAmplitudesBack", glm::value_ptr( simulation.amplitudes[1]), -1.0f, 1.0f);
+			ImGui::SliderFloat3("vAmplitudesSide", glm::value_ptr( simulation.amplitudes[2]), -1.0f, 1.0f); 
 			updateAmplitudes = true;
 		}else{updateAmplitudes = false;}
 
 		bool updateFrequencies = false;
 		if (ImGui::CollapsingHeader("Frequencies"))
-		{   ImGui::SliderFloat3("fFrequencies", glm::value_ptr( frequencies), 0.0f, 3.0f);
+		{   ImGui::SliderFloat3("fFrequencies", glm::value_ptr( simulation.frequencies), 0.0f, 3.0f);
 			updateFrequencies = true;
 		}else{ updateFrequencies =false; }
 		
@@ -483,30 +460,42 @@ int main()
 				
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
 		//&&&&&&&&&&& CAMERA UNIFORMS &&&&&&&&&&&&&&//
-		shaderProgram.update( "view",  view);
+		branchShader.update( "view",  view);
+		foliageShader.update( "view", view);
 
 		//&&&&&&&&&&& FOREST UNIFORMS &&&&&&&&&&&&&&//
 
 		//&&&&&&&&&&& SIMULATION UNIFORMS &&&&&&&&&&&&&&//
-		shaderProgram.update("simTime", s_simulationTime);
+		branchShader.update("simTime", s_simulationTime);
+		foliageShader.update("simTime", s_simulationTime);
 		s_wind_direction = glm::rotateY(glm::vec3(0.0f,0.0f,1.0f), glm::radians(s_wind_angle));
-		shaderProgram.update( "worldWindDirection", glm::vec4(s_wind_direction,s_wind_power));
+		branchShader.update( "worldWindDirection", glm::vec4(s_wind_direction,s_wind_power));
+		foliageShader.update("worldWindDirection", glm::vec4(s_wind_direction,s_wind_power)); //front
 		
 		if (updateAngleShifts){
-		shaderProgram.update("vAngleShiftFront", angleshifts[0]); //front
-		shaderProgram.update("vAngleShiftBack", angleshifts[1]); //back
-		shaderProgram.update("vAngleShiftSide", angleshifts[2]);} //side
+		branchShader.update("vAngleShiftFront", simulation.angleshifts[0]); //front
+		branchShader.update("vAngleShiftBack", simulation.angleshifts[1]); //back
+		branchShader.update("vAngleShiftSide", simulation.angleshifts[2]);
+		foliageShader.update("vAngleShiftFront", simulation.angleshifts[0]); //front
+		foliageShader.update("vAngleShiftBack", simulation.angleshifts[1]); //back
+		foliageShader.update("vAngleShiftSide", simulation.angleshifts[2]);} //side
 		
 		if (updateAmplitudes){
-		shaderProgram.update("vAmplitudesFront", amplitudes[0]); //front
-		shaderProgram.update("vAmplitudesBack", amplitudes[1]); //back
-		shaderProgram.update("vAmplitudesSide", amplitudes[2]);} //side
+		branchShader.update("vAmplitudesFront", simulation.amplitudes[0]); //front
+		branchShader.update("vAmplitudesBack", simulation.amplitudes[1]); //back
+		branchShader.update("vAmplitudesSide", simulation.amplitudes[2]);
+		foliageShader.update("vAmplitudesFront", simulation.amplitudes[0]); //front
+		foliageShader.update("vAmplitudesBack", simulation.amplitudes[1]); //back
+		foliageShader.update("vAmplitudesSide", simulation.amplitudes[2]);} //side
 		
 		if (updateFrequencies){
-		shaderProgram.update("fFrequencyFront", frequencies.x); //front
-		shaderProgram.update("fFrequencyBack", frequencies.y); //back
-		shaderProgram.update("fFrequencySide", frequencies.z);} //side
-
+		branchShader.update("fFrequencyFront", simulation.frequencies.x); //front
+		branchShader.update("fFrequencyBack", simulation.frequencies.y); //back
+		branchShader.update("fFrequencySide", simulation.frequencies.z);
+		foliageShader.update("fFrequencyFront", simulation.frequencies.x); //front
+		foliageShader.update("fFrequencyBack", simulation.frequencies.y); //back
+		foliageShader.update("fFrequencySide", simulation.frequencies.z);}//side
+		
 		//&&&&&&&&&&& COMPOSITING UNIFORMS &&&&&&&&&&&&&&//
 		compShader.update("vLightPos", view * s_lightPos);
 
@@ -516,8 +505,10 @@ int main()
 		for(int i = 0; i < treeRenderpasses.size(); i++)
 		{
 			// configure shader for this tree type
-			updateTreeUniforms(shaderProgram, *treeVariants[i]);
+			TreeAnimation::updateTreeUniforms(branchShader, treeVariants[i]->tree);
+			TreeAnimation::updateTreeUniforms(foliageShader, treeVariants[i]->tree);
 			treeRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
+			foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
 		
 		compositing.render();
