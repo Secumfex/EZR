@@ -205,6 +205,64 @@ void TreeAnimation::generateFoliageVertexData( TreeAnimation::Tree::Branch* bran
 	}
 }
 
+void TreeAnimation::generateFoliageGeometryShaderVertexData( TreeAnimation::Tree::Branch* branch, int numLeafs, TreeAnimation::FoliageVertexData& target)
+{		
+	for ( int i = 0; i < numLeafs; i++)
+	{
+		int nextIdx = target.positions.size()/3;
+		glm::vec3 v[4];
+		auto addVert = [&](float x, float y, float z, int temp) 
+		{
+			target.positions.push_back(x);
+			target.positions.push_back(y);
+			target.positions.push_back(z);
+			v[temp] = glm::vec3(x,y,z);
+		};
+
+		auto addUV = [&](float s, float t) 
+		{
+			target.uvs.push_back(s);
+			target.uvs.push_back(t);
+		};
+	
+		float rOffsetX = ((float) rand()) / ((float) RAND_MAX) * (branch->length / 2.0) - (branch->length / 4.0); //-branchLength/4 .. branchLegnth/4
+		float rOffsetY = ((float) rand()) / ((float) RAND_MAX) * branch->length; 
+		float rOffsetZ = ((float) rand()) / ((float) RAND_MAX) * (branch->length / 2.0) - (branch->length / 4.0);
+
+		addVert(rOffsetX, rOffsetY, rOffsetZ, 0);
+
+		float rWidth = ((float) rand()) / ((float) RAND_MAX)* 0.2 + 0.03; //0.03..0.23
+		float rHeight = ((float) rand()) / ((float) RAND_MAX)* 0.2 + 0.03; //0.03..0.23
+
+		addUV(rWidth, rHeight);
+
+		glm::vec3 n[4];
+
+		auto addNorm = [&](float vX, float vY, float vZ, int temp) 
+		{
+			glm::vec3 centerToPoint = glm::vec3(vX, vY, vZ) - glm::vec3(0.0f, branch->length / 2.0f, 0.0f);
+			n[temp] = glm::normalize(centerToPoint);
+			target.normals.push_back(n[temp].x);
+			target.normals.push_back(n[temp].y);
+			target.normals.push_back(n[temp].z);
+		};
+
+		addNorm(v[0].x, v[0].y, v[0].z, 0);
+
+		// add hierarchy once for every vertex
+		TreeAnimation::Tree::hierarchy(branch, &target.hierarchy);
+
+		target.indices.push_back(nextIdx);
+	}
+}
+
+Renderable* TreeAnimation::generateFoliageGeometryShaderRenderable(TreeAnimation::FoliageVertexData& source)
+{
+	auto r = generateFoliageRenderable(source);
+	r->setDrawMode(GL_POINTS);
+	return r;
+}
+
 Renderable* TreeAnimation::generateFoliageRenderable(TreeAnimation::FoliageVertexData& source)
 {
 	Renderable* renderable = new Renderable();
@@ -302,4 +360,39 @@ Renderable* TreeAnimation::generateBranchesRenderable(TreeAnimation::BranchesVer
 	renderable->unbind(); 
 
 	return renderable;
+}
+#include <glm/gtx/quaternion.hpp>
+void TreeAnimation::updateTreeUniforms(ShaderProgram& shaderProgram, TreeAnimation::Tree* tree)
+{	
+	shaderProgram.update("tree.phase", tree->m_phase);
+
+	// upload tree uniforms
+	for (unsigned int i = 0; i < tree->m_branchesIndexed.size(); i++)
+	{
+		std::string prefix = "tree.branches[" + DebugLog::to_string(i) + "].";
+
+		shaderProgram.update(prefix + "origin", tree->m_branchesIndexed[i]->origin);
+		shaderProgram.update(prefix + "phase", tree->m_branchesIndexed[i]->phase);	
+		shaderProgram.update(prefix + "pseudoInertiaFactor", 1.0f);
+			
+		// orientation is computed from object space direction relative to optimal branch axis
+		glm::quat orientation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), tree->m_branchesIndexed[i]->direction);
+		glm::vec4 quatAsVec4 = glm::vec4(orientation.x, orientation.y, orientation.z, orientation.w);
+		shaderProgram.update(prefix + "orientation", quatAsVec4);
+	}
+}
+
+void TreeAnimation::updateSimulationUniforms(ShaderProgram& shaderProgram, TreeAnimation::SimulationProperties& simulation)
+{
+	shaderProgram.update("vAngleShiftFront", simulation.angleshifts[0]); //front
+	shaderProgram.update("vAngleShiftBack", simulation.angleshifts[1]); //back
+	shaderProgram.update("vAngleShiftSide", simulation.angleshifts[2]); //side
+
+	shaderProgram.update("vAmplitudesFront", simulation.amplitudes[0]); //front
+	shaderProgram.update("vAmplitudesBack", simulation.amplitudes[1]); //back
+	shaderProgram.update("vAmplitudesSide", simulation.amplitudes[2]); //side
+
+	shaderProgram.update("fFrequencyFront", simulation.frequencies.x); //front
+	shaderProgram.update("fFrequencyBack", simulation.frequencies.y); //back
+	shaderProgram.update("fFrequencySide", simulation.frequencies.z); //side
 }

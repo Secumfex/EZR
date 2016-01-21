@@ -29,6 +29,8 @@ struct FoliageVertexData
 void generateFoliageVertexData(TreeAnimation::Tree::Branch* branch, int numLeafs, FoliageVertexData& target);
 Renderable* generateFoliageRenderable(FoliageVertexData& source); // use this source to generate a single renderable
 
+void generateFoliageGeometryShaderVertexData(TreeAnimation::Tree::Branch* branch, int numLeafs, FoliageVertexData& target); //!< use this for geometry shader
+Renderable* generateFoliageGeometryShaderRenderable(FoliageVertexData& source); // use this source to generate a single renderable suitable for a geometry shader
 
 void updateTreeUniforms(ShaderProgram& shaderProgram, TreeAnimation::Tree* tree);
 
