@@ -92,8 +92,10 @@
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/npr1.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/simpleAlphaTexture.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/ssr.frag" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/interleavedSamplingComposition.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/raymarching.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/raymarching.vert" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/raymarching_interleaved.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/rm.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/rm.vert" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/shadowmap.frag" isTestSource="false" />

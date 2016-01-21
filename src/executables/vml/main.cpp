@@ -19,10 +19,15 @@
 
 ////////////////////// PARAMETERS /////////////////////////////
 static bool s_isRotating = false;
+static bool s_switchCanvas = false;
 
 
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
-//const glm::vec2 WINDOW_RESOLUTION = glm::vec2(1280.0f, 720.0f);
+
+void setupGLFWCallbacks() {
+
+}
+
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -51,20 +56,20 @@ int main()
 	glm::mat4 view = glm::lookAt(glm::vec3(cameraPos), glm::vec3(cameraTarget), glm::vec3(0,1,0));
 	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 100.0f);
     // setup light
-    float lightIntensity = 10000000.0;
+    float lightIntensity = 70000000.0;
     glm::vec4 lightColor(1.0f, 1.0f, 1.0f, 1.0f);
     glm::vec3 lightPos(0.0f, 0.0f, 3.0f);
     glm::vec3 lightTarget(0,0,0);
     glm::mat4 lightView = glm::lookAt(lightPos, lightTarget, glm::vec3(0,1,0));
-    float lightViewAngle = 45.0f;
-    float lightNearPlane = 0.1f;
-    float lightFarPlane = 1000.0f;
+    float lightViewAngle = 30.0f;
+    float lightNearPlane = 1.0f;
+    float lightFarPlane = 10.0f;
     glm::mat4 lightProjection = glm::perspective(glm::radians(lightViewAngle), getRatio(window), lightNearPlane, lightFarPlane);
     glm::mat4 lightMVP = lightProjection * lightView * model;
     // setup variables for raymarching
     int numberOfSamples = 7;
-    float mediumDensity = 0.0001;       // tau
-    float scatterProbability = 1.0f;    // albedo
+    float mediumDensity = 0.027;       // tau
+    float scatterProbability = 0.02f;    // albedo
     // create objects
     float object_size = 0.5f;
 	std::vector<Renderable* > objects;
@@ -81,6 +86,8 @@ int main()
     FrameBufferObject shadowMap(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
     FrameBufferObject volumeLightingBuffer(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
     volumeLightingBuffer.addColorAttachments(1);
+    FrameBufferObject intSampCompBuffer(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
+    intSampCompBuffer.addColorAttachments(1);
     FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
 
 
@@ -106,31 +113,12 @@ int main()
 
 
 
-    /////////////////////// 	Light Shading     //////////////////////////
-    DEBUGLOG->log("Shader Compilation: Light shader"); DEBUGLOG->indent();
-    ShaderProgram lightShader("/vml/simple.vert", "/vml/simple.frag");
-    lightShader.update("model", glm::translate(model, lightPos));
-    lightShader.update("view", view);
-    lightShader.update("projection", perspective);
-    lightShader.update("color", lightColor);
-    DEBUGLOG->outdent();
-    DEBUGLOG->log("Renderpass Creation: simple renderpass"); DEBUGLOG->indent();
-    RenderPass lightRenderpass(&lightShader, &debugBuffer);
-    lightRenderpass.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    lightRenderpass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-    lightRenderpass.addEnable(GL_DEPTH_TEST);
-    DEBUGLOG->outdent();
-    // add light
-    lightRenderpass.addRenderable(new Sphere(20,40,0.25f));
-
-
-
     /////////////////////// 	Raymarching     //////////////////////////
     glm::vec4 cameraPosLightSpace = lightView * cameraPos;
     glm::vec4 cameraViewDirInvLightSpace = glm::normalize(lightView * (cameraPos - cameraTarget));
 
     DEBUGLOG->log("Shader Compilation: Raymarching shader"); DEBUGLOG->indent();
-    ShaderProgram raymarchingShader("/vml/raymarching.vert", "/vml/raymarching.frag");
+    ShaderProgram raymarchingShader("/vml/raymarching.vert", "/vml/raymarching_interleaved.frag");
     // uniforms for the vertex shader
     raymarchingShader.update("model", model);
     raymarchingShader.update("view", view);
@@ -143,7 +131,7 @@ int main()
     raymarchingShader.update("lightProjection", lightProjection);
     raymarchingShader.update("lightColor", lightColor);
     raymarchingShader.update("cameraPosLightSpace", cameraPosLightSpace);
-    raymarchingShader.update("cameraViewDirInvLightSpace", cameraViewDirInvLightSpace);
+    //raymarchingShader.update("cameraViewDirInvLightSpace", cameraViewDirInvLightSpace);
     raymarchingShader.update("tau", mediumDensity);
     raymarchingShader.update("albedo", scatterProbability);
     DEBUGLOG->outdent();
@@ -159,6 +147,25 @@ int main()
     for (auto r : objects )
     {
         raymarchingRenderpass.addRenderable(r);
+    }
+
+
+
+    /////////////////////// Interlaced Sampling //////////////////////////
+    DEBUGLOG->log("Shader Compilation: Interleaved Sampling Composition shader"); DEBUGLOG->indent();
+    ShaderProgram interleavedSamplingCompositionShader("/screenSpace/fullscreen.vert", "/vml/interleavedSamplingComposition.frag");
+    interleavedSamplingCompositionShader.bindTextureOnUse("vliMap", volumeLightingBuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+    DEBUGLOG->outdent();
+    DEBUGLOG->log("Renderpass Creation: Interleaved sampling composition renderpass"); DEBUGLOG->indent();
+    RenderPass interleavedSamplingCompositionRenderpass(&interleavedSamplingCompositionShader, &intSampCompBuffer);
+    interleavedSamplingCompositionRenderpass.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    interleavedSamplingCompositionRenderpass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+    interleavedSamplingCompositionRenderpass.addEnable(GL_DEPTH_TEST);
+    interleavedSamplingCompositionRenderpass.addDisable(GL_BLEND);
+    DEBUGLOG->outdent();
+    for (auto r : objects )
+    {
+        interleavedSamplingCompositionRenderpass.addRenderable(r);
     }
 
     /////////////////////// 	Compositing     //////////////////////////
@@ -238,6 +245,9 @@ int main()
 				cameraPos += glm::inverse(view)    * glm::vec4(0.1f,0.0f,0.0f,0.0f);
 				cameraTarget += glm::inverse(view) * glm::vec4(0.1f,0.0f,0.0f,0.0f);
 				break;
+            case GLFW_KEY_C:
+                s_switchCanvas = !s_switchCanvas;
+                break;
 			default:
 				break;
 		}
@@ -302,11 +312,6 @@ int main()
 		// update shadowmap related uniforms
         shadowMapShader.update("lightMVP", lightMVP);
 
-        // update lightShader uniforms
-        lightShader.update( "color", lightColor);
-        lightShader.update( "view", view);
-        lightShader.update( "model", glm::translate(glm::mat4(1.0f), lightPos));
-
         // update raymarching related uniforms
         raymarchingShader.update("numberOfSamples", numberOfSamples);
         raymarchingShader.update("phi", lightIntensity);
@@ -322,15 +327,12 @@ int main()
 //        raymarchingShader.update("cameraViewDirInvLightSpace", cameraViewDirInvLightSpace);
 		//////////////////////////////////////////////////////////////////////////////
 		
-		////////////////////////////////  RENDERING //// /////////////////////////////
+		////////////////////////////////  RENDERING //////////////////////////////////
         shadowMapRenderpass.render();
         raymarchingRenderpass.render();
-        lightRenderpass.render();
+        interleavedSamplingCompositionRenderpass.render();
 
-        // setup fullscreen viewport for the image
-        RenderPass showVolumeLighting( &texShader, 0 );
-        showVolumeLighting.addClearBit(GL_COLOR_BUFFER_BIT);
-        showVolumeLighting.addRenderable(&quad);
+        // setup vieports
 
         // setup small viewport for the shadowmap
         RenderPass showShadowMap( &texShader, 0 );
@@ -338,23 +340,50 @@ int main()
         showShadowMap.addDisable(GL_BLEND);
         showShadowMap.addRenderable(&quad);
 
-        // setup small viewport for the shadowmap
-        RenderPass showLight( &texShader, 0 );
-        showLight.setViewport(150, 0, 150, 150);
-        showLight.addDisable(GL_BLEND);
-        showLight.addRenderable(&quad);
+        // draw either of the two  renderpasses on the big viewport
+        RenderPass showVolumeLighting( &texShader, 0 );
+        RenderPass showInterSampComp( &texShader, 0 );
+        if (s_switchCanvas) {
+            // setup small viewport for the image
+            showVolumeLighting.setViewport(150, 0, 150, 150);
+            showVolumeLighting.addRenderable(&quad);
 
-        // render image to display
-        texShader.bindTextureOnUse("tex", volumeLightingBuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
-        showVolumeLighting.render();
+            // setup fullscreen viewport for the interleaved sampling
+            showInterSampComp.addEnable(GL_BLEND);
+            showInterSampComp.addClearBit(GL_COLOR_BUFFER_BIT);
+            showInterSampComp.addRenderable(&quad);
+        } else {
+            // setup fullscreen viewport for the image
+            showVolumeLighting.addClearBit(GL_COLOR_BUFFER_BIT);
+            showVolumeLighting.addRenderable(&quad);
 
+            // setup small viewport for the interleaved sampling
+            showInterSampComp.setViewport(150, 0, 150, 150);
+            showInterSampComp.addDisable(GL_BLEND);
+            showInterSampComp.addRenderable(&quad);
+        }
+
+        // draw fbos on quad
+        if (s_switchCanvas) {
+            // render interleaved sampling composition to display
+            texShader.bindTextureOnUse("tex", intSampCompBuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+            showInterSampComp.render();
+
+            // render image in a small Viewport
+            texShader.bindTextureOnUse("tex", volumeLightingBuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+            showVolumeLighting.render();
+        } else {
+            // render image to display
+            texShader.bindTextureOnUse("tex", volumeLightingBuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+            showVolumeLighting.render();
+
+            // render interleaved sampling composition in a small Viewport
+            texShader.bindTextureOnUse("tex", intSampCompBuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+            showInterSampComp.render();
+        }
         // render Shadowmap in a small Viewport
         texShader.bindTextureOnUse("tex", shadowMap.getDepthTextureHandle());
         showShadowMap.render();
-
-        // render lightposition in a small Viewport
-        texShader.bindTextureOnUse("tex", debugBuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
-        showLight.render();
 
         glViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
         ImGui::Render();
