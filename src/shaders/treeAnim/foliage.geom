@@ -58,15 +58,16 @@ void main() {
     // passUVCoord = VertexGeom[0].texCoord;
     passUVCoord = vec2(0,0);
     passPosition = VertexGeom[0].position;
-    passNormal = VertexGeom[0].normal;
-    passTangent = VertexGeom[0].tangent;
-    EmitVertex();
+    // passNormal = vec3(0.0,0.0,1.0);
+    passNormal = normalize( VertexGeom[0].normal - vec3(foliageSize * 0.25, foliageSize * 0.25, 0.0 ));
+    passTangent = VertexGeom[0].tangent;    EmitVertex();
 
     gl_Position = projection * (center + vec4(-foliageSize, foliageSize, 0.0, 0.0));    
     // passUVCoord = VertexGeom[0].texCoord;
     passUVCoord = vec2(0,1);
     passPosition = VertexGeom[0].position;
-    passNormal = VertexGeom[0].normal;
+    // passNormal = vec3(0.0,0.0,1.0);
+    passNormal = normalize( VertexGeom[0].normal + vec3(-foliageSize * 0.25, foliageSize * 0.25, 0.0));
     passTangent = VertexGeom[0].tangent;
     EmitVertex();
 
@@ -74,7 +75,8 @@ void main() {
     passUVCoord = vec2(1,0);
     // passUVCoord = VertexGeom[0].texCoord;
     passPosition = VertexGeom[0].position;
-    passNormal = VertexGeom[0].normal;
+    // passNormal = vec3(0.0,0.0,1.0);
+    passNormal = normalize( VertexGeom[0].normal + vec3(foliageSize * 0.25,-foliageSize * 0.25,0.0));
     passTangent = VertexGeom[0].tangent;
     EmitVertex();
     
@@ -82,7 +84,8 @@ void main() {
     passUVCoord = vec2(1,1);
     // passUVCoord = VertexGeom[0].texCoord;
     passPosition = VertexGeom[0].position;
-    passNormal = VertexGeom[0].normal;
+    // passNormal = vec3(0.0,0.0,1.0);
+    passNormal = normalize( VertexGeom[0].normal + vec3(foliageSize * 0.25, foliageSize * 0.25,0.0));
     passTangent = VertexGeom[0].tangent;
     EmitVertex();
 

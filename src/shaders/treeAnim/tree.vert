@@ -235,9 +235,11 @@ void main(){
 	vec3 branch_origin   = tree.branches[hierarchyAttribute[0]].origin;         // the vertex's branch origin
 	vec4 branch_orientation = tree.branches[hierarchyAttribute[0]].orientation; // the vertex's branch orientation
 	vec3 vertex_pos = branch_origin + applyQuat(branch_orientation, positionAttribute.xyz); // initial vertex position
+	vec3 vertex_normal = applyQuat(branch_orientation, normalAttribute.xyz);
 
 	vec3 wind_direction_model = (inverse(instancedModel) * vec4(worldWindDirection.xyz,0.0)).xyz; // wind direction in object space
 	vec3 wind_tangent_model = vec3(-wind_direction_model.z, wind_direction_model.y, wind_direction_model.x); 
+
 
 	for (int i = 0; i <= numParents; i++) //not trunk
 	{	
@@ -272,7 +274,8 @@ void main(){
 			);
 		}
 		vec3 new_pos =applyQuat(branch_orientation_offset, vertex_pos - branch_origin) + branch_origin;
-		
+		vec3 new_normal = applyQuat(branch_orientation_offset, vertex_normal);
+		vertex_normal = mix(vertex_normal, new_normal, branch_weight);
 		vertex_pos = mix(vertex_pos, new_pos, branch_weight);
 	}
 
@@ -293,7 +296,7 @@ void main(){
     passWorldNormal = normalize( ( transpose( inverse( instancedModel ) ) * normalAttribute).xyz );
 	
 	mat4 normalMatrix = transpose( inverse( view * instancedModel ) ) ;
-	passNormal = normalize( normalMatrix * vec4(normalAttribute.xyz,0.0) ).xyz;
+	passNormal = normalize( normalMatrix * vec4(vertex_normal,0.0) ).xyz;
 	passTangent = normalize( normalMatrix * vec4(tangentAttribute.xyz,0.0) ).xyz;
 
     VertexGeom.texCoord = passUVCoord;
