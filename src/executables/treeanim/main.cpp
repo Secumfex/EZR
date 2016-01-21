@@ -33,10 +33,11 @@
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 const float TREE_HEIGHT = 4.0f;
 const float TREE_WIDTH = TREE_HEIGHT / 10.0f;
-const int NUM_MAIN_BRANCHES = 3;
-const int NUM_SUB_BRANCHES  = 7;
+const int NUM_MAIN_BRANCHES = 5;
+const int NUM_SUB_BRANCHES  = 5;
 const int NUM_TREE_VARIANTS = 3;
-const int NUM_TREES_PER_VARIANT = 30;
+const int NUM_TREES_PER_VARIANT = 33;
+const int NUM_FOLIAGE_QUADS_PER_BRANCH = 10;
 
 static glm::vec4 s_trunk_color =  glm::vec4(107.0f / 255.0f , 68.0f / 255.0f , 35.0f /255.0f, 1.0f); // brown
 static glm::vec4 s_foliage_color = glm::vec4(22.0f / 255.0f , 111.0f / 255.0f , 22.0f /255.0f, 1.0f); // green
@@ -47,7 +48,7 @@ static glm::vec3 s_wind_direction = glm::rotateY(glm::vec3(1.0f,0.0f,0.0f), glm:
 static glm::mat4 s_wind_rotation = glm::mat4(1.0f);
 static float s_wind_power = 1.0f;
 
-static float s_foliage_size = 1.0f;
+static float s_foliage_size = 0.25f;
 static bool  s_isRotating = false;
 
 static float s_simulationTime = 0.0f;
@@ -116,10 +117,10 @@ std::vector<TreeEntity* > generateTreeVariants(int numTrees, const aiScene* bran
 		for (auto b : tree->m_trunk.children)
 		{
 			TreeAnimation::generateBranchVertexData(b, bData, branchModel);
-			TreeAnimation::generateFoliageGeometryShaderVertexData(b, 35, fData);
+			TreeAnimation::generateFoliageGeometryShaderVertexData(b, NUM_FOLIAGE_QUADS_PER_BRANCH, fData);
 			for ( auto c : b->children)
 			{
-				TreeAnimation::generateFoliageGeometryShaderVertexData(c, 35, fData);
+				TreeAnimation::generateFoliageGeometryShaderVertexData(c, NUM_FOLIAGE_QUADS_PER_BRANCH, fData);
 				TreeAnimation::generateBranchVertexData(c, bData, branchModel);
 			}
 		}
@@ -176,6 +177,8 @@ int main()
 	std::map<aiTextureType, GLuint > foliageMatTextures;
 	foliageMatTextures[aiTextureType_DIFFUSE] = foliageTexHandle;
 	s_material_texture_handles.push_back(foliageMatTextures);
+	glBindTexture(GL_TEXTURE_2D, foliageTexHandle);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 	/////////////////////    create Tree data           //////////////////////////
 	DEBUGLOG->log("Setup: generating trees"); DEBUGLOG->indent();
@@ -247,88 +250,72 @@ int main()
 	TreeAnimation::updateSimulationUniforms(branchShader, simulation);
 
 	DEBUGLOG->log("Shader Compilation: FoliageToGBuffer"); DEBUGLOG->indent();
-	ShaderProgram foliageShader("/treeAnim/tree.vert", "/modelSpace/GBuffer.frag" , "/treeAnim/foliage.geom" ); DEBUGLOG->outdent();
+	ShaderProgram foliageShader("/treeAnim/tree.vert", "/treeAnim/foliage.frag" , "/treeAnim/foliage.geom" ); DEBUGLOG->outdent();
 	foliageShader.printShaderProgramInfoLog();
 	foliageShader.update("view", view);
 	foliageShader.update("projection", perspective);
 	TreeAnimation::updateSimulationUniforms(foliageShader, simulation);
-	glPointSize(10.0f);
-	glLineWidth(5.0f);
 
 	// regular GBuffer
-	DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
+	DEBUGLOG->log("FrameBufferObject Creation: Scene GBuffer"); DEBUGLOG->indent();
 	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
-	FrameBufferObject fbo(branchShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
-	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
+	FrameBufferObject scene_gbuffer(branchShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
+	//DEBUGLOG->log("FrameBufferObject Creation: Foliage GBuffer");
+	//FrameBufferObject gbuffer_foliage(foliageShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
+	//FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
 	DEBUGLOG->outdent();
 
 	DEBUGLOG->log("RenderPasses Creation: Trees GBuffer"); DEBUGLOG->indent();
 	DEBUGLOG->log("creating " + DebugLog::to_string(treeVariants.size()) + " RenderPasses");
 
-	std::function<void(ShaderProgram*, Renderable*)> perRenderableFunc = [&] (ShaderProgram* shaderProgram, Renderable* r)
+	// assign branch textures
+	if (! s_material_texture_handles.empty()){
+	auto difftex = s_material_texture_handles[0].find(aiTextureType_DIFFUSE);
+	if ( difftex != s_material_texture_handles[0].end())
 	{
-		auto e = s_renderable_material_map.find(r);
-		if( e != s_renderable_material_map.end() )
-		{
-			auto d = s_material_texture_handles[e->second].find(aiTextureType_DIFFUSE);
-			if ( d != s_material_texture_handles[e->second].end())
-			{
-				shaderProgram->updateAndBindTexture("tex", 5, d->second);
-				shaderProgram->update("mixTexture", 1.0f);
-			}else{
-				shaderProgram->update("mixTexture", 0.0);
-			}
-			auto n = s_material_texture_handles[e->second].find(aiTextureType_NORMALS);
-			if ( n != s_material_texture_handles[e->second].end())
-			{
-				shaderProgram->updateAndBindTexture("normalTex", 6, n->second);
-				shaderProgram->update("hasNormalTex", true);
-			}else{
-				shaderProgram->update("hasNormalTex", false);
-			}
-		 }else{
-			shaderProgram->update("mixTexture", 0.0);
-			shaderProgram->update("hasNormalTex", false);
-			shaderProgram->update("color", *s_renderable_color_map[r]);
-		}
-	};
+		branchShader.bindTextureOnUse("tex", difftex->second);
+		branchShader.update("mixTexture", 1.0f);
+	}
+	auto normaltex = s_material_texture_handles[0].find(aiTextureType_NORMALS);
+	if (normaltex != s_material_texture_handles[0].end())
+	{
+		branchShader.bindTextureOnUse("normalTex", normaltex->second);
+		branchShader.update("hasNormalTex", true);
+	}}
 
-	std::function<void(Renderable*) > branchPerRenderableFunction = std::bind(perRenderableFunc, &branchShader, std::placeholders::_1);
-	std::function<void(Renderable*) > foliagePerRenderableFunction = std::bind(perRenderableFunc, &foliageShader, std::placeholders::_1);
+	foliageShader.bindTextureOnUse("tex", foliageTexHandle);
 
 	// create one render pass per tree type
-	std::vector<RenderPass* > treeRenderpasses(NUM_TREE_VARIANTS);
+	std::vector<RenderPass* > branchRenderpasses(NUM_TREE_VARIANTS);
 	std::vector<RenderPass* > foliageRenderpasses(NUM_TREE_VARIANTS);
 	for ( int i = 0; i < treeVariants.size(); i++)
 	{
-		treeRenderpasses[i] = new RenderPass(&branchShader, &fbo);
+		branchRenderpasses[i] = new RenderPass(&branchShader, &scene_gbuffer);
 		for ( auto r : treeVariants[i]->branchRenderables )
 		{
-			treeRenderpasses[i]->addRenderable(r);
+			branchRenderpasses[i]->addRenderable(r);
 		}
-		treeRenderpasses[i]->setPerRenderableFunction( &branchPerRenderableFunction );
-		treeRenderpasses[i]->addEnable(GL_DEPTH_TEST);
+		branchRenderpasses[i]->addEnable(GL_DEPTH_TEST);
 
-		foliageRenderpasses[i] = new RenderPass(&foliageShader, &fbo);
+		foliageRenderpasses[i] = new RenderPass(&foliageShader, 0);
 		for ( auto r : treeVariants[i]->foliageRenderables )
 		{
 			foliageRenderpasses[i]->addRenderable(r);
 		}
-		foliageRenderpasses[i]->setPerRenderableFunction( &foliagePerRenderableFunction );
 		foliageRenderpasses[i]->addEnable(GL_ALPHA_TEST); // for foliage
 		foliageRenderpasses[i]->addEnable(GL_DEPTH_TEST);
 	}
-	treeRenderpasses[0]->setClearColor(0.0,0.0,0.0,0.0);
-	treeRenderpasses[0]->addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	branchRenderpasses[0]->setClearColor(0.0,0.0,0.0,0.0);
+	branchRenderpasses[0]->addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	glAlphaFunc(GL_GREATER, 0);
 	DEBUGLOG->outdent();
 
 	// regular GBuffer compositing
 	DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
 	ShaderProgram compShader("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing.frag"); DEBUGLOG->outdent();
-	compShader.bindTextureOnUse("colorMap", 	 fbo.getBuffer("fragColor"));
-	compShader.bindTextureOnUse("normalMap", 	 fbo.getBuffer("fragNormal"));
-	compShader.bindTextureOnUse("positionMap",  fbo.getBuffer("fragPosition"));
+	compShader.bindTextureOnUse("colorMap", 	 scene_gbuffer.getBuffer("fragColor"));
+	compShader.bindTextureOnUse("normalMap", 	 scene_gbuffer.getBuffer("fragNormal"));
+	compShader.bindTextureOnUse("positionMap",   scene_gbuffer.getBuffer("fragPosition"));
 
 	DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
 	Quad quad;
@@ -431,7 +418,7 @@ int main()
 		
 		ImGui::SliderFloat("windDirection", &s_wind_angle, 0.0f, 360.0f); 
 		ImGui::SliderFloat("windPower", &s_wind_power, 0.0f, 4.0f); 
-		ImGui::SliderFloat("foliageSize", &s_foliage_size, 0.0f, 5.0f);	
+		ImGui::SliderFloat("foliageSize", &s_foliage_size, 0.0f, 3.0f);	
 
 		bool updateAngleShifts = false;
 		if (ImGui::CollapsingHeader("Angle Shifts"))
@@ -507,16 +494,28 @@ int main()
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
-		for(int i = 0; i < treeRenderpasses.size(); i++)
+		// render GBuffer
+		for(int i = 0; i < branchRenderpasses.size(); i++)
 		{
 			// configure shader for this tree type
 			TreeAnimation::updateTreeUniforms(branchShader, treeVariants[i]->tree);
+			branchRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
+		}
+
+		// perform compositing
+		compositing.render();
+
+		// copy depth buffer to default fbo
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, scene_gbuffer.getFramebufferHandle());
+		glBlitFramebuffer(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y,0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+		// render foliage to screen
+		for(int i = 0; i < foliageRenderpasses.size(); i++)
+		{
 			TreeAnimation::updateTreeUniforms(foliageShader, treeVariants[i]->tree);
-			treeRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 			foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
-		
-		compositing.render();
 
 		ImGui::Render();
 		glDisable(GL_BLEND);
