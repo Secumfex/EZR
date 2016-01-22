@@ -1,4 +1,4 @@
-/*******************************************
+﻿/*******************************************
  * **** DESCRIPTION ****
  ****************************************/
 
@@ -151,6 +151,21 @@ int main()
 	// simple shader
 	DEBUGLOG->log("Shader Compilation: instanced simple lighting"); DEBUGLOG->indent();
 	ShaderProgram shaderProgram("/modelSpace/instancedModelViewProjection.vert", "/modelSpace/simpleLighting.frag"); DEBUGLOG->outdent();
+	shaderProgram.printUniformInfo();
+	
+	shaderProgram.use();
+	int uniformBlocks;
+	glGetProgramiv(shaderProgram.getShaderProgramHandle(), GL_ACTIVE_UNIFORM_BLOCKS, &uniformBlocks);
+
+	for ( int i = 0; i < uniformBlocks; i++)
+	{
+		GLint numUniforms;
+		glGetActiveUniformBlockiv(shaderProgram.getShaderProgramHandle(), i, GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS, &numUniforms);
+		DEBUGLOG->log("numUnfiorms:", numUniforms);
+	}
+
+
+	void glGetActiveUniformBlockiv​(GLuint program​, GLuint uniformBlockIndex​, GLenum pname​, GLint *params​);
 	shaderProgram.update("view", view);
 	shaderProgram.update("projection", perspective);
 	shaderProgram.update("color", glm::vec4(0.7,0.7,0.7,1.0));

@@ -13,8 +13,11 @@ layout(location = 4) in mat4 instanceModelMatrix;
 
 //!< uniforms
 // uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
+uniform MatrixBlock
+{
+  mat4 projection;
+  mat4 view;
+};
 
 //!< out-variables
 out vec3 passWorldPosition;
