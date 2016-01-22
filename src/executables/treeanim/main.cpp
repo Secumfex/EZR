@@ -268,6 +268,7 @@ int main()
 	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
 	glBindTexture(GL_TEXTURE_2D, scene_gbuffer.getBuffer("fragColor"));
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, (GLint) log_2(max(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y)) );
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	DEBUGLOG->outdent();
 
 	DEBUGLOG->log("RenderPasses Creation: Trees GBuffer"); DEBUGLOG->indent();
@@ -330,6 +331,19 @@ int main()
 	compositing.setClearColor(0.25,0.25,0.35,0.0);
 	compositing.addDisable(GL_DEPTH_TEST);
 	compositing.addRenderable(&quad);
+
+
+	DEBUGLOG->log("Shader Compilation: Bloom Post Process"); DEBUGLOG->indent();
+	ShaderProgram bloomShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessBloomMipMap.frag" ); DEBUGLOG->outdent();
+	bloomShader.update("power", 2.0);
+	bloomShader.update("depth", s_strength);
+	bloomShader.bindTextureOnUse("tex", scene_gbuffer.getBuffer("fragColor"));
+
+	DEBUGLOG->log("RenderPass Creation: Bloom Post Process"); DEBUGLOG->indent();
+	RenderPass bloom(&bloomShader, 0);
+	bloom.addEnable(GL_BLEND);
+	bloom.addDisable(GL_DEPTH_TEST);
+	bloom.addRenderable(&quad);
 
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
@@ -497,7 +511,8 @@ int main()
 		
 		//&&&&&&&&&&& COMPOSITING UNIFORMS &&&&&&&&&&&&&&//
 		compShader.update("vLightPos", view * s_lightPos);
-		compShader.update("strength", s_strength);
+		bloomShader.update("depth", s_strength);
+		bloomShader.update("intensity", 1.0 / s_strength);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
@@ -508,10 +523,6 @@ int main()
 			TreeAnimation::updateTreeUniforms(branchShader, treeVariants[i]->tree);
 			branchRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
-
-		glBindTexture(GL_TEXTURE_2D,scene_gbuffer.getBuffer("fragColor")); 
-		glGenerateMipmap(GL_TEXTURE_2D);
-		glBindTexture(GL_TEXTURE_2D, 0);
 
 		// perform compositing
 		compositing.render();
@@ -528,6 +539,16 @@ int main()
 			TreeAnimation::updateTreeUniforms(foliageShader, treeVariants[i]->tree);
 			foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
+
+		// copy composited image from screen to scene color texture
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		glReadBuffer(GL_BACK);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, scene_gbuffer.getFramebufferHandle());
+		glBlitFramebuffer(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y,0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+		glBindTexture(GL_TEXTURE_2D, scene_gbuffer.getBuffer("fragColor"));
+		glGenerateMipmap(GL_TEXTURE_2D);
+		glBlendFunc(GL_ONE, GL_ONE); // this is altered by ImGui::Render(), so reset it every frame
+		bloom.render();
 
 		ImGui::Render();
 		glDisable(GL_BLEND);
