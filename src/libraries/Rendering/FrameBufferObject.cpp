@@ -56,6 +56,8 @@ GLuint FrameBufferObject::createFramebufferTexture()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return textureHandle;
 }
@@ -215,16 +217,7 @@ FrameBufferObject::FrameBufferObject(std::map<std::string, ShaderProgram::Info>*
 	int i = 0;
     for (auto e : *outputMap) 
     {	
-    	GLuint handle;
-    	glGenTextures(1, &handle);
-	    glBindTexture(GL_TEXTURE_2D, handle);
-	    glTexImage2D(GL_TEXTURE_2D, 0, s_internalFormat, m_width, m_height, 0, s_format, s_type, 0);
-	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+		GLuint handle = createFramebufferTexture();
 
 		GLuint currentAttachment = GL_COLOR_ATTACHMENT0 + static_cast<unsigned int>(e.second.location); //e.second;
 		// DEBUGLOG->log("buffer    : " + e.first);

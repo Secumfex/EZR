@@ -65,7 +65,10 @@ float randFloat(float min, float max) //!< returns a random number between min a
 {
 	return (((float) rand() / (float) RAND_MAX) * (max - min) + min); 
 }
-
+double log_2( double n )  
+{  
+    return log( n ) / log( 2 );      // log(n)/log(2) is log_2. 
+}
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -262,7 +265,9 @@ int main()
 	FrameBufferObject scene_gbuffer(branchShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
 	//DEBUGLOG->log("FrameBufferObject Creation: Foliage GBuffer");
 	//FrameBufferObject gbuffer_foliage(foliageShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
-	//FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
+	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
+	glBindTexture(GL_TEXTURE_2D, scene_gbuffer.getBuffer("fragColor"));
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, (GLint) log_2(max(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y)) );
 	DEBUGLOG->outdent();
 
 	DEBUGLOG->log("RenderPasses Creation: Trees GBuffer"); DEBUGLOG->indent();
