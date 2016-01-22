@@ -7,8 +7,11 @@ uniform sampler2D normalMap;
 uniform sampler2D positionMap;
 
 uniform vec4 vLightPos;
-
+// uniform float strength; 
 out vec4 fragmentColor;
+
+// const int stepSize = 1;
+
 
 void main() {
     vec4 position = texture(positionMap, passUV);
@@ -25,21 +28,8 @@ void main() {
     float diffuse = max( dot(normal.xyz, nPosToLight), 0);
     float specular = pow( max( dot( nReflection, nPosToLight ), 0),15);
 
-
-    // float resX = 1.0/800.0;
-    // float resY = 1.0/600.0;
-    // int glowRadius = 5;
-
-    // vec4 glow = vec4(0,0,0,1);
-    // for(int i = -glowRadius; i < glowRadius; i++) {
-    //     for(int j = -glowRadius; j < glowRadius; j++) {
-    //         vec4 c = texture(colorMap, passUV + vec2(resX * i, resY * j));
-    //         if(c.r + c.g + c.b > 2.0) {                
-    //             glow += c;
-    //         }
-    //     }
-    // }
-    // glow /= glowRadius * glowRadius * 4;
+    // vec4 glow = textureLod(colorMap, passUV, strength);
+    // glow /= 1.0;
 
     fragmentColor = vec4(
 	color.rgb * ambient 
@@ -48,6 +38,5 @@ void main() {
 	, 
 	color.a);
     
-    // fragmentColor += glow;
-    // fragmentColor = vec4(nReflection.rgb, 1.0);
+    // fragmentColor = fragmentColor * 0.0000001 +glow;
 }

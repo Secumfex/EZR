@@ -46,7 +46,7 @@ static glm::vec4 s_lightPos = glm::vec4(0.0,50.0f,0.0,1.0);
 static float s_wind_angle = 45.0f;
 static glm::vec3 s_wind_direction = glm::rotateY(glm::vec3(1.0f,0.0f,0.0f), glm::radians(s_wind_angle));
 static glm::mat4 s_wind_rotation = glm::mat4(1.0f);
-static float s_wind_power = 1.0f;
+static float s_wind_power = 0.25f;
 
 static float s_foliage_size = 0.25f;
 static bool  s_isRotating = false;
@@ -54,6 +54,7 @@ static bool  s_isRotating = false;
 static float s_simulationTime = 0.0f;
 
 static float s_eye_distance = 10.0f;
+static float s_strength = 1.0f;
 
 static std::map<Renderable*, glm::vec4*> s_renderable_color_map;
 static std::map<Renderable*, int> s_renderable_material_map; //!< mapping a renderable to a material index
@@ -316,6 +317,7 @@ int main()
 	compShader.bindTextureOnUse("colorMap", 	 scene_gbuffer.getBuffer("fragColor"));
 	compShader.bindTextureOnUse("normalMap", 	 scene_gbuffer.getBuffer("fragNormal"));
 	compShader.bindTextureOnUse("positionMap",   scene_gbuffer.getBuffer("fragPosition"));
+	compShader.update("strength", s_strength);
 
 	DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
 	Quad quad;
@@ -416,6 +418,7 @@ int main()
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered	
 		ImGui::PushItemWidth(-125);
 		
+		ImGui::SliderFloat("strength", &s_strength, 0.0f, 4.0f); 
 		ImGui::SliderFloat("windDirection", &s_wind_angle, 0.0f, 360.0f); 
 		ImGui::SliderFloat("windPower", &s_wind_power, 0.0f, 4.0f); 
 		ImGui::SliderFloat("foliageSize", &s_foliage_size, 0.0f, 3.0f);	
@@ -490,7 +493,7 @@ int main()
 		
 		//&&&&&&&&&&& COMPOSITING UNIFORMS &&&&&&&&&&&&&&//
 		compShader.update("vLightPos", view * s_lightPos);
-
+		compShader.update("strength", s_strength);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
@@ -501,6 +504,10 @@ int main()
 			TreeAnimation::updateTreeUniforms(branchShader, treeVariants[i]->tree);
 			branchRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
+
+		glBindTexture(GL_TEXTURE_2D,scene_gbuffer.getBuffer("fragColor")); 
+		glGenerateMipmap(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, 0);
 
 		// perform compositing
 		compositing.render();
