@@ -252,7 +252,6 @@ int main()
 
 	DEBUGLOG->log("Shader Compilation: FoliageToGBuffer"); DEBUGLOG->indent();
 	ShaderProgram foliageShader("/treeAnim/tree.vert", "/treeAnim/foliage.frag" , "/treeAnim/foliage.geom" ); DEBUGLOG->outdent();
-	foliageShader.printShaderProgramInfoLog();
 	foliageShader.update("view", view);
 	foliageShader.update("projection", perspective);
 	TreeAnimation::updateSimulationUniforms(foliageShader, simulation);
@@ -322,7 +321,7 @@ int main()
 	DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
 	Quad quad;
 	RenderPass compositing(&compShader, 0);
-	compositing.addClearBit(GL_COLOR_BUFFER_BIT);
+	compositing.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	compositing.setClearColor(0.25,0.25,0.35,0.0);
 	compositing.addDisable(GL_DEPTH_TEST);
 	compositing.addRenderable(&quad);
@@ -514,8 +513,9 @@ int main()
 
 		// copy depth buffer to default fbo
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, scene_gbuffer.getFramebufferHandle());
-		glBlitFramebuffer(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y,0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBlitFramebuffer(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y,0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		// render foliage to screen
 		for(int i = 0; i < foliageRenderpasses.size(); i++)
