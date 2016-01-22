@@ -175,7 +175,7 @@ GLuint ShaderProgram::uniform(const std::string &uniform)
 	else
 	{
 		DEBUGLOG->log("ERROR: Could not find uniform in shader program: " + uniform);
-		return 0;
+		return -1;
 	}
 }
 
@@ -224,21 +224,27 @@ GLuint ShaderProgram::texture(const std::string &texture)
 ShaderProgram* ShaderProgram::update(std::string name, bool value) 
 {
 	glUseProgram(m_shaderProgramHandle);
-	glUniform1i(uniform(name), value);
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
+	glUniform1i(u, value);
 	return this;
 }
 
 ShaderProgram* ShaderProgram::update(std::string name, int value) 
 {
 	glUseProgram(m_shaderProgramHandle);
-	glUniform1i(uniform(name), value);
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
+	glUniform1i(u, value);
 	return this;
 }
 
 ShaderProgram* ShaderProgram::update(std::string name, float value) 
 {
 	glUseProgram(m_shaderProgramHandle);
-	glUniform1f(uniform(name), value);
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
+	glUniform1f(u, value);
 
 	return this;
 }
@@ -246,41 +252,53 @@ ShaderProgram* ShaderProgram::update(std::string name, float value)
 ShaderProgram* ShaderProgram::update(std::string name, double value) 
 {
 	glUseProgram(m_shaderProgramHandle);
-	glUniform1f(uniform(name), value);
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
+	glUniform1f(u, value);
 	return this;
 }
 
 ShaderProgram* ShaderProgram::update(std::string name, const glm::ivec2& vector) 
 {
 	glUseProgram(m_shaderProgramHandle);
-	glUniform2iv(uniform(name), 1, glm::value_ptr(vector));
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
+	glUniform2iv(u, 1, glm::value_ptr(vector));
 	return this;
 }
 
 ShaderProgram* ShaderProgram::update(std::string name, const glm::ivec3& vector) 
 {
 	glUseProgram(m_shaderProgramHandle);
-	glUniform3iv(uniform(name), 1, glm::value_ptr(vector));
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
+	glUniform3iv(u, 1, glm::value_ptr(vector));
 	return this;
 }
 
 ShaderProgram* ShaderProgram::update(std::string name,const glm::ivec4& vector) 
 {
 	glUseProgram(m_shaderProgramHandle);
-	glUniform4iv(uniform(name), 1, glm::value_ptr(vector));
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
+	glUniform4iv(u, 1, glm::value_ptr(vector));
 	return this;
 }
 
 ShaderProgram* ShaderProgram::update(std::string name, const glm::vec2& vector) 
 {
 	glUseProgram(m_shaderProgramHandle);
-	glUniform2fv(uniform(name), 1, glm::value_ptr(vector));
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
+	glUniform2fv(u, 1, glm::value_ptr(vector));
 	return this;
 }
 
 ShaderProgram* ShaderProgram::update(std::string name, const glm::vec3& vector) 
 {
 	glUseProgram(m_shaderProgramHandle);
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
 	glUniform3fv(uniform(name), 1, glm::value_ptr(vector));
 	return this;
 }
@@ -288,49 +306,63 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::vec3& vector)
 ShaderProgram* ShaderProgram::update(std::string name, const glm::vec4& vector) 
 {
 	glUseProgram(m_shaderProgramHandle);
-	glUniform4fv(uniform(name), 1, glm::value_ptr(vector));
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
+	glUniform4fv(u, 1, glm::value_ptr(vector));
 	return this;
 }
 
 ShaderProgram* ShaderProgram::update(std::string name, const glm::mat2& matrix) 
 {
 	glUseProgram(m_shaderProgramHandle);
-	glUniformMatrix2fv(uniform(name), 1, GL_FALSE, glm::value_ptr(matrix));
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
+	glUniformMatrix2fv(u, 1, GL_FALSE, glm::value_ptr(matrix));
 	return this;
 }
 
 ShaderProgram* ShaderProgram::update(std::string name, const glm::mat3& matrix) 
 {
 	glUseProgram(m_shaderProgramHandle);
-	glUniformMatrix3fv(uniform(name), 1, GL_FALSE, glm::value_ptr(matrix));
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
+	glUniformMatrix3fv(u, 1, GL_FALSE, glm::value_ptr(matrix));
 	return this;
 }
 
 ShaderProgram* ShaderProgram::update(std::string name, const glm::mat4& matrix) 
 {
 	glUseProgram(m_shaderProgramHandle);
-	glUniformMatrix4fv(uniform(name), 1, GL_FALSE, glm::value_ptr(matrix));
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
+	glUniformMatrix4fv(u, 1, GL_FALSE, glm::value_ptr(matrix));
 	return this;
 }
 
 ShaderProgram* ShaderProgram::update(std::string name, const std::vector<glm::vec2>& vector) 
 {
 	glUseProgram(m_shaderProgramHandle);
-	glUniform2fv(uniform(name), sizeof(vector), glm::value_ptr((&vector[0])[0]));
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
+	glUniform2fv(u, sizeof(vector), glm::value_ptr((&vector[0])[0]));
 	return this;
 }
 
 ShaderProgram* ShaderProgram::update(std::string name, const std::vector<glm::vec3>& vector) 
 {
 	glUseProgram(m_shaderProgramHandle);
-	glUniform3fv(uniform(name), sizeof(vector), glm::value_ptr((&vector[0])[0]));
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
+	glUniform3fv(u, sizeof(vector), glm::value_ptr((&vector[0])[0]));
 	return this;
 }
 
 ShaderProgram* ShaderProgram::update(std::string name, const std::vector<glm::vec4>& vector) 
 {
 	glUseProgram(m_shaderProgramHandle);
-	glUniform4fv(uniform(name), sizeof(vector), glm::value_ptr((&vector[0])[0]));
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
+	glUniform4fv(u, sizeof(vector), glm::value_ptr((&vector[0])[0]));
 	return this;
 }
 
