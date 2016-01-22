@@ -130,7 +130,8 @@ TreeAnimation::Tree* TreeAnimation::Tree::generateTree(float approxHeight, float
 	float rThickness = rWidth - abs(approxWidth - rWidth);
 
 	float rHeight = approxHeight + ((float) rand() / (float) RAND_MAX) * (0.1f * approxHeight) - (0.05f * approxHeight); //random offset of 10%
-	TreeAnimation::Tree* tree = new Tree(rHeight, rWidth,rThickness, E_RED_OAK);
+	float rPhase = ((float) rand() / (float) RAND_MAX) * (glm::pi<float>()) - (glm::half_pi<float>());
+	TreeAnimation::Tree* tree = new Tree(rHeight, rWidth,rThickness, E_RED_OAK, rPhase);
 	
 	if ( branchPtrs != nullptr){ branchPtrs->push_back(&tree->m_trunk); }
 	
@@ -151,7 +152,7 @@ TreeAnimation::Tree* TreeAnimation::Tree::generateTree(float approxHeight, float
 			auto subBranch = tree->addRandomBranch( 
 				branch,
 				s_r_pos_min_sub,
-				s_r_pos_min_sub,
+				s_r_pos_max_sub,
 				branch->length * s_r_length_min_sub,
 				branch->length * s_r_length_max_sub,
 				glm::radians(s_r_pitch_min_sub),

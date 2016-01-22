@@ -125,21 +125,27 @@ int main()
 
 	/////////////////////     Upload assets (create Renderables / VAOs from data)    //////////////////////////
 	DEBUGLOG->log("Setup: creating VAOs from mesh data"); DEBUGLOG->indent();
-	std::vector<AssimpTools::RenderableInfo> renderableInfoVector = AssimpTools::createSimpleRenderablesFromScene( scene );
+//	std::vector<AssimpTools::RenderableInfo> renderableInfoVector = AssimpTools::createSimpleRenderablesFromScene( scene );
+	auto vertexData = AssimpTools::createVertexDataInstancesFromScene(scene);
+	auto renderables = AssimpTools::createSimpleRenderablesFromVertexDataInstances(vertexData);
+	for (auto r : renderables)
+	{
+		objects.push_back(r);
+	}
 
 	//glm::vec3 bbox_min(FLT_MAX);
 	//glm::vec3 bbox_max(-FLT_MAX);
-	for (auto r : renderableInfoVector)
-	{
-		objects.push_back(r.renderable); // extract list of renderables
-		DEBUGLOG->log("corresponding aiScene mesh idx: ", r.meshIdx); DEBUGLOG->indent();
-		DEBUGLOG->log("name      : " + r.name);
-		DEBUGLOG->log("bbox size : " , r.boundingBox.max - r.boundingBox.min); DEBUGLOG->outdent();
+	//for (auto r : renderableInfoVector)
+	//{
+	//	objects.push_back(r.renderable); // extract list of renderables
+	//	DEBUGLOG->log("corresponding aiScene mesh idx: ", r.meshIdx); DEBUGLOG->indent();
+	//	DEBUGLOG->log("name      : " + r.name);
+	//	DEBUGLOG->log("bbox size : " , r.boundingBox.max - r.boundingBox.min); DEBUGLOG->outdent();
 
 		//AssimpTools::checkMax(bbox_max, r.boundingBox.max);
 		//AssimpTools::checkMin(bbox_min, r.boundingBox.min);
 
-	}
+	//}
 	
 	// upload textures used by mesh
 	std::map<aiTextureType, GLuint> textures;
