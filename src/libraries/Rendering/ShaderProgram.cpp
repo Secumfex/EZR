@@ -409,10 +409,11 @@ void ShaderProgram::mapShaderProperties(GLenum interface, std::map<std::string, 
 		info.location = values[3];
 
 		std::vector<GLchar> nameData(256);
-		nameData.resize(properties[0]); //The length of the name.
+		nameData.resize(values[0]); //The length of the name.
 		glGetProgramResourceName(m_shaderProgramHandle, interface, attrib, nameData.size(), NULL, &nameData[0]);
 		std::string name = std::string((char*)&nameData[0], nameData.size() - 1);
 		name = std::string(name.c_str());
+
 		(*map)[name] = info;
 	}
 }
