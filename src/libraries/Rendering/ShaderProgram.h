@@ -324,6 +324,7 @@ protected:
 	// Map of texture handles that will be bound to the associated (sampler-) name when use() is called
 	std::map<std::string, GLuint> m_textureMap;
 
+public:
 	std::string getTypeString(GLenum type);
 };
 

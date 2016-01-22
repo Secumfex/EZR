@@ -397,13 +397,17 @@ void ShaderProgram::mapShaderProperties(GLenum interface, std::map<std::string, 
 	properties.push_back(GL_TYPE);
 	properties.push_back(GL_ARRAY_SIZE);
 	properties.push_back(GL_LOCATION);
+	//properties.push_back(GL_BLOCK_INDEX);
 	std::vector<GLint> values(properties.size());
 
 	for(int attrib = 0; attrib < numAttrib; ++attrib)
 	{
 		glGetProgramResourceiv(m_shaderProgramHandle, interface, attrib, properties.size(),
 		&properties[0], values.size(), NULL, &values[0]);
-		
+
+		//if (values[4] != -1)
+		//	continue; // skip
+
 		Info info;
 		info.type = values[1];
 		info.location = values[3];
