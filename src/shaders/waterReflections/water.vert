@@ -1,59 +1,33 @@
 #version 430
 
- //!< defines
+//!< defines
  
+//!< in-vars
  
-//!< in-variables
-in vec4 inPosition;
-in vec2 inTex;		//!< umbenennen
-
 //!< uniforms
-uniform mat4 view;					//!< umbenennen
-uniform mat4 worldView;				//!< umbenennen
-uniform mat4 reflectionView;		//!< umbenennen
-uniform mat4 worldReflectionView;	//!< umbenennen
-
-//!< out-variables
-out vec4 samplPosition;
-out vec4 reflectionMapSamplPos;
-out vec2 bumpMapSamplPos;
-out vec4 refractionMapSamplPos;
-out vec4 position3D;
-
-void main(){
-
-//!< ???
-samplPosition = inPosition * worldView;
-reflectionMapSamplPos = inPosition * worldReflectionView;
-refractionMapSamplPos = inPosition * worldView;
-
-//!< ???
-vec2 moveVec = vec2(0,1);
-bumpMapSamplPos = inTex / waveLenght + time * windForce * moveVec;
-
-}
-
-
-
-//!< alternativ
-
+uniform vec4 viewpos;
+uniform vec4 lightpos;
+uniform float time1;
+uniform float time2;
+ 
+//!< 
 varying vec4 waterTex0;
 varying vec4 waterTex1;
 varying vec4 waterTex2;
 varying vec4 waterTex3;
 varying vec4 waterTex4;
 
-uniform vec4 viewpos, lightpos;
-uniform float time, time2;
-
+//!< units
 //unit 0 = water_reflection
 //unit 1 = water_refraction
 //unit 2 = water_normalmap
 //unit 3 = water_dudvmap
 //unit 4 = water_depthmap
 
-void main(void)
-{
+//!< out-vars
+
+//!< main
+void main(void){
 	vec4 mpos, temp;
     vec4 tangent = vec4(1.0, 0.0, 0.0, 0.0);
     vec4 norm = vec4(0.0, 1.0, 0.0, 0.0);
@@ -86,5 +60,4 @@ void main(void)
     waterTex3 = mpos;
 
     gl_Position = ftransform();
-
 }

@@ -2,6 +2,7 @@
  * **** DESCRIPTION ****
  ****************************************/
 
+////////////////////// INCLUDES /////////////////////////////
 #include <iostream>
 #include <time.h>
 
@@ -16,7 +17,6 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -24,10 +24,6 @@
 #include <assimp/postprocess.h>
 #include <Importing/AssimpTools.h>
 #include <Importing/TextureTools.h>
-
-#include <TreeAnimation/Tree.h>
-#include <TreeAnimation/TreeRendering.h>
-#include <TreeAnimation/WindField.h>
 
 ////////////////////// PARAMETERS /////////////////////////////
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
@@ -47,87 +43,151 @@ int main()
 	/////////////////////// INIT /////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-//.....
+	// import using ASSIMP and check for errors
+	Assimp::Importer importer;
+	DEBUGLOG->log("Loading branch model");
+	std::string terrainModel = "mountains.obj";
+	const aiScene* scene = AssimpTools::importAssetFromResourceFolder(terrainModel, importer);
+	glm::mat4 transform = glm::scale( glm::vec3(1, 1, 1) );
+	Renderable* assimpRenderableTerrain = AssimpTools::createSimpleRenderablesFromScene(terrainModel, transform);
+
+	//.....
 // neues render target erstellen (reflection)
 // neues render target erstellen (refraction)
 
 // bump map für wellen
 
 	//////////////////////////////////////////////////////////////////////////////
-		/////////////////////////////// RENDERING  ///////////////////////////////////
-		//////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////// RENDERING  ///////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
 
-		/////////////////////     Scene / View Settings     //////////////////////////
-		glm::vec4 eye(0.0f, 0.0f, 3.0f, 1.0f);
-		glm::vec4 center(0.0f,0.0f,0.0f,1.0f);
-		glm::mat4 view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0,1,0));
+	/////////////////////     Scene / View Settings     //////////////////////////
+	glm::mat4 model = glm::mat4(1.0f);
+	glm::vec4 eye(0.0f, 0.0f, 3.0f, 1.0f);
+	glm::vec4 center(0.0f,0.0f,0.0f,1.0f);
+	glm::mat4 view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0,1,0));
 
-		glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 10.f);
+	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 10.f);
 
-		DEBUGLOG->log("Setup: model matrices"); DEBUGLOG->indent();
-		glm::mat4 model = glm::translate(glm::vec3(0.0f, - tree_height / 2.0f, 0.0f));
-		//glm::mat4 model = glm::mat4(1.0f);
-		DEBUGLOG->outdent();
+	//object sizes
+	float groundSize = 3.0f;
 
-		/////////////////////// 	Renderpasses     ///////////////////////////
+	std::vector<Renderable* > objects;
+	objects.push_back(new Grid(1,1,groundSize,groundSize,true));
+	objects.push_back(assimpRenderableTerrain);
 
-//.....
-		// todo: entsprechend abändern/verschieben
-void renderReflection(){
-	glViewport(0,0, texSize, texSize);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glLoadIdentity();
-	gluLookAt(......)
+	/////////////////////// 	Renderpasses     ///////////////////////////
+	//normaler pass
+	//set shader
+	DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
+	ShaderProgram shaderProgram("/xx/xx.vert", "/xx/xx.frag"); DEBUGLOG->outdent();
+	//update vars
+	//update tex/sampler
+	//create FBO
+	//create render pass
+	DEBUGLOG->log("RenderPass Creation: GBuffer"); DEBUGLOG->indent();
+	RenderPass renderPass(&shaderProgram, &fbo);
+	renderPass.addEnable(GL_DEPTH_TEST);
+	// renderPass.addEnable(GL_BLEND);
+	renderPass.setClearColor(0.0,0.0,0.0,0.0);
+	renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	for (auto r : objects){renderPass.addRenderable(r);}
 
-	glPushMatrix();
-	glTranslatef(0.0f, 0.0f, 0.0f);
-	glScalef(1.0, -1.0, 1.0);
-	double plane[4] = {0.0, 1.0, 0.0, 0.0}; //water at y=0
-	glEnable(GL_CLIP_PLANE0);
-	glClipPlane(GL_CLIP_PLANE0, plane);
-	RenderScene();
-	glDisable(GL_CLIP_PLANE0);
-	glPopMatrix();
+	//1. wasser pass (reflec+refrac)
+	//set shader
+	DEBUGLOG->log("Shader Compilation: ReflectionShader"); DEBUGLOG->indent();
+	ShaderProgram reflShader("/xx/xx.vert", "/xx/xx.frag");	DEBUGLOG->outdent();
 
-	//render reflection to texture
-	glBindTexture(GL_TEXTURE_2D, reflection);
-	//glCopyTexSubImage2D copies the frame buffer
-	//to the bound texture
-	glCopyTexSubImage2D(GL_TEXTURE_2D,0,0,0,0,0,texSize, texSize);
-}
+	//update vars
 
-// todo: entsprechend abändern/verschieben
-void renderRefractionAndDepth(){
-	glViewport(0,0, texSize, texSize);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glLoadIdentity();
-	gluLookAt(......)
+	//update tex/sampler
 
-	glPushMatrix();
-	glTranslatef(0.0f, 0.0f, 0.0f);
-	//normal pointing along negative y
-	double plane[4] = {0.0, -1.0, 0.0, 0.0};
-	glEnable(GL_CLIP_PLANE0);
-	glClipPlane(GL_CLIP_PLANE0, plane);
-	RenderScene();
-	glDisable(GL_CLIP_PLANE0);
-	glPopMatrix();
+	//create FBO
+	DEBUGLOG->log("FrameBufferObject Creation: waterFBO"); DEBUGLOG->indent();
+	FrameBufferObject waterFBO(getResolution(window).x, getResolution(window).y);
+	waterFBO.addColorAttachments(2); DEBUGLOG->outdent();
 
-	//render color buffer to texture
-	glBindTexture(GL_TEXTURE_2D, refraction);
-	glCopyTexSubImage2D(GL_TEXTURE_2D,0,0,0,0,0,texSize, texSize);
+	//create render pass
+	DEBUGLOG->log("RenderPass Creation: Reflection"); DEBUGLOG->indent();
+	RenderPass reflRenderPass(&reflShader, &waterFBO );
+	reflRenderPass.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	reflRenderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-	//render depth to texture
-	glBindTexture(GL_TEXTURE_2D, depth);
-	glCopyTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT, 0,0, texSize,texSize, 0);
-}
+	//2. wasser pass (kombination)
+	//set shader
+	DEBUGLOG->log("Shader Compilation: waterShader"); DEBUGLOG->indent();
+	ShaderProgram waterShader("/waterReflections/water.vert", "/waterReflections/water.frag");	DEBUGLOG->outdent();
 
-// todo: entsprechend abändern/verschieben
-void renderWater(){
-	// s. 5-7
-}
+	//update vars
+	waterShader.update();
+	//...
 
-//////////////////////////////////////////////////////////////////////////////
+	//update tex/sampler
+	waterShader.bindTextureOnUse();
+	//...
+
+	//create render pass
+	DEBUGLOG->log("RenderPass Creation: Combine"); DEBUGLOG->indent();
+	RenderPass combRenderPass(&waterShader, &waterFBO );
+
+	//.....
+	// todo: entsprechend abändern/verschieben
+	/*void renderReflection(){
+		glViewport(0,0, texSize, texSize);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glLoadIdentity();
+		gluLookAt(......)
+
+		glPushMatrix();
+		glTranslatef(0.0f, 0.0f, 0.0f);
+		glScalef(1.0, -1.0, 1.0);
+		double plane[4] = {0.0, 1.0, 0.0, 0.0}; //water at y=0
+		glEnable(GL_CLIP_PLANE0);
+		glClipPlane(GL_CLIP_PLANE0, plane);
+		RenderScene();
+		glDisable(GL_CLIP_PLANE0);
+		glPopMatrix();
+
+		//render reflection to texture
+		glBindTexture(GL_TEXTURE_2D, reflection);
+		//glCopyTexSubImage2D copies the frame buffer
+		//to the bound texture
+		glCopyTexSubImage2D(GL_TEXTURE_2D,0,0,0,0,0,texSize, texSize);
+	}
+
+	// todo: entsprechend abändern/verschieben
+	void renderRefractionAndDepth(){
+		glViewport(0,0, texSize, texSize);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glLoadIdentity();
+		gluLookAt(......)
+
+		glPushMatrix();
+		glTranslatef(0.0f, 0.0f, 0.0f);
+		//normal pointing along negative y
+		double plane[4] = {0.0, -1.0, 0.0, 0.0};
+		glEnable(GL_CLIP_PLANE0);
+		glClipPlane(GL_CLIP_PLANE0, plane);
+		RenderScene();
+		glDisable(GL_CLIP_PLANE0);
+		glPopMatrix();
+
+		//render color buffer to texture
+		glBindTexture(GL_TEXTURE_2D, refraction);
+		glCopyTexSubImage2D(GL_TEXTURE_2D,0,0,0,0,0,texSize, texSize);
+
+		//render depth to texture
+		glBindTexture(GL_TEXTURE_2D, depth);
+		glCopyTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT, 0,0, texSize,texSize, 0);
+	}
+
+	// todo: entsprechend abändern/verschieben
+	void renderWater(){
+		// s. 5-7
+	}
+	*/
+
+	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
@@ -171,8 +231,8 @@ void renderWater(){
 		ImGui_ImplGlfwGL3_MouseButtonCallback(window, b, a, m);
 	};
 
-	 auto keyboardCB = [&](int k, int s, int a, int m)
-	 {
+	auto keyboardCB = [&](int k, int s, int a, int m)
+	{
 	 	if (a == GLFW_RELEASE) {return;}
 		switch(k){
 	 	case GLFW_KEY_W:
@@ -209,17 +269,13 @@ void renderWater(){
 	render(window, [&](double dt)
 	{
 		elapsedTime += dt;
-		s_simulationTime = elapsedTime;
-		std::string window_header = "Tree Animation Test - " + DebugLog::to_string( 1.0 / dt ) + " FPS";
+		std::string window_header = "Water Test - " + DebugLog::to_string( 1.0 / dt ) + " FPS";
 		glfwSetWindowTitle(window, window_header.c_str() );
 
 		////////////////////////////////     GUI      ////////////////////////////////
         ImGuiIO& io = ImGui::GetIO();
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
 		ImGui::PushItemWidth(-125);
-
-		ImGui::SliderFloat("windDirection", &s_wind_angle, 0.0f, 360.0f);
-		ImGui::SliderFloat("windPower", &s_wind_power, 0.0f, 4.0f);
 
 		static glm::vec3 angleshifts[3] ={glm::vec3(0.0),glm::vec3(0.0),glm::vec3(0.0)};
 		ImGui::SliderFloat3("vAngleShiftFront", glm::value_ptr( angleshifts[0]), -1.0f, 1.0f);
@@ -257,47 +313,27 @@ void renderWater(){
 
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
 		// update view related uniforms
-		shaderProgram.update( "view",  view);
-		shaderProgram.update( "model", turntable.getRotationMatrix() * model);
-
-		shaderProgram.update("simTime", s_simulationTime);
-		s_wind_direction = glm::rotateY(glm::vec3(0.0f,0.0f,1.0f), glm::radians(s_wind_angle));
-		shaderProgram.update( "windDirection", s_wind_direction);
-
-		glm::vec3 windTangent = glm::vec3(-s_wind_direction.z, s_wind_direction.y, s_wind_direction.x);
-		float animatedWindPower = sin(s_simulationTime) * (s_wind_power / 2.0f) + s_wind_power / 2.0f + (0.25f * sin(2.0f * s_wind_power * s_simulationTime + 0.25f)) ;
-		s_wind_rotation = glm::rotate(glm::mat4(1.0f), (animatedWindPower / 2.0f), windTangent);
-		shaderProgram.update( "windRotation" , s_wind_rotation);
-
-		shaderProgram.update("vAngleShiftFront", angleshifts[0]); //front
-		shaderProgram.update("vAngleShiftBack", angleshifts[1]); //back
-		shaderProgram.update("vAngleShiftSide", angleshifts[2]); //side
-
-		shaderProgram.update("vAmplitudesFront", amplitudes[0]); //front
-		shaderProgram.update("vAmplitudesBack", amplitudes[1]); //back
-		shaderProgram.update("vAmplitudesSide", amplitudes[2]); //side
-
-		shaderProgram.update("fFrequencyFront", frequencies.x); //front
-		shaderProgram.update("fFrequencyBack", frequencies.y); //back
-		shaderProgram.update("fFrequencySide", frequencies.z); //side
-
-		shaderProgram.update("tree.phase", tree_phase); //front
-
+		shaderProgram.update();
 		//.....
 
 		////////////////////////////////  RENDERING //// /////////////////////////////
-				renderPass.render();
+		/*renderPass.render();
 
-				compositing.render();
+		compositing.render();
+		*/
+		renderPass.render();
+		reflRenderPass.render();
+		combRenderPass.render();
 
-				ImGui::Render();
-				glDisable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
-				//////////////////////////////////////////////////////////////////////////////
 
-			});
+		ImGui::Render();
+		glDisable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
+		//////////////////////////////////////////////////////////////////////////////
 
-			destroyWindow(window);
+	});
 
-			return 0;
-		}
+	destroyWindow(window);
+
+	return 0;
+}
