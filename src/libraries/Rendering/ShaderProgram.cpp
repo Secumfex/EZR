@@ -487,3 +487,104 @@ std::string ShaderProgram::getTypeString(GLenum type) {
 	return "unknown";
 	//std::to_string(type);
 }
+
+std::map<std::string, ShaderProgram::UniformBlockInfo> ShaderProgram::getAllUniformBlockInfo(ShaderProgram& shaderProgram)
+{
+	std::map<std::string, UniformBlockInfo> result;
+	GLint numBlocks = 0;
+	glGetProgramInterfaceiv(shaderProgram.getShaderProgramHandle(), GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &numBlocks);
+	
+	std::vector<GLenum> blockProperties;
+	blockProperties.push_back(GL_NUM_ACTIVE_VARIABLES);
+	blockProperties.push_back(GL_NAME_LENGTH);
+	blockProperties.push_back(GL_BUFFER_DATA_SIZE);
+
+	std::vector<GLenum> uniformProperties;
+	uniformProperties.push_back(GL_NAME_LENGTH);
+	uniformProperties.push_back(GL_TYPE);
+	uniformProperties.push_back(GL_OFFSET);
+	//uniformProperties.push_back(GL_SIZE); // doesnt exist, for some reason
+	uniformProperties.push_back(GL_ARRAY_STRIDE);
+	uniformProperties.push_back(GL_MATRIX_STRIDE);
+
+	for ( int blockIdx = 0; blockIdx < numBlocks; blockIdx++)
+	{
+		std::vector<GLint> blockValues(blockProperties.size());
+		glGetProgramResourceiv(shaderProgram.getShaderProgramHandle(), GL_UNIFORM_BLOCK, blockIdx, blockProperties.size(), &blockProperties[0], blockValues.size(), NULL, &blockValues[0]);
+		GLint numActiveUniforms = blockValues[0]; // query amount of uniforms in this block
+
+		std::vector<GLchar> nameData(256);
+		nameData.resize(blockValues[1]); //The length of the name.
+		glGetProgramResourceName(shaderProgram.getShaderProgramHandle(), GL_UNIFORM_BLOCK, blockIdx, nameData.size(), NULL, &nameData[0]);
+		std::string blockName = std::string((char*)&nameData[0], nameData.size() - 1);
+		blockName = std::string(blockName.c_str());
+		
+		std::vector<GLint> uniformHandles(numActiveUniforms); // allocate room for uniform indices
+		const GLenum blockVariableProperties[1] = {GL_ACTIVE_VARIABLES};
+		glGetProgramResourceiv(shaderProgram.getShaderProgramHandle(), GL_UNIFORM_BLOCK, blockIdx, 1, blockVariableProperties, numActiveUniforms, NULL, &uniformHandles[0] );
+
+		result[blockName].index = blockIdx;
+		result[blockName].numActiveUniforms = numActiveUniforms;
+		result[blockName].byteSize = blockValues[2];
+
+		for (auto attribIdx : uniformHandles)
+		{
+			std::vector<GLint> uniformValues(uniformProperties.size());
+
+			// retrieve uniform properties
+			glGetProgramResourceiv(shaderProgram.getShaderProgramHandle(), GL_UNIFORM, attribIdx, uniformProperties.size(),
+			&uniformProperties[0], uniformValues.size(), NULL, &uniformValues[0]);
+
+			std::vector<GLchar> nameData(256);
+			nameData.resize(uniformValues[0]); //The length of the name.
+			glGetProgramResourceName(shaderProgram.getShaderProgramHandle(), GL_UNIFORM, attribIdx, nameData.size(), NULL, &nameData[0]);
+			std::string uniformName = std::string((char*)&nameData[0], nameData.size() - 1);
+			uniformName = std::string(uniformName.c_str());
+
+			//DEBUGLOG->log("uniform: " + blockName + "." + uniformName); DEBUGLOG->indent();
+			//DEBUGLOG->log("type   : " + shaderProgram.getTypeString(uniformValues[1]));
+			//DEBUGLOG->log("offset : ", uniformValues[2]);
+			//DEBUGLOG->log("arr-str: ",uniformValues[3]);
+			//DEBUGLOG->log("mat-str: ",uniformValues[4]);
+
+			const GLuint idx[1] = {attribIdx};
+			GLint uniformSize;
+			glGetActiveUniformsiv(shaderProgram.getShaderProgramHandle(), 1, idx, GL_UNIFORM_SIZE, &uniformSize );
+			//DEBUGLOG->log("size   :", uniformSize);
+			
+			result[blockName].uniforms[uniformName].info.location= attribIdx;
+			result[blockName].uniforms[uniformName].info.type = uniformValues[1];
+			result[blockName].uniforms[uniformName].offset = uniformValues[2];
+			result[blockName].uniforms[uniformName].arrayStride = uniformValues[3];
+			result[blockName].uniforms[uniformName].matrixStride = uniformValues[4];
+
+			//DEBUGLOG->outdent();
+		}
+	}
+	return result;
+}
+
+void ShaderProgram::printUniformBlockInfo(std::map<std::string, ShaderProgram::UniformBlockInfo>& map)
+{
+	for ( auto b : map)
+	{
+		DEBUGLOG->log("block name: " + b.first); DEBUGLOG->indent();
+			DEBUGLOG->log("index    : ", b.second.index);
+			DEBUGLOG->log("byte size: ", b.second.byteSize);
+			DEBUGLOG->log("#uniforms: ", b.second.numActiveUniforms);
+			DEBUGLOG->indent();
+			for (auto u : b.second.uniforms)
+			{
+				DEBUGLOG->log("uniform name: " + u.first);
+				DEBUGLOG->indent();
+					DEBUGLOG->log("offset  : " , u.second.offset);
+					DEBUGLOG->log("location: " , u.second.info.location);
+					DEBUGLOG->log("type    : "  + ShaderProgram::getTypeString(u.second.info.type));
+					DEBUGLOG->log("matrixSt: " , u.second.matrixStride);
+					DEBUGLOG->log("arraySt : " , u.second.arrayStride);
+				DEBUGLOG->outdent();
+			}
+			DEBUGLOG->outdent();
+		DEBUGLOG->outdent();
+	}
+}

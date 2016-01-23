@@ -63,101 +63,7 @@ std::vector<glm::mat4 > generateModels(int numObjects, float xSize, float zSize)
 	return models;
 }
 
-struct BlockUniformInfo 
-{
-	ShaderProgram::Info info;
-	GLint offset; // byte offset in the uniform block / buffer
-	GLint arrayStride;
-	GLint matrixStride;
-};
-
-struct UniformBlockInfo
-{
-	GLint index; //!< index in the shader program
-	GLint byteSize;
-	GLint numActiveUniforms; //!< amount of active uniforms in this uniform block
-	std::map<std::string, BlockUniformInfo> uniforms; //!< uniform locations in the shader
-};
-
-std::map<std::string, UniformBlockInfo> getAllUniformBlockInfo(ShaderProgram& shaderProgram)
-{
-	std::map<std::string, UniformBlockInfo> result;
-	GLint numBlocks = 0;
-	glGetProgramInterfaceiv(shaderProgram.getShaderProgramHandle(), GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &numBlocks);
-	
-	std::vector<GLenum> blockProperties;
-	blockProperties.push_back(GL_NUM_ACTIVE_VARIABLES);
-	blockProperties.push_back(GL_NAME_LENGTH);
-	blockProperties.push_back(GL_BUFFER_DATA_SIZE);
-
-	std::vector<GLenum> uniformProperties;
-	uniformProperties.push_back(GL_NAME_LENGTH);
-	uniformProperties.push_back(GL_TYPE);
-	uniformProperties.push_back(GL_OFFSET);
-	//uniformProperties.push_back(GL_SIZE); // what the ...
-	uniformProperties.push_back(GL_ARRAY_STRIDE);
-	uniformProperties.push_back(GL_MATRIX_STRIDE);
-
-	for ( int blockIdx = 0; blockIdx < numBlocks; blockIdx++)
-	{
-		std::vector<GLint> blockValues(blockProperties.size());
-		glGetProgramResourceiv(shaderProgram.getShaderProgramHandle(), GL_UNIFORM_BLOCK, blockIdx, blockProperties.size(), &blockProperties[0], blockValues.size(), NULL, &blockValues[0]);
-		GLint numActiveUniforms = blockValues[0]; // query amount of uniforms in this block
-
-		std::vector<GLchar> nameData(256);
-		nameData.resize(blockValues[1]); //The length of the name.
-		glGetProgramResourceName(shaderProgram.getShaderProgramHandle(), GL_UNIFORM_BLOCK, blockIdx, nameData.size(), NULL, &nameData[0]);
-		std::string blockName = std::string((char*)&nameData[0], nameData.size() - 1);
-		blockName = std::string(blockName.c_str());
-		
-		std::vector<GLint> uniformHandles(numActiveUniforms); // allocate room for uniform indices
-		const GLenum blockVariableProperties[1] = {GL_ACTIVE_VARIABLES};
-		glGetProgramResourceiv(shaderProgram.getShaderProgramHandle(), GL_UNIFORM_BLOCK, blockIdx, 1, blockVariableProperties, numActiveUniforms, NULL, &uniformHandles[0] );
-
-		result[blockName].index = blockIdx;
-		result[blockName].numActiveUniforms = numActiveUniforms;
-		result[blockName].byteSize = blockValues[2];
-
-		for (auto attribIdx : uniformHandles)
-		{
-			std::vector<GLint> uniformValues(uniformProperties.size());
-
-			// retrieve uniform properties
-			glGetProgramResourceiv(shaderProgram.getShaderProgramHandle(), GL_UNIFORM, attribIdx, uniformProperties.size(),
-			&uniformProperties[0], uniformValues.size(), NULL, &uniformValues[0]);
-
-			std::vector<GLchar> nameData(256);
-			nameData.resize(uniformValues[0]); //The length of the name.
-			glGetProgramResourceName(shaderProgram.getShaderProgramHandle(), GL_UNIFORM, attribIdx, nameData.size(), NULL, &nameData[0]);
-			std::string uniformName = std::string((char*)&nameData[0], nameData.size() - 1);
-			uniformName = std::string(uniformName.c_str());
-
-			DEBUGLOG->log("uniform: " + blockName + "." + uniformName); DEBUGLOG->indent();
-			DEBUGLOG->log("type   : " + shaderProgram.getTypeString(uniformValues[1]));
-			DEBUGLOG->log("offset : ", uniformValues[2]);
-			DEBUGLOG->log("arr-str: ",uniformValues[3]);
-			DEBUGLOG->log("mat-str: ",uniformValues[4]);
-
-			const GLuint idx[1] = {attribIdx};
-			GLint uniformSize;
-			glGetActiveUniformsiv(shaderProgram.getShaderProgramHandle(), 1, idx, GL_UNIFORM_SIZE, &uniformSize );
-			DEBUGLOG->log("size   :", uniformSize);
-			
-			result[blockName].uniforms[uniformName].info.location= attribIdx;
-			result[blockName].uniforms[uniformName].info.type = uniformValues[1];
-			result[blockName].uniforms[uniformName].offset = uniformValues[2];
-			result[blockName].uniforms[uniformName].arrayStride = uniformValues[3];
-			result[blockName].uniforms[uniformName].matrixStride = uniformValues[4];
-
-			DEBUGLOG->outdent();
-		}
-
-	}
-	return result;
-}
-
-
-void updateValuesInBufferData(std::string uniformName, const float* values, int numValues, UniformBlockInfo& info, std::vector<float>& buffer)
+void updateValuesInBufferData(std::string uniformName, const float* values, int numValues, ShaderProgram::UniformBlockInfo& info, std::vector<float>& buffer)
 {
 	auto u = info.uniforms.find(uniformName);
 	if ( u == info.uniforms.end()) { return; }
@@ -172,6 +78,14 @@ void updateValuesInBufferData(std::string uniformName, const float* values, int 
 	}
 }
 
+void updateValueInBuffer(std::string uniformName, const float* values, int numValues, ShaderProgram::UniformBlockInfo& info, GLuint bufferHandle)
+{
+	auto u = info.uniforms.find(uniformName);
+	if ( u == info.uniforms.end()) { return; }
+	if ( info.byteSize < u->second.offset + (numValues * sizeof(float))){return;}
+
+	glBufferSubData(GL_UNIFORM_BUFFER, u->second.offset, numValues * sizeof(float), values);
+}
 
 int main()
 {
@@ -262,8 +176,9 @@ int main()
 	ShaderProgram shaderProgram("/modelSpace/instancedModelViewProjection.vert", "/modelSpace/simpleLighting.frag"); DEBUGLOG->outdent();
 	shaderProgram.printUniformInfo();
 
-	auto uniformBlockInfos = getAllUniformBlockInfo(shaderProgram);
-	UniformBlockInfo uniformBlockInfo = uniformBlockInfos.at("MatrixBlock");
+	auto uniformBlockInfos = ShaderProgram::getAllUniformBlockInfo(shaderProgram);
+	ShaderProgram::printUniformBlockInfo(uniformBlockInfos);
+	ShaderProgram::UniformBlockInfo uniformBlockInfo = uniformBlockInfos.at("MatrixBlock");
 
 	std::vector<float> matrixData;
 	matrixData.resize(uniformBlockInfo.byteSize / sizeof(float));
@@ -278,14 +193,13 @@ int main()
  
 	glGenBuffers(1, &buffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, buffer);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(matrixData), &matrixData[0], GL_DYNAMIC_DRAW);
+	glBufferData(GL_UNIFORM_BUFFER, matrixData.size() * sizeof(float), &matrixData[0], GL_DYNAMIC_DRAW);
 
 	glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, buffer);
 
 	shaderProgram.update("color", glm::vec4(0.7,0.7,0.7,1.0));
 	DEBUGLOG->outdent();
 
-	
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
@@ -358,9 +272,12 @@ int main()
 		//////////////////////////////////////////////////////////////////////////////
 				
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
-		updateValuesInBufferData("view", glm::value_ptr(view), sizeof(glm::mat4) / sizeof(float), uniformBlockInfo, matrixData); 
+		//updateValuesInBufferData("view", glm::value_ptr(view), sizeof(glm::mat4) / sizeof(float), uniformBlockInfo, matrixData); 
+		//glBindBuffer(GL_UNIFORM_BUFFER, buffer);
+		//glBufferData(GL_UNIFORM_BUFFER, matrixData.size() * sizeof(glm::mat4), &matrixData[0], GL_DYNAMIC_DRAW);
+
 		glBindBuffer(GL_UNIFORM_BUFFER, buffer);
-		glBufferData(GL_UNIFORM_BUFFER, matrixData.size() * sizeof(glm::mat4), &matrixData[0], GL_DYNAMIC_DRAW);
+		updateValueInBuffer("view", glm::value_ptr(view), sizeof(glm::mat4) / sizeof(float), uniformBlockInfo, buffer);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////

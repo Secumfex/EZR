@@ -325,7 +325,24 @@ protected:
 	std::map<std::string, GLuint> m_textureMap;
 
 public:
-	std::string getTypeString(GLenum type);
+	static std::string getTypeString(GLenum type);
+
+	struct BlockUniformInfo 
+	{
+		ShaderProgram::Info info;
+		GLint offset; // byte offset in the uniform block / buffer
+		GLint arrayStride;
+		GLint matrixStride;
+	};
+	struct UniformBlockInfo
+	{
+		GLint index; //!< index in the shader program
+		GLint byteSize;
+		GLint numActiveUniforms; //!< amount of active uniforms in this uniform block
+		std::map<std::string, BlockUniformInfo> uniforms; //!< uniform locations in the shader
+	};
+	static std::map<std::string, UniformBlockInfo> getAllUniformBlockInfo(ShaderProgram& shaderProgram);
+	static void printUniformBlockInfo(std::map<std::string, ShaderProgram::UniformBlockInfo>& map);
 };
 
 #endif // SHADER_PROGRAM_H
