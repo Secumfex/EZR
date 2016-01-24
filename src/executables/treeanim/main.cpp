@@ -190,7 +190,6 @@ int main()
 
 	// generate a forest randomly, including renderables
 	std::vector<TreeEntity* > treeVariants = generateTreeVariants(NUM_TREE_VARIANTS, scene);
-	std::vector<glm::mat4 > treeModelMatrices = generateModelMatrices(NUM_TREES_PER_VARIANT * NUM_TREE_VARIANTS, 30.0f, 30.0f);
 	TreeAnimation::SimulationProperties simulation;
 
 	auto mat4VertexAttribute = [&](Renderable*r, int attributeLocation)
@@ -216,9 +215,12 @@ int main()
 	};
 
 	// create vbo from treemodelmatrices and assing to all renderables
-	GLuint instanceModelBufferHandle = bufferData<glm::mat4>(treeModelMatrices, GL_STATIC_DRAW);	
 	for ( auto t : treeVariants)
 	{ 
+		std::vector<glm::mat4 > treeModelMatrices = generateModelMatrices(NUM_TREES_PER_VARIANT, 30.0f, 30.0f);
+	
+		GLuint instanceModelBufferHandle = bufferData<glm::mat4>(treeModelMatrices, GL_STATIC_DRAW);	
+	
 		GLuint attributeLocation = 5; // beginning attribute location (0..4 are reserved for pos,uv,norm,tangents, tree hierarchy
 		for ( auto b : t->branchRenderables) {
 			mat4VertexAttribute(b, attributeLocation);
@@ -251,13 +253,42 @@ int main()
 	ShaderProgram branchShader("/treeAnim/tree.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
 	branchShader.update("view", view);
 	branchShader.update("projection", perspective);
-	TreeAnimation::updateSimulationUniforms(branchShader, simulation);
+	// TreeAnimation::updateSimulationUniforms(branchShader, simulation);
 
 	DEBUGLOG->log("Shader Compilation: FoliageToGBuffer"); DEBUGLOG->indent();
 	ShaderProgram foliageShader("/treeAnim/tree.vert", "/treeAnim/foliage.frag" , "/treeAnim/foliage.geom" ); DEBUGLOG->outdent();
 	foliageShader.update("view", view);
 	foliageShader.update("projection", perspective);
-	TreeAnimation::updateSimulationUniforms(foliageShader, simulation);
+	
+	auto branchShaderUniformBlockInfoMap = ShaderProgram::getAllUniformBlockInfo(branchShader);
+	auto foliageShaderUniformBlockInfoMap = ShaderProgram::getAllUniformBlockInfo(foliageShader);
+	
+	// generate one buffer per tree
+	std::vector<GLuint> treeUniformBlockBuffers(treeVariants.size());
+	std::vector<std::vector<float>> treeBufferDataVectors(treeVariants.size());
+	std::vector<float> simulationBufferDataVector;
+	GLuint simulationUniformBlockBuffer = 0;
+
+	auto simulationUniformBlockInfo = branchShaderUniformBlockInfoMap.at("Simulation");
+	auto treeUniformBlockInfo = branchShaderUniformBlockInfoMap.at("Tree");
+
+	for ( unsigned int i = 0 ; i < treeVariants.size(); i++)
+	{
+		treeBufferDataVectors[i] = ShaderProgram::createUniformBlockDataVector( treeUniformBlockInfo );
+		TreeAnimation::updateTreeUniformsInBufferData(treeVariants[i]->tree, treeUniformBlockInfo, treeBufferDataVectors[i]);
+
+		treeUniformBlockBuffers[i] = ShaderProgram::createUniformBlockBuffer( treeBufferDataVectors[i], i+2); // 2..
+	}
+
+	simulationBufferDataVector = ShaderProgram::createUniformBlockDataVector(simulationUniformBlockInfo);
+	TreeAnimation::updateSimulationUniformsInBufferData(simulation, simulationUniformBlockInfo, simulationBufferDataVector);
+	simulationUniformBlockBuffer = ShaderProgram::createUniformBlockBuffer(simulationBufferDataVector, 1);
+	
+	glUniformBlockBinding(branchShader.getShaderProgramHandle(), branchShaderUniformBlockInfoMap["Simulation"].index, 1);
+	glUniformBlockBinding(branchShader.getShaderProgramHandle(), branchShaderUniformBlockInfoMap["Tree"].index, 2);
+
+	glUniformBlockBinding(foliageShader.getShaderProgramHandle(), foliageShaderUniformBlockInfoMap["Simulation"].index, 1);
+	glUniformBlockBinding(foliageShader.getShaderProgramHandle(), foliageShaderUniformBlockInfoMap["Tree"].index, 2);
 
 	// regular GBuffer
 	DEBUGLOG->log("FrameBufferObject Creation: Scene GBuffer"); DEBUGLOG->indent();
@@ -520,7 +551,7 @@ int main()
 		for(int i = 0; i < branchRenderpasses.size(); i++)
 		{
 			// configure shader for this tree type
-			TreeAnimation::updateTreeUniforms(branchShader, treeVariants[i]->tree);
+			glUniformBlockBinding(branchShader.getShaderProgramHandle(), branchShaderUniformBlockInfoMap["Tree"].index, 2+i);
 			branchRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
 
@@ -536,7 +567,8 @@ int main()
 		// render foliage to screen
 		for(int i = 0; i < foliageRenderpasses.size(); i++)
 		{
-			TreeAnimation::updateTreeUniforms(foliageShader, treeVariants[i]->tree);
+			// change uniform block binding point
+			glUniformBlockBinding(foliageShader.getShaderProgramHandle(), foliageShaderUniformBlockInfoMap["Tree"].index, 2+i);
 			foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
 

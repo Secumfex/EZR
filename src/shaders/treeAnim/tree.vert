@@ -7,13 +7,13 @@
 
 struct Branch
 {
-	vec3  origin;
 	vec4  orientation;
+	vec3  origin;
 	float phase;
 	float pseudoInertiaFactor;
 };
 
-struct Tree 
+uniform Tree 
 {
 	float phase;
 	Branch[MAX_NUM_BRANCHES] branches;
@@ -33,21 +33,20 @@ uniform mat4 view;
 uniform mat4 projection;
 
 uniform float simTime; //!< used for noise function
-
 uniform vec4  worldWindDirection; // global wind direction, .a is equal to wind power
 
 // Input parameters for simulation (for some reason array of vecs doesn't work)
-uniform vec3 vAngleShiftFront;
-uniform vec3 vAngleShiftBack;
-uniform vec3 vAngleShiftSide; 
-uniform vec3 vAmplitudesFront;
-uniform vec3 vAmplitudesBack;
-uniform vec3 vAmplitudesSide;
-uniform float fFrequencyFront;
-uniform float fFrequencyBack;
-uniform float fFrequencySide;
-
-uniform Tree tree; //!< the whole tree hierarchy
+uniform Simulation{
+	vec3 vAngleShiftFront;
+	vec3 vAngleShiftBack;
+	vec3 vAngleShiftSide; 
+	vec3 vAmplitudesFront;
+	vec3 vAmplitudesBack;
+	vec3 vAmplitudesSide;
+	float fFrequencyFront;
+	float fFrequencyBack;
+	float fFrequencySide;
+};
 
 //!< out-variables
 out vec3 passWorldPosition;
@@ -230,10 +229,10 @@ void main(){
 	int numParents  = countNonZero(hierarchyAttribute); // amount of branch indices that are not root
 
 	// initial properties of branch
-	float tree_phase = tree.phase;
+	float tree_phase = phase;
 
-	vec3 branch_origin   = tree.branches[hierarchyAttribute[0]].origin;         // the vertex's branch origin
-	vec4 branch_orientation = tree.branches[hierarchyAttribute[0]].orientation; // the vertex's branch orientation
+	vec3 branch_origin   = branches[hierarchyAttribute[0]].origin;         // the vertex's branch origin
+	vec4 branch_orientation = branches[hierarchyAttribute[0]].orientation; // the vertex's branch orientation
 	vec3 vertex_pos = branch_origin + applyQuat(branch_orientation, positionAttribute.xyz); // initial vertex position
 	vec3 vertex_normal = applyQuat(branch_orientation, normalAttribute.xyz);
 
@@ -258,9 +257,9 @@ void main(){
 
 		if ( hierarchyAttribute[i] > 0 )
 		{
-			branch_origin      = tree.branches[hierarchyAttribute[i]].origin;
-			branch_phase       = tree.branches[hierarchyAttribute[i]].phase;
-			branch_pseudoInertiaFactor = tree.branches[hierarchyAttribute[i]].pseudoInertiaFactor;
+			branch_origin      = branches[hierarchyAttribute[i]].origin;
+			branch_phase       = branches[hierarchyAttribute[i]].phase;
+			branch_pseudoInertiaFactor = branches[hierarchyAttribute[i]].pseudoInertiaFactor;
 
 			branch_orientation_offset = bendBranch(
 				vertex_pos,

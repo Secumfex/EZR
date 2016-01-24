@@ -157,10 +157,10 @@ void TreeAnimation::generateFoliageVertexData( TreeAnimation::Tree::Branch* bran
 			target.uvs.push_back(t);
 		};
 
-		float rWidth = ((float) rand()) / ((float) RAND_MAX)* 0.2 + 0.03; //0.03..0.23
-		float rHeight = ((float) rand()) / ((float) RAND_MAX)* 0.2 + 0.03; //0.03..0.23
+		float rWidth = ((float) rand()) / ((float) RAND_MAX)* 0.2f + 0.03f; //0.03..0.23
+		float rHeight = ((float) rand()) / ((float) RAND_MAX)* 0.2f + 0.03f; //0.03..0.23
 			
-		float rOffsetX = ((float) rand()) / ((float) RAND_MAX) * (branch->length / 2.0) - (branch->length / 4.0); //0..0.1
+		float rOffsetX = ((float) rand()) / ((float) RAND_MAX) * (branch->length / 2.0f) - (branch->length / 4.0f); //0..0.1
 		float rOffsetY = ((float) rand()) / ((float) RAND_MAX) * branch->length; //-branchLength/4 .. branchLegnth/4
 		float rOffsetZ = ((float) rand()) / ((float) RAND_MAX) * branch->thickness * 2.0f - branch->thickness;
 
@@ -178,7 +178,7 @@ void TreeAnimation::generateFoliageVertexData( TreeAnimation::Tree::Branch* bran
 		auto addNorm = [&](int i0, int i1, int i2, int temp) 
 		{
 			n[temp] = glm::normalize(glm::cross(v[i1]- v[i0], v[i2]-v[i0]));
-			if ( abs(n[temp].x) < 0.0000001){ n[temp].x = 0;}
+			if ( abs(n[temp].x) < 0.0000001f){ n[temp].x = 0.0f;}
 			target.normals.push_back(n[temp].x);
 			target.normals.push_back(n[temp].y);
 			target.normals.push_back(n[temp].z);
@@ -225,14 +225,14 @@ void TreeAnimation::generateFoliageGeometryShaderVertexData( TreeAnimation::Tree
 			target.uvs.push_back(t);
 		};
 	
-		float rOffsetX = ((float) rand()) / ((float) RAND_MAX) * (branch->length / 2.0) - (branch->length / 4.0); //-branchLength/4 .. branchLegnth/4
+		float rOffsetX = ((float) rand()) / ((float) RAND_MAX) * (branch->length / 2.0f) - (branch->length / 4.0f); //-branchLength/4 .. branchLegnth/4
 		float rOffsetY = ((float) rand()) / ((float) RAND_MAX) * branch->length; 
-		float rOffsetZ = ((float) rand()) / ((float) RAND_MAX) * (branch->length / 2.0) - (branch->length / 4.0);
+		float rOffsetZ = ((float) rand()) / ((float) RAND_MAX) * (branch->length / 2.0f) - (branch->length / 4.0f);
 
 		addVert(rOffsetX, rOffsetY, rOffsetZ, 0);
 
-		float rWidth = ((float) rand()) / ((float) RAND_MAX)* 0.2 + 0.03; //0.03..0.23
-		float rHeight = ((float) rand()) / ((float) RAND_MAX)* 0.2 + 0.03; //0.03..0.23
+		float rWidth = ((float) rand()) / ((float) RAND_MAX)* 0.2f + 0.03f; //0.03..0.23
+		float rHeight = ((float) rand()) / ((float) RAND_MAX)* 0.2f + 0.03f; //0.03..0.23
 
 		addUV(rWidth, rHeight);
 
@@ -307,13 +307,13 @@ void TreeAnimation::generateBranchVertexData(TreeAnimation::Tree::Branch* branch
 		target.normals.insert(target.normals.end(), vertexData.normals.begin(), vertexData.normals.end());
 		target.tangents.insert(target.tangents.end(), vertexData.tangents.begin(), vertexData.tangents.end());
 
-		for ( int i = 0; i < vertexData.indices.size(); i++)
+		for (unsigned int i = 0; i < vertexData.indices.size(); i++)
 		{
 			vertexData.indices[i] += indexOffset;
 		}
 		target.indices.insert(target.indices.end(), vertexData.indices.begin(), vertexData.indices.end());
 
-		for (int v = 0; v < vertexData.positions.size(); v = v + 3)
+		for (unsigned int v = 0; v < vertexData.positions.size(); v = v + 3)
 		{
 			TreeAnimation::Tree::hierarchy(branch, &target.hierarchy);
 		}
@@ -328,13 +328,13 @@ void TreeAnimation::generateBranchVertexData(TreeAnimation::Tree::Branch* branch
 		target.normals.insert(target.normals.end(), vertexData.normals.begin(), vertexData.normals.end());
 		//target.tangents.insert(target.tangents.end(), vertexData.tangents.begin(), vertexData.tangents.end());
 
-		for ( int i = 0; i < vertexData.indices.size(); i++)
+		for (unsigned int i = 0; i < vertexData.indices.size(); i++)
 		{
 			vertexData.indices[i] += indexOffset;
 		}
 		target.indices.insert(target.indices.end(), vertexData.indices.begin(), vertexData.indices.end());
 
-		for (int v = 0; v < vertexData.positions.size(); v = v + 3)
+		for (unsigned int v = 0; v < vertexData.positions.size(); v = v + 3)
 		{
 			TreeAnimation::Tree::hierarchy(branch, &target.hierarchy);
 		}
@@ -395,4 +395,41 @@ void TreeAnimation::updateSimulationUniforms(ShaderProgram& shaderProgram, TreeA
 	shaderProgram.update("fFrequencyFront", simulation.frequencies.x); //front
 	shaderProgram.update("fFrequencyBack", simulation.frequencies.y); //back
 	shaderProgram.update("fFrequencySide", simulation.frequencies.z); //side
+}
+
+#include <glm/gtc/type_ptr.hpp>
+void TreeAnimation::updateSimulationUniformsInBufferData(TreeAnimation::SimulationProperties& simulation, ShaderProgram::UniformBlockInfo& info, std::vector<float>& data)
+{
+	ShaderProgram::updateValuesInBufferData("vAngleShiftFront", glm::value_ptr(simulation.angleshifts[0]), 3, info, data);
+	ShaderProgram::updateValuesInBufferData("vAngleShiftBack", glm::value_ptr(simulation.angleshifts[1]), 3, info, data);
+	ShaderProgram::updateValuesInBufferData("vAngleShiftSide", glm::value_ptr(simulation.angleshifts[2]), 3, info, data);
+	
+	ShaderProgram::updateValuesInBufferData("vAmplitudesFront", glm::value_ptr(simulation.amplitudes[0]), 3, info, data);
+	ShaderProgram::updateValuesInBufferData("vAmplitudesBack", glm::value_ptr(simulation.amplitudes[1]), 3, info, data);
+	ShaderProgram::updateValuesInBufferData("vAmplitudesSide", glm::value_ptr(simulation.amplitudes[2]), 3, info, data);
+	
+	ShaderProgram::updateValuesInBufferData("fFrequencyFront", &simulation.frequencies.x, 1, info, data);
+	ShaderProgram::updateValuesInBufferData("fFrequencyBack", &simulation.frequencies.y, 1, info, data);
+	ShaderProgram::updateValuesInBufferData("fFrequencySide", &simulation.frequencies.z, 1, info, data);
+}
+
+void TreeAnimation::updateTreeUniformsInBufferData(TreeAnimation::Tree* tree, ShaderProgram::UniformBlockInfo& info, std::vector<float>& data)
+{
+	ShaderProgram::updateValuesInBufferData("phase", &tree->m_phase, 1, info, data);
+
+	// upload tree uniforms
+	for (unsigned int i = 0; i < tree->m_branchesIndexed.size(); i++)
+	{
+		std::string prefix = "branches[" + DebugLog::to_string(i) + "].";
+		
+		ShaderProgram::updateValuesInBufferData(prefix + "origin", glm::value_ptr(tree->m_branchesIndexed[i]->origin), 3, info, data);
+		ShaderProgram::updateValuesInBufferData(prefix + "phase", &tree->m_branchesIndexed[i]->phase, 1, info, data);
+		float pseudoInertiaFactor = 1.0f;
+		ShaderProgram::updateValuesInBufferData(prefix + "pseudoInertiaFactor", &pseudoInertiaFactor, 3, info, data);
+			
+		// orientation is computed from object space direction relative to optimal branch axis
+		glm::quat orientation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), tree->m_branchesIndexed[i]->direction);
+		glm::vec4 quatAsVec4 = glm::vec4(orientation.x, orientation.y, orientation.z, orientation.w);
+		ShaderProgram::updateValuesInBufferData(prefix + "orientation", glm::value_ptr(quatAsVec4), 4, info, data);
+	}
 }
