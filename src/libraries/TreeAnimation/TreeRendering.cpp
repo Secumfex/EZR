@@ -225,14 +225,14 @@ void TreeAnimation::generateFoliageGeometryShaderVertexData( TreeAnimation::Tree
 			target.uvs.push_back(t);
 		};
 	
-		float rOffsetX = ((float) rand()) / ((float) RAND_MAX) * (branch->length / 2.0) - (branch->length / 4.0); //-branchLength/4 .. branchLegnth/4
+		float rOffsetX = ((float) rand()) / ((float) RAND_MAX) * (branch->length / 2.0f) - (branch->length / 4.0f); //-branchLength/4 .. branchLegnth/4
 		float rOffsetY = ((float) rand()) / ((float) RAND_MAX) * branch->length; 
-		float rOffsetZ = ((float) rand()) / ((float) RAND_MAX) * (branch->length / 2.0) - (branch->length / 4.0);
+		float rOffsetZ = ((float) rand()) / ((float) RAND_MAX) * (branch->length / 2.0f) - (branch->length / 4.0f);
 
 		addVert(rOffsetX, rOffsetY, rOffsetZ, 0);
 
-		float rWidth = ((float) rand()) / ((float) RAND_MAX)* 0.2 + 0.03; //0.03..0.23
-		float rHeight = ((float) rand()) / ((float) RAND_MAX)* 0.2 + 0.03; //0.03..0.23
+		float rWidth = ((float) rand()) / ((float) RAND_MAX)* 0.2f + 0.03f; //0.03..0.23
+		float rHeight = ((float) rand()) / ((float) RAND_MAX)* 0.2f + 0.03f; //0.03..0.23
 
 		addUV(rWidth, rHeight);
 
