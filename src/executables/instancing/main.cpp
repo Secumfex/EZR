@@ -24,7 +24,7 @@
 ////////////////////// PARAMETERS /////////////////////////////
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 
-const int NUM_INSTANCES = 3000;
+const int NUM_INSTANCES = 10000;
 
 static glm::vec4 s_lightPos = glm::vec4(0.0,50.0f,0.0,1.0);
 
@@ -61,30 +61,6 @@ std::vector<glm::mat4 > generateModels(int numObjects, float xSize, float zSize)
 		models[i] = glm::translate(glm::vec3(x, y, z)) * models[i];
 	}
 	return models;
-}
-
-void updateValuesInBufferData(std::string uniformName, const float* values, int numValues, ShaderProgram::UniformBlockInfo& info, std::vector<float>& buffer)
-{
-	auto u = info.uniforms.find(uniformName);
-	if ( u == info.uniforms.end()) { return; }
-	if (numValues >= buffer.size()) {return;}
-
-	int valStartIdx = u->second.offset / 4;
-	if (buffer.size() < valStartIdx + numValues){return;} 
-
-	for (int i = 0; i < numValues; i++)
-	{
-		buffer[valStartIdx + i] = values[i];
-	}
-}
-
-void updateValueInBuffer(std::string uniformName, const float* values, int numValues, ShaderProgram::UniformBlockInfo& info, GLuint bufferHandle)
-{
-	auto u = info.uniforms.find(uniformName);
-	if ( u == info.uniforms.end()) { return; }
-	if ( info.byteSize < u->second.offset + (numValues * sizeof(float))){return;}
-
-	glBufferSubData(GL_UNIFORM_BUFFER, u->second.offset, numValues * sizeof(float), values);
 }
 
 int main()
@@ -180,22 +156,18 @@ int main()
 	ShaderProgram::printUniformBlockInfo(uniformBlockInfos);
 	ShaderProgram::UniformBlockInfo uniformBlockInfo = uniformBlockInfos.at("MatrixBlock");
 
-	std::vector<float> matrixData;
-	matrixData.resize(uniformBlockInfo.byteSize / sizeof(float));
+	std::vector<float> matrixData = ShaderProgram::createUniformBlockDataVector(uniformBlockInfo);
 	
-	updateValuesInBufferData("projection", glm::value_ptr(perspective), sizeof(glm::mat4) / sizeof(float), uniformBlockInfo, matrixData);  
-	updateValuesInBufferData("view", glm::value_ptr(view), sizeof(glm::mat4) / sizeof(float), uniformBlockInfo, matrixData);  
+	ShaderProgram::updateValuesInBufferData("projection", glm::value_ptr(perspective), sizeof(glm::mat4) / sizeof(float), uniformBlockInfo, matrixData);  
+	ShaderProgram::updateValuesInBufferData("view", glm::value_ptr(view), sizeof(glm::mat4) / sizeof(float), uniformBlockInfo, matrixData);  
 
 	GLuint bindingPoint = 1, buffer, blockIndex;
  
-	blockIndex = glGetUniformBlockIndex(shaderProgram.getShaderProgramHandle(), "MatrixBlock");
+	//blockIndex = glGetUniformBlockIndex(shaderProgram.getShaderProgramHandle(), "MatrixBlock");
+	blockIndex = uniformBlockInfo.index;
 	glUniformBlockBinding(shaderProgram.getShaderProgramHandle(), blockIndex, bindingPoint); // bind block 0 to binding point 1
  
-	glGenBuffers(1, &buffer);
-	glBindBuffer(GL_UNIFORM_BUFFER, buffer);
-	glBufferData(GL_UNIFORM_BUFFER, matrixData.size() * sizeof(float), &matrixData[0], GL_DYNAMIC_DRAW);
-
-	glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, buffer);
+	buffer = ShaderProgram::createUniformBlockBuffer(matrixData, bindingPoint);
 
 	shaderProgram.update("color", glm::vec4(0.7,0.7,0.7,1.0));
 	DEBUGLOG->outdent();
@@ -276,8 +248,7 @@ int main()
 		//glBindBuffer(GL_UNIFORM_BUFFER, buffer);
 		//glBufferData(GL_UNIFORM_BUFFER, matrixData.size() * sizeof(glm::mat4), &matrixData[0], GL_DYNAMIC_DRAW);
 
-		glBindBuffer(GL_UNIFORM_BUFFER, buffer);
-		updateValueInBuffer("view", glm::value_ptr(view), sizeof(glm::mat4) / sizeof(float), uniformBlockInfo, buffer);
+		ShaderProgram::updateValueInBuffer("view", glm::value_ptr(view), sizeof(glm::mat4) / sizeof(float), uniformBlockInfo, buffer);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////

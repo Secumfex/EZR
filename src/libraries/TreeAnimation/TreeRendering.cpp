@@ -396,3 +396,40 @@ void TreeAnimation::updateSimulationUniforms(ShaderProgram& shaderProgram, TreeA
 	shaderProgram.update("fFrequencyBack", simulation.frequencies.y); //back
 	shaderProgram.update("fFrequencySide", simulation.frequencies.z); //side
 }
+
+#include <glm/gtc/type_ptr.hpp>
+void TreeAnimation::updateSimulationUniformsInBufferData(TreeAnimation::SimulationProperties& simulation, ShaderProgram::UniformBlockInfo& info, std::vector<float>& data)
+{
+	ShaderProgram::updateValuesInBufferData("vAngleShiftFront", glm::value_ptr(simulation.angleshifts[0]), 3, info, data);
+	ShaderProgram::updateValuesInBufferData("vAngleShiftBack", glm::value_ptr(simulation.angleshifts[1]), 3, info, data);
+	ShaderProgram::updateValuesInBufferData("vAngleShiftSide", glm::value_ptr(simulation.angleshifts[2]), 3, info, data);
+	
+	ShaderProgram::updateValuesInBufferData("vAmplitudesFront", glm::value_ptr(simulation.amplitudes[0]), 3, info, data);
+	ShaderProgram::updateValuesInBufferData("vAmplitudesBack", glm::value_ptr(simulation.amplitudes[1]), 3, info, data);
+	ShaderProgram::updateValuesInBufferData("vAmplitudesSide", glm::value_ptr(simulation.amplitudes[2]), 3, info, data);
+	
+	ShaderProgram::updateValuesInBufferData("fFrequencyFront", &simulation.frequencies.x, 1, info, data);
+	ShaderProgram::updateValuesInBufferData("fFrequencyBack", &simulation.frequencies.y, 1, info, data);
+	ShaderProgram::updateValuesInBufferData("fFrequencySide", &simulation.frequencies.z, 1, info, data);
+}
+
+void TreeAnimation::updateTreeUniformsInBufferData(TreeAnimation::Tree* tree, ShaderProgram::UniformBlockInfo& info, std::vector<float>& data)
+{
+	ShaderProgram::updateValuesInBufferData("phase", &tree->m_phase, 1, info, data);
+
+	// upload tree uniforms
+	for (unsigned int i = 0; i < tree->m_branchesIndexed.size(); i++)
+	{
+		std::string prefix = "branches[" + DebugLog::to_string(i) + "].";
+		
+		ShaderProgram::updateValuesInBufferData(prefix + "origin", glm::value_ptr(tree->m_branchesIndexed[i]->origin), 3, info, data);
+		ShaderProgram::updateValuesInBufferData(prefix + "phase", &tree->m_branchesIndexed[i]->phase, 1, info, data);
+		float pseudoInertiaFactor = 1.0f;
+		ShaderProgram::updateValuesInBufferData(prefix + "pseudoInertiaFactor", &pseudoInertiaFactor, 3, info, data);
+			
+		// orientation is computed from object space direction relative to optimal branch axis
+		glm::quat orientation = glm::rotation(glm::vec3(0.0f,1.0f,0.0f), tree->m_branchesIndexed[i]->direction);
+		glm::vec4 quatAsVec4 = glm::vec4(orientation.x, orientation.y, orientation.z, orientation.w);
+		ShaderProgram::updateValuesInBufferData(prefix + "orientation", glm::value_ptr(quatAsVec4), 4, info, data);
+	}
+}

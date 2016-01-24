@@ -251,7 +251,32 @@ int main()
 	ShaderProgram branchShader("/treeAnim/tree.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
 	branchShader.update("view", view);
 	branchShader.update("projection", perspective);
-	TreeAnimation::updateSimulationUniforms(branchShader, simulation);
+	// TreeAnimation::updateSimulationUniforms(branchShader, simulation);
+
+	auto uniformBlockInfoMap = ShaderProgram::getAllUniformBlockInfo(branchShader);
+	ShaderProgram::printUniformBlockInfo( uniformBlockInfoMap );
+	auto simulationUniformBlock = uniformBlockInfoMap.find("Simulation");
+	
+	if ( uniformBlockInfoMap.find("Tree") != uniformBlockInfoMap.end())
+	{
+		auto treeUniformBlock = uniformBlockInfoMap.at("Tree");;
+		auto treeUniformData = ShaderProgram::createUniformBlockDataVector( treeUniformBlock );
+
+		TreeAnimation::updateTreeUniformsInBufferData(treeVariants[0]->tree, treeUniformBlock, treeUniformData);
+
+		GLuint treeUniformBuffer = ShaderProgram::createUniformBlockBuffer( treeUniformData, 1);
+		glUniformBlockBinding(branchShader.getShaderProgramHandle(), treeUniformBlock.index, 1);
+	}
+	if ( uniformBlockInfoMap.find("Simulation") != uniformBlockInfoMap.end())
+	{
+		auto simulationUniformBlock = uniformBlockInfoMap.at("Simulation");;
+		auto simulationUniformData = ShaderProgram::createUniformBlockDataVector( simulationUniformBlock );
+
+		TreeAnimation::updateSimulationUniformsInBufferData(simulation, simulationUniformBlock, simulationUniformData);
+
+		GLuint simulationUniformBuffer = ShaderProgram::createUniformBlockBuffer( simulationUniformData, 2);
+		glUniformBlockBinding(branchShader.getShaderProgramHandle(), simulationUniformBlock.index, 2);
+	}
 
 	DEBUGLOG->log("Shader Compilation: FoliageToGBuffer"); DEBUGLOG->indent();
 	ShaderProgram foliageShader("/treeAnim/tree.vert", "/treeAnim/foliage.frag" , "/treeAnim/foliage.geom" ); DEBUGLOG->outdent();
@@ -520,7 +545,7 @@ int main()
 		for(int i = 0; i < branchRenderpasses.size(); i++)
 		{
 			// configure shader for this tree type
-			TreeAnimation::updateTreeUniforms(branchShader, treeVariants[i]->tree);
+			//TreeAnimation::updateTreeUniforms(branchShader, treeVariants[i]->tree);
 			branchRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
 
@@ -536,8 +561,8 @@ int main()
 		// render foliage to screen
 		for(int i = 0; i < foliageRenderpasses.size(); i++)
 		{
-			TreeAnimation::updateTreeUniforms(foliageShader, treeVariants[i]->tree);
-			foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
+			//TreeAnimation::updateTreeUniforms(foliageShader, treeVariants[i]->tree);
+			//foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
 
 		// copy composited image from screen to scene color texture

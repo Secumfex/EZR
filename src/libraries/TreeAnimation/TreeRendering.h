@@ -33,6 +33,7 @@ void generateFoliageGeometryShaderVertexData(TreeAnimation::Tree::Branch* branch
 Renderable* generateFoliageGeometryShaderRenderable(FoliageVertexData& source); // use this source to generate a single renderable suitable for a geometry shader
 
 void updateTreeUniforms(ShaderProgram& shaderProgram, TreeAnimation::Tree* tree);
+void updateTreeUniformsInBufferData(Tree* tree, ShaderProgram::UniformBlockInfo& info, std::vector<float>& data);
 
 struct SimulationProperties
 {
@@ -49,7 +50,8 @@ struct SimulationProperties
 		angleshifts[2] = glm::vec3(0.0);
 	}
 };
-void updateSimulationUniforms(ShaderProgram& shaderProgram, TreeAnimation::SimulationProperties& simulation);
+void updateSimulationUniforms(ShaderProgram& shaderProgram, SimulationProperties& simulation);
+void updateSimulationUniformsInBufferData(SimulationProperties& simulation, ShaderProgram::UniformBlockInfo& info,  std::vector<float>& data);
 
 struct BranchesVertexData
 {
