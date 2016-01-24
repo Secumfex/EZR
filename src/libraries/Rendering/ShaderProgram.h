@@ -343,6 +343,12 @@ public:
 	};
 	static std::map<std::string, UniformBlockInfo> getAllUniformBlockInfo(ShaderProgram& shaderProgram);
 	static void printUniformBlockInfo(std::map<std::string, ShaderProgram::UniformBlockInfo>& map);
+
+	static std::vector<float> createUniformBlockDataVector(ShaderProgram::UniformBlockInfo& uniformBlock); //!< creates a std::vector equal to the byte size of the uniform block
+	static GLuint createUniformBlockBuffer(std::vector<float>& data, GLuint bindingPoint); //!< generates a buffer, fills it with data and binds it to bindingPoint
+
+	static void updateValuesInBufferData(std::string uniformName, const float* values, int numValues, ShaderProgram::UniformBlockInfo& info, std::vector<float>& buffer);
+	static void updateValueInBuffer(std::string uniformName, const float* values, int numValues, ShaderProgram::UniformBlockInfo& info, GLuint bufferHandle);
 };
 
 #endif // SHADER_PROGRAM_H

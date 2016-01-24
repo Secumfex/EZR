@@ -588,3 +588,45 @@ void ShaderProgram::printUniformBlockInfo(std::map<std::string, ShaderProgram::U
 		DEBUGLOG->outdent();
 	}
 }
+
+std::vector<float> ShaderProgram::createUniformBlockDataVector(ShaderProgram::UniformBlockInfo& uniformBlock)
+{	
+	return std::vector<float>(uniformBlock.byteSize / sizeof(float), 0.0f);
+}
+
+GLuint ShaderProgram::createUniformBlockBuffer(std::vector<float>& data, GLuint bindingPoint)
+{
+	GLuint buffer;
+	glGenBuffers(1, &buffer);
+	glBindBuffer(GL_UNIFORM_BUFFER, buffer);
+	glBufferData(GL_UNIFORM_BUFFER, data.size() * sizeof(float), &data[0], GL_DYNAMIC_DRAW);
+
+	glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, buffer);
+
+	return buffer;
+}
+
+void ShaderProgram::updateValuesInBufferData(std::string uniformName, const float* values, int numValues, ShaderProgram::UniformBlockInfo& info, std::vector<float>& buffer)
+{
+	auto u = info.uniforms.find(uniformName);
+	if ( u == info.uniforms.end()) { return; }
+	if (numValues >= buffer.size()) {return;}
+
+	int valStartIdx = u->second.offset / 4;
+	if (buffer.size() < valStartIdx + numValues){return;} 
+
+	for (int i = 0; i < numValues; i++)
+	{
+		buffer[valStartIdx + i] = values[i];
+	}
+}
+
+void ShaderProgram::updateValueInBuffer(std::string uniformName, const float* values, int numValues, ShaderProgram::UniformBlockInfo& info, GLuint bufferHandle)
+{
+	auto u = info.uniforms.find(uniformName);
+	if ( u == info.uniforms.end()) { return; }
+	if ( info.byteSize < u->second.offset + (numValues * sizeof(float))){return;}
+
+	glBindBuffer(GL_UNIFORM_BUFFER, bufferHandle);
+	glBufferSubData(GL_UNIFORM_BUFFER, u->second.offset, numValues * sizeof(float), values);
+}
