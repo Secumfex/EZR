@@ -433,3 +433,203 @@ void TreeAnimation::updateTreeUniformsInBufferData(TreeAnimation::Tree* tree, Sh
 		ShaderProgram::updateValuesInBufferData(prefix + "orientation", glm::value_ptr(quatAsVec4), 4, info, data);
 	}
 }
+
+TreeAnimation::TreeRendering::TreeRendering()
+{
+	foliageShader = nullptr;
+	branchShader = nullptr;
+}
+
+TreeAnimation::TreeRendering::~TreeRendering()
+{
+	delete foliageShader;
+	delete branchShader;
+}
+
+void TreeAnimation::TreeRendering::generateAndConfigureTreeEntities(int numTreeVariants, float treeHeight, float treeWidth, int numMainBranches, int numSubBranches, int numFoliageQuadsPerBranch, const aiScene* branchModel)
+{
+	treeEntities.resize(numTreeVariants);
+	for (int i = 0; i < numTreeVariants; i++)
+	{
+		treeEntities[i] = new TreeEntity;
+
+		// generate a tree
+		TreeAnimation::Tree* tree = TreeAnimation::Tree::generateTree(treeHeight, treeWidth, numMainBranches, numSubBranches);
+		treeEntities[i]->tree = tree;
+		
+		TreeAnimation::FoliageVertexData fData;
+		TreeAnimation::BranchesVertexData bData;
+		
+		TreeAnimation::generateBranchVertexData(&tree->m_trunk, bData, branchModel);
+		for (auto b : tree->m_trunk.children)
+		{
+			TreeAnimation::generateBranchVertexData(b, bData, branchModel);
+			TreeAnimation::generateFoliageGeometryShaderVertexData(b, numFoliageQuadsPerBranch, fData);
+			for ( auto c : b->children)
+			{
+				TreeAnimation::generateFoliageGeometryShaderVertexData(c, numFoliageQuadsPerBranch, fData);
+				TreeAnimation::generateBranchVertexData(c, bData, branchModel);
+			}
+		}
+
+		if ( !fData.positions.empty())
+		{
+			auto fRender =TreeAnimation::generateFoliageGeometryShaderRenderable(fData);
+
+			treeEntities[i]->foliageRenderables.push_back(fRender);
+		}
+
+		auto bRender = TreeAnimation::generateBranchesRenderable(bData);
+		treeEntities[i]->branchRenderables.push_back(bRender);
+	}
+}
+
+namespace{
+float randFloat(float min, float max) //!< returns a random number between min and max
+{
+	return (((float) rand() / (float) RAND_MAX) * (max - min) + min); 
+}
+}
+
+void TreeAnimation::TreeRendering::generateModelMatrices(int numTreesPerTreeVariant, float xMin, float xMax, float zMin, float zMax)
+{
+	modelMatrices.resize(treeEntities.size());
+	for ( unsigned int k = 0; k < modelMatrices.size(); k++)
+	{
+		modelMatrices[k].resize(numTreesPerTreeVariant);
+
+		for (int i = 0; i < modelMatrices[k].size(); i++)
+		{
+			// generate random position on x/z plane
+			float x = randFloat(xMin, xMax);
+			float z = randFloat(zMin * 0.5f, zMax * 0.5f);
+			//float y = randFloat(-5.0f, 5.0f);
+
+			float y = 0.0f;
+			float rRotY = randFloat(-glm::pi<float>(),glm::pi<float>() );
+			float rScaleY = randFloat(0.75f, 1.25f);
+			modelMatrices[k][i] = glm::mat4(1.0f);
+			modelMatrices[k][i] = glm::scale(glm::vec3(1.0f, rScaleY, 1.0f)) * modelMatrices[k][i];
+			modelMatrices[k][i] = glm::rotate(rRotY, glm::vec3(0.0f, 1.0f, 0.0f))* modelMatrices[k][i];
+			modelMatrices[k][i] = glm::translate(glm::vec3(x, y, z)) * modelMatrices[k][i];
+		}
+	}
+}
+
+#include <Rendering/GLTools.h>
+void TreeAnimation::TreeRendering::createInstanceMatrixAttributes(int attributeLocation)
+{
+	if ( treeEntities.empty()){ DEBUGLOG->log("ERROR: Create TreeEntities first!"); return;}
+	if ( treeEntities.size() != modelMatrices.size()){ DEBUGLOG->log("ERROR: Create model matrices first!"); return;}
+
+	// generate Instance-buffer for renderables of this treeVariant
+	auto mat4VertexAttribute = [&](Renderable*r, int attributeLocation)
+	{
+		r->bind();
+		// mat4 Vertex Attribute == 4 x vec4 attributes (consecutively)
+		GLsizei vec4Size = sizeof(glm::vec4);
+		glEnableVertexAttribArray(attributeLocation); 
+		glVertexAttribPointer(attributeLocation, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (GLvoid*)0); // offset = 0 x vec4 size , stride = 4x vec4 size
+		glEnableVertexAttribArray(attributeLocation+1); 
+		glVertexAttribPointer(attributeLocation+1, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (GLvoid*)(vec4Size)); //offset = 1 x vec4 size
+		glEnableVertexAttribArray(attributeLocation+2); 
+		glVertexAttribPointer(attributeLocation+2, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (GLvoid*)(2 * vec4Size)); //offset = 2 x vec4 size
+		glEnableVertexAttribArray(attributeLocation+3); 
+		glVertexAttribPointer(attributeLocation+3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (GLvoid*)(3 * vec4Size)); // offset = 2x vec4 size
+
+		// enable instanced attribute processing
+		glVertexAttribDivisor(attributeLocation,   1);
+		glVertexAttribDivisor(attributeLocation+1, 1);
+		glVertexAttribDivisor(attributeLocation+2, 1);
+		glVertexAttribDivisor(attributeLocation+3, 1);
+		r->unbind();
+	};
+
+	// create vbo from treemodelmatrices and assing to all renderables
+	unsigned int i = 0;
+	for ( auto t : treeEntities)
+	{
+		GLuint instanceModelBufferHandle = bufferData<glm::mat4>(modelMatrices[i], GL_STATIC_DRAW);	
+	
+		for ( auto b : t->branchRenderables) {
+			mat4VertexAttribute(b, attributeLocation);
+		}
+		for ( auto f : t->foliageRenderables) {
+			mat4VertexAttribute(f, attributeLocation);
+		}
+		i++;
+	}
+}
+
+void TreeAnimation::TreeRendering::createAndConfigureShaders(std::string branchFragmentShader, std::string foliageFragmentShader)
+{
+	branchShader = new ShaderProgram("/treeAnim/tree.vert", branchFragmentShader);
+	foliageShader = new ShaderProgram("/treeAnim/tree.vert", foliageFragmentShader , "/treeAnim/foliage.geom" );
+}
+
+void TreeAnimation::TreeRendering::createAndConfigureUniformBlocksAndBuffers(int firstBindingPointIdx)
+{
+	if ( branchShader == nullptr || foliageShader == nullptr){ DEBUGLOG->log("ERROR: Create shaders first!"); return;}
+	if ( treeEntities.empty()){ DEBUGLOG->log("WARNING: Create TreeEntities first, before creating Uniform Block Buffers! No Data will be buffered.");}
+
+	branchShaderUniformBlockInfoMap = ShaderProgram::getAllUniformBlockInfo(*branchShader);
+	foliageShaderUniformBlockInfoMap = ShaderProgram::getAllUniformBlockInfo(*foliageShader);
+
+	if (branchShaderUniformBlockInfoMap.find("Tree") == branchShaderUniformBlockInfoMap.end() || foliageShaderUniformBlockInfoMap.find("Tree") == foliageShaderUniformBlockInfoMap.end() ) {
+		DEBUGLOG->log("ERROR: At least one Shader has no Uniform Block called 'Tree'"); return;}; 
+	if (branchShaderUniformBlockInfoMap.find("Simulation") == branchShaderUniformBlockInfoMap.end() || foliageShaderUniformBlockInfoMap.find("Simulation") == foliageShaderUniformBlockInfoMap.end() ) {
+		DEBUGLOG->log("ERROR: At least one Shader has no Uniform Block called 'Simulation'"); return;};
+
+	simulationUniformBlockInfo = branchShaderUniformBlockInfoMap.at("Simulation");
+	treeUniformBlockInfo	   = branchShaderUniformBlockInfoMap.at("Tree");
+
+	treeUniformBlockBuffers.resize(treeEntities.size());
+	treeBufferDataVectors.resize(treeEntities.size());
+	
+	simulationBufferDataVector = ShaderProgram::createUniformBlockDataVector(simulationUniformBlockInfo);
+	TreeAnimation::updateSimulationUniformsInBufferData(simulationProperties, simulationUniformBlockInfo, simulationBufferDataVector);
+	simulationUniformBlockBuffer = ShaderProgram::createUniformBlockBuffer(simulationBufferDataVector, firstBindingPointIdx);
+
+	for ( unsigned int i = 0 ; i < treeEntities.size(); i++)
+	{
+		treeBufferDataVectors[i] = ShaderProgram::createUniformBlockDataVector( treeUniformBlockInfo );
+		TreeAnimation::updateTreeUniformsInBufferData(treeEntities[i]->tree, treeUniformBlockInfo, treeBufferDataVectors[i]);
+
+		treeUniformBlockBuffers[i] = ShaderProgram::createUniformBlockBuffer( treeBufferDataVectors[i], i+(firstBindingPointIdx+1)); // 2..
+	}
+
+	// initial binding points
+	glUniformBlockBinding(branchShader->getShaderProgramHandle(), branchShaderUniformBlockInfoMap["Simulation"].index, firstBindingPointIdx);
+	glUniformBlockBinding(branchShader->getShaderProgramHandle(), branchShaderUniformBlockInfoMap["Tree"].index, firstBindingPointIdx+1);
+
+	glUniformBlockBinding(foliageShader->getShaderProgramHandle(), foliageShaderUniformBlockInfoMap["Simulation"].index, firstBindingPointIdx);
+	glUniformBlockBinding(foliageShader->getShaderProgramHandle(), foliageShaderUniformBlockInfoMap["Tree"].index, firstBindingPointIdx+1);
+}
+
+
+void TreeAnimation::TreeRendering::createAndConfigureRenderpasses(FrameBufferObject* targetBranchFBO, FrameBufferObject* targetFoliageFBO)
+{
+	if ( treeEntities.empty()){ DEBUGLOG->log("ERROR: Create TreeEntities first!"); return;}
+	if ( branchShader == nullptr || foliageShader == nullptr){ DEBUGLOG->log("ERROR: Create shaders first!"); return;}
+
+	branchRenderpasses.resize(treeEntities.size());
+	foliageRenderpasses.resize(treeEntities.size());
+	for ( int i = 0; i < treeEntities.size(); i++)
+	{
+		branchRenderpasses[i] = new RenderPass(branchShader, targetBranchFBO);
+		for ( auto r : treeEntities[i]->branchRenderables )
+		{
+			branchRenderpasses[i]->addRenderable(r);
+		}
+		branchRenderpasses[i]->addEnable(GL_DEPTH_TEST);
+
+		foliageRenderpasses[i] = new RenderPass(foliageShader, targetFoliageFBO);
+		for ( auto r : treeEntities[i]->foliageRenderables )
+		{
+			foliageRenderpasses[i]->addRenderable(r);
+		}
+		foliageRenderpasses[i]->addEnable(GL_ALPHA_TEST); // for foliage
+		foliageRenderpasses[i]->addEnable(GL_DEPTH_TEST);
+	}
+	glAlphaFunc(GL_GREATER, 0);
+}

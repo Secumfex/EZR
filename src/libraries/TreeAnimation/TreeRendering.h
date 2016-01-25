@@ -5,10 +5,8 @@
 #include <vector>
 
 #include "Tree.h"
-#include <Rendering/VertexArrayObjects.h>
-#include <Rendering/ShaderProgram.h>
-
-class aiScene;
+#include <Rendering/RenderPass.h>
+#include <assimp/Importer.hpp>
 
 namespace TreeAnimation
 {
@@ -66,6 +64,47 @@ struct BranchesVertexData
 void generateBranchVertexData(TreeAnimation::Tree::Branch* branch, BranchesVertexData& target, const aiScene* scene = NULL);
 Renderable* generateBranchesRenderable(BranchesVertexData& source); // use this source to generate a single renderable
 
+struct TreeEntity { 
+	TreeAnimation::Tree* tree;
+	std::vector< Renderable* > branchRenderables;
+	std::vector< Renderable* > foliageRenderables;
+};
 
-} // TreeAnimation
+class TreeRendering
+{
+public:
+
+	std::vector<TreeEntity* > treeEntities;
+	std::vector<std::vector<glm::mat4>> modelMatrices;
+
+	ShaderProgram* foliageShader;
+	ShaderProgram* branchShader;
+
+	std::vector<RenderPass* > foliageRenderpasses;
+	std::vector<RenderPass* > branchRenderpasses;
+
+	ShaderProgram::UniformBlockInfo treeUniformBlockInfo;
+	ShaderProgram::UniformBlockInfo simulationUniformBlockInfo;
+	std::map<std::string, ShaderProgram::UniformBlockInfo> branchShaderUniformBlockInfoMap;
+	std::map<std::string, ShaderProgram::UniformBlockInfo> foliageShaderUniformBlockInfoMap;
+
+	std::vector<GLuint> treeUniformBlockBuffers;
+	GLuint simulationUniformBlockBuffer;
+
+	std::vector<std::vector<float>> treeBufferDataVectors;
+	std::vector<float> simulationBufferDataVector;
+
+	SimulationProperties simulationProperties;
+
+	TreeRendering();
+	~TreeRendering();
+	void generateAndConfigureTreeEntities(int numTreeVariants, float treeHeight, float treeWidth, int numMainBranches, int numSubBranches, int numFoliageQuadsPerBranch, const aiScene* branchModel = NULL);
+	void generateModelMatrices(int numTreesPerTreeVariant, float xMin, float xMax, float zMin, float zMax);
+	void createInstanceMatrixAttributes(int attributeLocation = 5);
+	void createAndConfigureShaders(std::string branchFragmentShader = "/modelSpace/GBuffer.frag", std::string foliageFragmentShader = "/treeAnim/foliage.frag");
+	void createAndConfigureUniformBlocksAndBuffers(int firstBindingPointIdx = 1);
+	void createAndConfigureRenderpasses(FrameBufferObject* targetBranchFBO, FrameBufferObject* targetFoliageFBO);
+};
+
+} // namespace TreeAnimation
 #endif
