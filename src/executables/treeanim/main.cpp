@@ -129,13 +129,13 @@ int main()
 		-15.0f, 15.0f, -15.0f, 15.0f);
 
 	treeRendering.createInstanceMatrixAttributes();
-
 	DEBUGLOG->outdent();
 
 	/////////////////////    create wind field          //////////////////////////
+	DEBUGLOG->indent();
 	TreeAnimation::WindField windField(64,64);
 	windField.updateVectorTexture(0.0f);
-
+	glm::vec4 windFieldArea(-15.0f, -15.f, 15.0f, 15.0f);
 	DEBUGLOG->outdent();
 	//////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////// RENDERING  ///////////////////////////////////
@@ -193,6 +193,12 @@ int main()
 
 	treeRendering.foliageShader->bindTextureOnUse("tex", foliageTexHandle);
 
+	// windfield
+	treeRendering.branchShader->bindTextureOnUse( "windField", windField.m_vectorTextureHandle);
+	treeRendering.foliageShader->bindTextureOnUse("windField", windField.m_vectorTextureHandle);
+	treeRendering.branchShader->update( "windFieldArea", windFieldArea);
+	treeRendering.foliageShader->update("windFieldArea", windFieldArea);
+	
 	// create one render pass per tree type
 	treeRendering.createAndConfigureRenderpasses( &scene_gbuffer, 0 );
 	
@@ -200,6 +206,19 @@ int main()
 	treeRendering.branchRenderpasses[0]->setClearColor(0.0,0.0,0.0,0.0);
 	treeRendering.branchRenderpasses[0]->addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	DEBUGLOG->outdent();
+
+	
+	Grid grid(30,30, 1.0f, 1.0f,true);
+	ShaderProgram gridShader("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag");
+	RenderPass gridRenderPass(&gridShader, 0);
+	gridRenderPass.addRenderable(&grid);
+	gridRenderPass.addEnable(GL_DEPTH_TEST);
+	gridRenderPass.addDisable(GL_BLEND);
+	gridShader.bindTextureOnUse("tex", windField.m_vectorTextureHandle);
+	gridShader.update("mixTexture", 1.0f);
+	gridShader.update("model", glm::rotate(glm::radians(90.0f), glm::vec3(1.0f,0.0f,0.0f)));
+	gridShader.update("projection", perspective);
+	gridShader.update("view", view);
 
 	// regular GBuffer compositing
 	DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
@@ -319,7 +338,11 @@ int main()
         ImGuiIO& io = ImGui::GetIO();
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered	
 		ImGui::PushItemWidth(-125);
-		
+
+		ImGui::SliderFloat("strength", &s_strength, 0.0f, 4.0f); 
+		ImGui::SliderFloat("windPower", &s_wind_power, 0.0f, 4.0f); 
+		ImGui::SliderFloat("foliageSize", &s_foliage_size, 0.0f, 3.0f);	
+
 		treeRendering.imguiInterfaceSimulationProperties();
 
 		ImGui::PopItemWidth();
@@ -327,12 +350,14 @@ int main()
 
 		///////////////////////////// MATRIX UPDATING ///////////////////////////////
 		view = glm::lookAt(glm::vec3(turntable.getRotationMatrix() * eye), glm::vec3(center), glm::vec3(0.0f, 1.0f, 0.0f));
+		windField.updateVectorTexture(s_simulationTime);
 		//////////////////////////////////////////////////////////////////////////////
 				
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
 		//&&&&&&&&&&& CAMERA UNIFORMS &&&&&&&&&&&&&&//
 		treeRendering.branchShader->update( "view",  view);
 		treeRendering.foliageShader->update( "view", view);
+		gridShader.update("view", view);
 
 		//&&&&&&&&&&& FOREST UNIFORMS &&&&&&&&&&&&&&//
 
@@ -340,8 +365,9 @@ int main()
 		treeRendering.branchShader->update("simTime", s_simulationTime);
 		treeRendering.foliageShader->update("simTime", s_simulationTime);
 		s_wind_direction = glm::rotateY(glm::vec3(0.0f,0.0f,1.0f), glm::radians(s_wind_angle));
-		treeRendering.branchShader->update( "worldWindDirection", glm::vec4(s_wind_direction,s_wind_power));
-		treeRendering.foliageShader->update("worldWindDirection", glm::vec4(s_wind_direction,s_wind_power)); //front
+		treeRendering.branchShader->update( "windPower", s_wind_power);
+		treeRendering.foliageShader->update("windPower", s_wind_power); //front
+
 		treeRendering.foliageShader->update("foliageSize", s_foliage_size);
 		
 		treeRendering.updateActiveImguiInterfaces();
@@ -387,6 +413,8 @@ int main()
 		glGenerateMipmap(GL_TEXTURE_2D);
 		glBlendFunc(GL_ONE, GL_ONE); // this is altered by ImGui::Render(), so reset it every frame
 		bloom.render();
+
+		gridRenderPass.render();
 
 		ImGui::Render();
 		glDisable(GL_BLEND);
