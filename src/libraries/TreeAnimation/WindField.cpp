@@ -17,8 +17,8 @@ TreeAnimation::WindField::WindField(int width, int height)
 	
 	// default evaluation function
 	m_evaluate = [](float t, float offsetX, float offsetY){
-		float x = sin(t + offsetX * 5.0f) * 0.5f + 0.5f;
-		float y = cos(t + offsetY * 5.0f) * 0.5f + 0.5f;
+		float x = sin(t + offsetX * 5.0f) * 0.49f + 0.51f;
+		float y = cos(t + offsetY * 5.0f) * 0.49f + 0.51f;
 		float z = 0.0f;
 		return glm::vec3(x,y,z);
 	};
