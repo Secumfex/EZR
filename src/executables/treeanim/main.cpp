@@ -30,7 +30,7 @@
 #include <TreeAnimation/WindField.h>
 
 ////////////////////// PARAMETERS /////////////////////////////
-const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
+const glm::vec2 WINDOW_RESOLUTION = glm::vec2(1280.0f, 720.0f);
 const float TREE_HEIGHT = 4.0f;
 const float TREE_WIDTH = TREE_HEIGHT / 10.0f;
 const int NUM_MAIN_BRANCHES = 5;
@@ -343,6 +343,9 @@ int main()
 		ImGui::SliderFloat("windPower", &s_wind_power, 0.0f, 4.0f); 
 		ImGui::SliderFloat("foliageSize", &s_foliage_size, 0.0f, 3.0f);	
 
+		static bool showWindField = false;
+		ImGui::Checkbox("Show Wind Field", &showWindField);
+		
 		treeRendering.imguiInterfaceSimulationProperties();
 
 		ImGui::PopItemWidth();
@@ -414,7 +417,7 @@ int main()
 		glBlendFunc(GL_ONE, GL_ONE); // this is altered by ImGui::Render(), so reset it every frame
 		bloom.render();
 
-		gridRenderPass.render();
+		if ( showWindField) gridRenderPass.render();
 
 		ImGui::Render();
 		glDisable(GL_BLEND);
