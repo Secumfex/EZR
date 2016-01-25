@@ -502,7 +502,7 @@ void TreeAnimation::TreeRendering::generateModelMatrices(int numTreesPerTreeVari
 		{
 			// generate random position on x/z plane
 			float x = randFloat(xMin, xMax);
-			float z = randFloat(zMin * 0.5f, zMax * 0.5f);
+			float z = randFloat(zMin, zMax);
 			//float y = randFloat(-5.0f, 5.0f);
 
 			float y = 0.0f;
