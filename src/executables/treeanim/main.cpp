@@ -320,32 +320,7 @@ int main()
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered	
 		ImGui::PushItemWidth(-125);
 		
-		ImGui::SliderFloat("strength", &s_strength, 0.0f, 4.0f); 
-		ImGui::SliderFloat("windDirection", &s_wind_angle, 0.0f, 360.0f); 
-		ImGui::SliderFloat("windPower", &s_wind_power, 0.0f, 4.0f); 
-		ImGui::SliderFloat("foliageSize", &s_foliage_size, 0.0f, 3.0f);	
-
-		bool updateAngleShifts = false;
-		if (ImGui::CollapsingHeader("Angle Shifts"))
-		{   ImGui::SliderFloat3("vAngleShiftFront", glm::value_ptr( treeRendering.simulationProperties.angleshifts[0]), -1.0f, 1.0f);
-			ImGui::SliderFloat3("vAngleShiftBack", glm::value_ptr( treeRendering.simulationProperties.angleshifts[1]), -1.0f, 1.0f);
-			ImGui::SliderFloat3("vAngleShiftSide", glm::value_ptr( treeRendering.simulationProperties.angleshifts[2]), -1.0f, 1.0f);
-			updateAngleShifts = true;
-		}else {updateAngleShifts = false;}
-		
-		bool updateAmplitudes = false;
-		if (ImGui::CollapsingHeader("Amplitudes"))
-		{   ImGui::SliderFloat3("vAmplitudesFront", glm::value_ptr( treeRendering.simulationProperties.amplitudes[0]), -1.0f, 1.0f);
-			ImGui::SliderFloat3("vAmplitudesBack", glm::value_ptr( treeRendering.simulationProperties.amplitudes[1]), -1.0f, 1.0f);
-			ImGui::SliderFloat3("vAmplitudesSide", glm::value_ptr( treeRendering.simulationProperties.amplitudes[2]), -1.0f, 1.0f); 
-			updateAmplitudes = true;
-		}else{updateAmplitudes = false;}
-
-		bool updateFrequencies = false;
-		if (ImGui::CollapsingHeader("Frequencies"))
-		{   ImGui::SliderFloat3("fFrequencies", glm::value_ptr( treeRendering.simulationProperties.frequencies), 0.0f, 3.0f);
-			updateFrequencies = true;
-		}else{ updateFrequencies =false; }
+		treeRendering.imguiInterfaceSimulationProperties();
 
 		ImGui::PopItemWidth();
         //////////////////////////////////////////////////////////////////////////////
@@ -369,20 +344,7 @@ int main()
 		treeRendering.foliageShader->update("worldWindDirection", glm::vec4(s_wind_direction,s_wind_power)); //front
 		treeRendering.foliageShader->update("foliageSize", s_foliage_size);
 		
-		if (updateAngleShifts){
-			ShaderProgram::updateValueInBuffer("vAngleShiftFront", glm::value_ptr(treeRendering.simulationProperties.angleshifts[0]),3, treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer); //front
-			ShaderProgram::updateValueInBuffer("vAngleShiftBack", glm::value_ptr(treeRendering.simulationProperties.angleshifts[1]),3, treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer); // back
-			ShaderProgram::updateValueInBuffer("vAngleShiftSide", glm::value_ptr(treeRendering.simulationProperties.angleshifts[2]),3, treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer);} //side
-			
-		if (updateAmplitudes){
-			ShaderProgram::updateValueInBuffer("vAmplitudesFront", glm::value_ptr(treeRendering.simulationProperties.amplitudes[0]),3,treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer); //front
-			ShaderProgram::updateValueInBuffer("vAmplitudesBack", glm::value_ptr(treeRendering.simulationProperties.amplitudes[1]),3, treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer); // back
-			ShaderProgram::updateValueInBuffer("vAmplitudesSide", glm::value_ptr(treeRendering.simulationProperties.amplitudes[2]),3, treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer);} //side
-		
-		if (updateFrequencies){
-			ShaderProgram::updateValueInBuffer("fFrequencyFront", &treeRendering.simulationProperties.frequencies.x,1,treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer); //front
-			ShaderProgram::updateValueInBuffer("fFrequencyBack", &treeRendering.simulationProperties.frequencies.y,1, treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer); // back
-			ShaderProgram::updateValueInBuffer("fFrequencySide", &treeRendering.simulationProperties.frequencies.z,1, treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer);} //side
+		treeRendering.updateActiveImguiInterfaces();
 
 		//&&&&&&&&&&& COMPOSITING UNIFORMS &&&&&&&&&&&&&&//
 		compShader.update("vLightPos", view * s_lightPos);
