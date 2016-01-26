@@ -24,7 +24,10 @@
       <sourceFolder url="file://$MODULE_DIR$/src/executables/vml/CMakeLists.txt" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/vml/Spotlight.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/vml/Spotlight.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/executables/vml/VolumetricLighting.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/executables/vml/VolumetricLighting.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/vml/main.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/executables/vml/main2.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/Core/CMakeLists.txt" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/Core/DebugLog.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/Core/DebugLog.h" isTestSource="false" />
@@ -95,9 +98,8 @@
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/interleavedSamplingComposition.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/raymarching.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/raymarching.vert" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/raymarching_gbuffer.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/raymarching_interleaved.frag" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/rm.frag" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/rm.vert" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/shadowmap.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/shadowmap.vert" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/simple.frag" isTestSource="false" />
