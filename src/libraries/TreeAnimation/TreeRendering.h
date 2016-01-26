@@ -104,6 +104,10 @@ public:
 	void createAndConfigureShaders(std::string branchFragmentShader = "/modelSpace/GBuffer.frag", std::string foliageFragmentShader = "/treeAnim/foliage.frag");
 	void createAndConfigureUniformBlocksAndBuffers(int firstBindingPointIdx = 1);
 	void createAndConfigureRenderpasses(FrameBufferObject* targetBranchFBO, FrameBufferObject* targetFoliageFBO);
+
+	// Imgui
+	void imguiInterfaceSimulationProperties();
+	void updateActiveImguiInterfaces();
 };
 
 } // namespace TreeAnimation

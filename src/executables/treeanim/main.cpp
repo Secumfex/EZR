@@ -8,6 +8,7 @@
 #include <Rendering/GLTools.h>
 #include <Rendering/VertexArrayObjects.h>
 #include <Rendering/RenderPass.h>
+#include <Rendering/PostProcessing.h>
 
 #include "UI/imgui/imgui.h"
 #include <UI/imguiTools.h>
@@ -30,7 +31,7 @@
 #include <TreeAnimation/WindField.h>
 
 ////////////////////// PARAMETERS /////////////////////////////
-const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
+const glm::vec2 WINDOW_RESOLUTION = glm::vec2(1280.0f, 720.0f);
 const float TREE_HEIGHT = 4.0f;
 const float TREE_WIDTH = TREE_HEIGHT / 10.0f;
 const int NUM_MAIN_BRANCHES = 5;
@@ -55,6 +56,7 @@ static float s_simulationTime = 0.0f;
 
 static float s_eye_distance = 10.0f;
 static float s_strength = 1.0f;
+static int s_num_levels = 1;
 
 static std::map<Renderable*, glm::vec4*> s_renderable_color_map;
 static std::map<Renderable*, int> s_renderable_material_map; //!< mapping a renderable to a material index
@@ -129,13 +131,13 @@ int main()
 		-15.0f, 15.0f, -15.0f, 15.0f);
 
 	treeRendering.createInstanceMatrixAttributes();
-
 	DEBUGLOG->outdent();
 
 	/////////////////////    create wind field          //////////////////////////
+	DEBUGLOG->indent();
 	TreeAnimation::WindField windField(64,64);
 	windField.updateVectorTexture(0.0f);
-
+	glm::vec4 windFieldArea(-15.0f, -15.f, 15.0f, 15.0f);
 	DEBUGLOG->outdent();
 	//////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////// RENDERING  ///////////////////////////////////
@@ -169,8 +171,8 @@ int main()
 	//FrameBufferObject gbuffer_foliage(foliageShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
 	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
 	glBindTexture(GL_TEXTURE_2D, scene_gbuffer.getBuffer("fragColor"));
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, (GLint) log_2(max(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y)) );
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, (GLint) log_2(max(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y)) );
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	DEBUGLOG->outdent();
 
 	DEBUGLOG->log("RenderPasses Creation: Trees GBuffer"); DEBUGLOG->indent();
@@ -193,6 +195,12 @@ int main()
 
 	treeRendering.foliageShader->bindTextureOnUse("tex", foliageTexHandle);
 
+	// windfield
+	treeRendering.branchShader->bindTextureOnUse( "windField", windField.m_vectorTextureHandle);
+	treeRendering.foliageShader->bindTextureOnUse("windField", windField.m_vectorTextureHandle);
+	treeRendering.branchShader->update( "windFieldArea", windFieldArea);
+	treeRendering.foliageShader->update("windFieldArea", windFieldArea);
+	
 	// create one render pass per tree type
 	treeRendering.createAndConfigureRenderpasses( &scene_gbuffer, 0 );
 	
@@ -200,6 +208,19 @@ int main()
 	treeRendering.branchRenderpasses[0]->setClearColor(0.0,0.0,0.0,0.0);
 	treeRendering.branchRenderpasses[0]->addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	DEBUGLOG->outdent();
+	
+	// create a grid that can optionally be visualized
+	Grid grid(30,30, 1.0f, 1.0f,true);
+	ShaderProgram gridShader("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag");
+	RenderPass gridRenderPass(&gridShader, 0);
+	gridRenderPass.addRenderable(&grid);
+	gridRenderPass.addEnable(GL_DEPTH_TEST);
+	gridRenderPass.addDisable(GL_BLEND);
+	gridShader.bindTextureOnUse("tex", windField.m_vectorTextureHandle);
+	gridShader.update("mixTexture", 1.0f);
+	gridShader.update("model", glm::rotate(glm::radians(90.0f), glm::vec3(1.0f,0.0f,0.0f)));
+	gridShader.update("projection", perspective);
+	gridShader.update("view", view);
 
 	// regular GBuffer compositing
 	DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
@@ -218,16 +239,20 @@ int main()
 	compositing.addRenderable(&quad);
 
 	DEBUGLOG->log("Shader Compilation: Bloom Post Process"); DEBUGLOG->indent();
+
+	// create box blur post process and (simple) bloom shader
+	PostProcessing::BoxBlur boxBlur(WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4, &quad);
 	ShaderProgram bloomShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessBloomMipMap.frag" ); DEBUGLOG->outdent();
 	bloomShader.update("power", 2.0);
-	bloomShader.update("depth", s_strength);
-	bloomShader.bindTextureOnUse("tex", scene_gbuffer.getBuffer("fragColor"));
+	bloomShader.update("depth", 0.0);
+	bloomShader.bindTextureOnUse("tex", boxBlur.m_mipmapTextureHandle);
 
 	DEBUGLOG->log("RenderPass Creation: Bloom Post Process"); DEBUGLOG->indent();
 	RenderPass bloom(&bloomShader, 0);
 	bloom.addEnable(GL_BLEND);
 	bloom.addDisable(GL_DEPTH_TEST);
 	bloom.addRenderable(&quad);
+	DEBUGLOG->outdent();
 
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
@@ -319,45 +344,30 @@ int main()
         ImGuiIO& io = ImGui::GetIO();
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered	
 		ImGui::PushItemWidth(-125);
-		
+
 		ImGui::SliderFloat("strength", &s_strength, 0.0f, 4.0f); 
-		ImGui::SliderFloat("windDirection", &s_wind_angle, 0.0f, 360.0f); 
+		ImGui::SliderInt("num levels", &s_num_levels, 0, boxBlur.m_mipmapFBOHandles.size()); 
 		ImGui::SliderFloat("windPower", &s_wind_power, 0.0f, 4.0f); 
 		ImGui::SliderFloat("foliageSize", &s_foliage_size, 0.0f, 3.0f);	
 
-		bool updateAngleShifts = false;
-		if (ImGui::CollapsingHeader("Angle Shifts"))
-		{   ImGui::SliderFloat3("vAngleShiftFront", glm::value_ptr( treeRendering.simulationProperties.angleshifts[0]), -1.0f, 1.0f);
-			ImGui::SliderFloat3("vAngleShiftBack", glm::value_ptr( treeRendering.simulationProperties.angleshifts[1]), -1.0f, 1.0f);
-			ImGui::SliderFloat3("vAngleShiftSide", glm::value_ptr( treeRendering.simulationProperties.angleshifts[2]), -1.0f, 1.0f);
-			updateAngleShifts = true;
-		}else {updateAngleShifts = false;}
+		static bool showWindField = false;
+		ImGui::Checkbox("Show Wind Field", &showWindField);
 		
-		bool updateAmplitudes = false;
-		if (ImGui::CollapsingHeader("Amplitudes"))
-		{   ImGui::SliderFloat3("vAmplitudesFront", glm::value_ptr( treeRendering.simulationProperties.amplitudes[0]), -1.0f, 1.0f);
-			ImGui::SliderFloat3("vAmplitudesBack", glm::value_ptr( treeRendering.simulationProperties.amplitudes[1]), -1.0f, 1.0f);
-			ImGui::SliderFloat3("vAmplitudesSide", glm::value_ptr( treeRendering.simulationProperties.amplitudes[2]), -1.0f, 1.0f); 
-			updateAmplitudes = true;
-		}else{updateAmplitudes = false;}
-
-		bool updateFrequencies = false;
-		if (ImGui::CollapsingHeader("Frequencies"))
-		{   ImGui::SliderFloat3("fFrequencies", glm::value_ptr( treeRendering.simulationProperties.frequencies), 0.0f, 3.0f);
-			updateFrequencies = true;
-		}else{ updateFrequencies =false; }
+		treeRendering.imguiInterfaceSimulationProperties();
 
 		ImGui::PopItemWidth();
         //////////////////////////////////////////////////////////////////////////////
 
 		///////////////////////////// MATRIX UPDATING ///////////////////////////////
 		view = glm::lookAt(glm::vec3(turntable.getRotationMatrix() * eye), glm::vec3(center), glm::vec3(0.0f, 1.0f, 0.0f));
+		windField.updateVectorTexture(s_simulationTime);
 		//////////////////////////////////////////////////////////////////////////////
 				
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
 		//&&&&&&&&&&& CAMERA UNIFORMS &&&&&&&&&&&&&&//
 		treeRendering.branchShader->update( "view",  view);
 		treeRendering.foliageShader->update( "view", view);
+		gridShader.update("view", view);
 
 		//&&&&&&&&&&& FOREST UNIFORMS &&&&&&&&&&&&&&//
 
@@ -365,29 +375,17 @@ int main()
 		treeRendering.branchShader->update("simTime", s_simulationTime);
 		treeRendering.foliageShader->update("simTime", s_simulationTime);
 		s_wind_direction = glm::rotateY(glm::vec3(0.0f,0.0f,1.0f), glm::radians(s_wind_angle));
-		treeRendering.branchShader->update( "worldWindDirection", glm::vec4(s_wind_direction,s_wind_power));
-		treeRendering.foliageShader->update("worldWindDirection", glm::vec4(s_wind_direction,s_wind_power)); //front
+		treeRendering.branchShader->update( "windPower", s_wind_power);
+		treeRendering.foliageShader->update("windPower", s_wind_power); //front
+
 		treeRendering.foliageShader->update("foliageSize", s_foliage_size);
 		
-		if (updateAngleShifts){
-			ShaderProgram::updateValueInBuffer("vAngleShiftFront", glm::value_ptr(treeRendering.simulationProperties.angleshifts[0]),3, treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer); //front
-			ShaderProgram::updateValueInBuffer("vAngleShiftBack", glm::value_ptr(treeRendering.simulationProperties.angleshifts[1]),3, treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer); // back
-			ShaderProgram::updateValueInBuffer("vAngleShiftSide", glm::value_ptr(treeRendering.simulationProperties.angleshifts[2]),3, treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer);} //side
-			
-		if (updateAmplitudes){
-			ShaderProgram::updateValueInBuffer("vAmplitudesFront", glm::value_ptr(treeRendering.simulationProperties.amplitudes[0]),3,treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer); //front
-			ShaderProgram::updateValueInBuffer("vAmplitudesBack", glm::value_ptr(treeRendering.simulationProperties.amplitudes[1]),3, treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer); // back
-			ShaderProgram::updateValueInBuffer("vAmplitudesSide", glm::value_ptr(treeRendering.simulationProperties.amplitudes[2]),3, treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer);} //side
-		
-		if (updateFrequencies){
-			ShaderProgram::updateValueInBuffer("fFrequencyFront", &treeRendering.simulationProperties.frequencies.x,1,treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer); //front
-			ShaderProgram::updateValueInBuffer("fFrequencyBack", &treeRendering.simulationProperties.frequencies.y,1, treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer); // back
-			ShaderProgram::updateValueInBuffer("fFrequencySide", &treeRendering.simulationProperties.frequencies.z,1, treeRendering.simulationUniformBlockInfo, treeRendering.simulationUniformBlockBuffer);} //side
+		treeRendering.updateActiveImguiInterfaces();
 
 		//&&&&&&&&&&& COMPOSITING UNIFORMS &&&&&&&&&&&&&&//
 		compShader.update("vLightPos", view * s_lightPos);
-		bloomShader.update("depth", s_strength);
-		bloomShader.update("intensity", 1.0 / s_strength);
+		//bloomShader.update("depth", s_strength);
+		bloomShader.update("intensity", s_strength);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
@@ -416,15 +414,20 @@ int main()
 			treeRendering.foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
 
-		// copy composited image from screen to scene color texture
+		// copy composited image from screen to box blur fbo
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 		glReadBuffer(GL_BACK);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, scene_gbuffer.getFramebufferHandle());
-		glBlitFramebuffer(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y,0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-		glBindTexture(GL_TEXTURE_2D, scene_gbuffer.getBuffer("fragColor"));
-		glGenerateMipmap(GL_TEXTURE_2D);
-		glBlendFunc(GL_ONE, GL_ONE); // this is altered by ImGui::Render(), so reset it every frame
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, boxBlur.m_mipmapFBOHandles[0]);
+		glBlitFramebuffer(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y,0,0, boxBlur.m_width, boxBlur.m_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		boxBlur.pull(); // generate mipmaps
+		boxBlur.push(s_num_levels); // blur levels
+
+		glBlendFunc(GL_ONE, GL_ONE); // add blurred image to screen
 		bloom.render();
+
+		if ( showWindField) gridRenderPass.render();
 
 		ImGui::Render();
 		glDisable(GL_BLEND);

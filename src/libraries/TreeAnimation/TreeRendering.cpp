@@ -502,7 +502,7 @@ void TreeAnimation::TreeRendering::generateModelMatrices(int numTreesPerTreeVari
 		{
 			// generate random position on x/z plane
 			float x = randFloat(xMin, xMax);
-			float z = randFloat(zMin * 0.5f, zMax * 0.5f);
+			float z = randFloat(zMin, zMax);
 			//float y = randFloat(-5.0f, 5.0f);
 
 			float y = 0.0f;
@@ -632,4 +632,50 @@ void TreeAnimation::TreeRendering::createAndConfigureRenderpasses(FrameBufferObj
 		foliageRenderpasses[i]->addEnable(GL_DEPTH_TEST);
 	}
 	glAlphaFunc(GL_GREATER, 0);
+}
+
+#include <UI/imgui/imgui.h>
+namespace{
+static bool updateAngleShifts = false;
+static bool updateAmplitudes = false;
+static bool updateFrequencies = false;
+}
+void TreeAnimation::TreeRendering::imguiInterfaceSimulationProperties()
+{
+	if (ImGui::CollapsingHeader("Angle Shifts"))
+	{   ImGui::SliderFloat3("vAngleShiftFront", glm::value_ptr( simulationProperties.angleshifts[0]), -1.0f, 1.0f);
+		ImGui::SliderFloat3("vAngleShiftBack", glm::value_ptr(  simulationProperties.angleshifts[1]), -1.0f, 1.0f);
+		ImGui::SliderFloat3("vAngleShiftSide", glm::value_ptr(  simulationProperties.angleshifts[2]), -1.0f, 1.0f);
+		updateAngleShifts = true;
+	}else {updateAngleShifts = false;}
+		
+	if (ImGui::CollapsingHeader("Amplitudes"))
+	{   ImGui::SliderFloat3("vAmplitudesFront", glm::value_ptr( simulationProperties.amplitudes[0]), -1.0f, 1.0f);
+		ImGui::SliderFloat3("vAmplitudesBack", glm::value_ptr(  simulationProperties.amplitudes[1]), -1.0f, 1.0f);
+		ImGui::SliderFloat3("vAmplitudesSide", glm::value_ptr(  simulationProperties.amplitudes[2]), -1.0f, 1.0f); 
+		updateAmplitudes = true;
+	}else{updateAmplitudes = false;}
+
+
+	if (ImGui::CollapsingHeader("Frequencies"))
+	{   ImGui::SliderFloat3("fFrequencies", glm::value_ptr( simulationProperties.frequencies), 0.0f, 3.0f);
+		updateFrequencies = true;
+	}else{ updateFrequencies =false; }
+}
+void TreeAnimation::TreeRendering::updateActiveImguiInterfaces()
+{
+	if (updateAngleShifts){
+		ShaderProgram::updateValueInBuffer("vAngleShiftFront", glm::value_ptr(simulationProperties.angleshifts[0]),3, simulationUniformBlockInfo, simulationUniformBlockBuffer); //front
+		ShaderProgram::updateValueInBuffer("vAngleShiftBack", glm::value_ptr(simulationProperties.angleshifts[1]),3, simulationUniformBlockInfo, simulationUniformBlockBuffer); // back
+		ShaderProgram::updateValueInBuffer("vAngleShiftSide", glm::value_ptr(simulationProperties.angleshifts[2]),3, simulationUniformBlockInfo, simulationUniformBlockBuffer);} //side
+			
+	if (updateAmplitudes){
+		ShaderProgram::updateValueInBuffer("vAmplitudesFront", glm::value_ptr(simulationProperties.amplitudes[0]),3,simulationUniformBlockInfo, simulationUniformBlockBuffer); //front
+		ShaderProgram::updateValueInBuffer("vAmplitudesBack", glm::value_ptr(simulationProperties.amplitudes[1]),3, simulationUniformBlockInfo, simulationUniformBlockBuffer); // back
+		ShaderProgram::updateValueInBuffer("vAmplitudesSide", glm::value_ptr(simulationProperties.amplitudes[2]),3, simulationUniformBlockInfo, simulationUniformBlockBuffer);} //side
+		
+	if (updateFrequencies){
+		ShaderProgram::updateValueInBuffer("fFrequencyFront", &simulationProperties.frequencies.x,1,simulationUniformBlockInfo, simulationUniformBlockBuffer); //front
+		ShaderProgram::updateValueInBuffer("fFrequencyBack", &simulationProperties.frequencies.y,1, simulationUniformBlockInfo, simulationUniformBlockBuffer); // back
+		ShaderProgram::updateValueInBuffer("fFrequencySide", &simulationProperties.frequencies.z,1, simulationUniformBlockInfo, simulationUniformBlockBuffer);} //side
 }
