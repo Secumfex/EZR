@@ -24,6 +24,8 @@ static glm::vec4 s_color = glm::vec4(35.0f/255.0f, 65.0f/255.0f, 14.0f/255.0f, 1
 static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
 
 static float s_strength = 0.05f;
+static int s_show_level = 0;
+static int s_num_levels = 10000;
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -151,8 +153,14 @@ int main()
 	glBindTexture(GL_TEXTURE_2D, mipmap);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, getResolution(window).x, getResolution(window).y, 0, GL_RGBA, GL_UNSIGNED_INT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // does this do anything?
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT); // does this do anything?
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT); 
 	glGenerateMipmap(GL_TEXTURE_2D);
 	int mipmapNumber = (int) log_2( max(getResolution(window).x,getResolution(window).y) );
+	s_num_levels = mipmapNumber;
 
 	GLuint* mipmapFBOHandles = new GLuint[mipmapNumber];
 	glGenFramebuffers(mipmapNumber, mipmapFBOHandles);
@@ -263,6 +271,10 @@ int main()
     	{
     		ImGui::ColorEdit4( "color", glm::value_ptr( s_color)); // color mixed at max distance
 	        ImGui::SliderFloat("strength", &s_strength, 0.0f, 2.0f); // influence of color shift
+
+			ImGui::SliderInt("show level", &s_show_level, 0, mipmapNumber-1); // influence of color shift
+			ImGui::SliderInt("num levels", &s_num_levels, 0, mipmapNumber); // influence of color shift
+
         }
         
 		ImGui::Checkbox("auto-rotate", &s_isRotating); // enable/disable rotating volume
@@ -332,7 +344,7 @@ int main()
 		// mipmapping
 		glDisable(GL_DEPTH_TEST);
 		pushShaderProgram.use();
-		for (int level = mipmapNumber-2; level >= 0; level--)
+		for (int level = s_num_levels-1; level >= 0; level--)
 		{
 			glBindFramebuffer(GL_FRAMEBUFFER, mipmapFBOHandles[level]);
 			pushShaderProgram.update("level", level);
@@ -343,8 +355,8 @@ int main()
 		// copy mipmap fbo content of level 0 to window
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		glReadBuffer(GL_BACK);
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, mipmapFBOHandles[0]);
-		glBlitFramebuffer(0,0,getResolution(window).x,getResolution(window).y,0,0,getResolution(window).x,getResolution(window).y, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, mipmapFBOHandles[min(mipmapNumber-1, max(s_show_level, 0))]);
+		glBlitFramebuffer(0,0,getResolution(window).x / pow (2.0, min(mipmapNumber-1, max(s_show_level, 0))), getResolution(window).y / pow(2.0,min(mipmapNumber-1, max(s_show_level, 0))),0,0,getResolution(window).x,getResolution(window).y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
 		ImGui::Render();
 		glDisable(GL_BLEND);
