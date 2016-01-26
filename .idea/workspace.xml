@@ -26,15 +26,43 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a0c857e8-7122-4e91-a135-dbf9681346dc" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/executables/vml/VolumetricLighting.cpp" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/executables/vml/VolumetricLighting.h" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/shaders/vml/raymarching_gbuffer.frag" />
-      <change type="DELETED" beforePath="C:\Development\CLanguages\EZR\src\shaders\vml\rm.frag" afterPath="" />
-      <change type="DELETED" beforePath="C:\Development\CLanguages\EZR\src\shaders\vml\rm.vert" afterPath="" />
-      <change type="MOVED" beforePath="C:\Development\CLanguages\EZR\src\executables\vml\main.cpp" afterPath="$PROJECT_DIR$/src/executables/vml/main2.cpp" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/EZR.iml" afterPath="$PROJECT_DIR$/.idea/EZR.iml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/executables/instancing/CMakeLists.txt" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/executables/treeanim/CMakeLists.txt" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/libraries/TreeAnimation/CMakeLists.txt" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/libraries/TreeAnimation/Tree.cpp" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/libraries/TreeAnimation/Tree.h" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/libraries/TreeAnimation/TreeRendering.cpp" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/libraries/TreeAnimation/TreeRendering.h" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/libraries/TreeAnimation/WindField.cpp" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/libraries/TreeAnimation/WindField.h" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/shaders/treeAnim/foliage.frag" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/shaders/treeAnim/foliage.geom" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/shaders/modelSpace/instancedModelViewProjection.vert" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/executables/instancing/main.cpp" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/executables/treeanim/main.cpp" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/shaders/screenSpace/postProcessBloomMipMap.frag" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/shaders/treeAnim/tree.vert" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/libraries/Importing/AssimpTools.cpp" afterPath="$PROJECT_DIR$/src/libraries/Importing/AssimpTools.cpp" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/libraries/Importing/AssimpTools.h" afterPath="$PROJECT_DIR$/src/libraries/Importing/AssimpTools.h" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/libraries/Rendering/FrameBufferObject.cpp" afterPath="$PROJECT_DIR$/src/libraries/Rendering/FrameBufferObject.cpp" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/shaders/modelSpace/GBuffer.frag" afterPath="$PROJECT_DIR$/src/shaders/modelSpace/GBuffer.frag" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/shaders/modelSpace/GBuffer.vert" afterPath="$PROJECT_DIR$/src/shaders/modelSpace/GBuffer.vert" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/libraries/Rendering/GLTools.h" afterPath="$PROJECT_DIR$/src/libraries/Rendering/GLTools.h" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/libraries/Rendering/RenderPass.cpp" afterPath="$PROJECT_DIR$/src/libraries/Rendering/RenderPass.cpp" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/libraries/Rendering/RenderPass.h" afterPath="$PROJECT_DIR$/src/libraries/Rendering/RenderPass.h" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/libraries/Rendering/ShaderProgram.cpp" afterPath="$PROJECT_DIR$/src/libraries/Rendering/ShaderProgram.cpp" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/libraries/Rendering/ShaderProgram.h" afterPath="$PROJECT_DIR$/src/libraries/Rendering/ShaderProgram.h" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/libraries/Importing/TextureTools.cpp" afterPath="$PROJECT_DIR$/src/libraries/Importing/TextureTools.cpp" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/libraries/Importing/TextureTools.h" afterPath="$PROJECT_DIR$/src/libraries/Importing/TextureTools.h" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/libraries/Rendering/Uniform.h" afterPath="$PROJECT_DIR$/src/libraries/Rendering/Uniform.h" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/libraries/Rendering/VertexArrayObjects.cpp" afterPath="$PROJECT_DIR$/src/libraries/Rendering/VertexArrayObjects.cpp" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/libraries/Rendering/VertexArrayObjects.h" afterPath="$PROJECT_DIR$/src/libraries/Rendering/VertexArrayObjects.h" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/shaders/modelSpace/dpGBuffer.frag" afterPath="$PROJECT_DIR$/src/shaders/modelSpace/dpGBuffer.frag" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/shaders/screenSpace/finalCompositing.frag" afterPath="$PROJECT_DIR$/src/shaders/screenSpace/finalCompositing.frag" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/shaders/modelSpace/geometry.vert" afterPath="$PROJECT_DIR$/src/shaders/modelSpace/geometry.vert" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/executables/assimp/main.cpp" afterPath="$PROJECT_DIR$/src/executables/assimp/main.cpp" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/executables/misc/main.cpp" afterPath="$PROJECT_DIR$/src/executables/misc/main.cpp" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/shaders/geometry/simpleGeom.geom" afterPath="$PROJECT_DIR$/src/shaders/geometry/simpleGeom.geom" />
     </list>
     <ignored path="EZR.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -81,7 +109,7 @@
             <entry file="file://$PROJECT_DIR$/src/executables/assimp/main.cpp">
               <provider selected="true" editor-type-id="text-editor">
                 <state vertical-scroll-proportion="0.0">
-                  <caret line="114" column="0" selection-start-line="114" selection-start-column="0" selection-end-line="135" selection-end-column="25" />
+                  <caret line="176" column="0" selection-start-line="176" selection-start-column="0" selection-end-line="176" selection-end-column="0" />
                   <folding />
                 </state>
               </provider>
@@ -103,7 +131,7 @@
             <entry file="file://$PROJECT_DIR$/src/shaders/modelSpace/GBuffer.vert">
               <provider selected="true" editor-type-id="text-editor">
                 <state vertical-scroll-proportion="0.0">
-                  <caret line="10" column="26" selection-start-line="10" selection-start-column="9" selection-end-line="10" selection-end-column="26" />
+                  <caret line="13" column="21" selection-start-line="13" selection-start-column="21" selection-end-line="13" selection-end-column="21" />
                   <folding />
                 </state>
               </provider>
@@ -112,8 +140,8 @@
           <file leaf-file-name="GBuffer.frag" pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/src/shaders/modelSpace/GBuffer.frag">
               <provider selected="true" editor-type-id="text-editor">
-                <state vertical-scroll-proportion="0.16648531">
-                  <caret line="9" column="18" selection-start-line="9" selection-start-column="18" selection-end-line="9" selection-end-column="18" />
+                <state vertical-scroll-proportion="0.073993474">
+                  <caret line="4" column="18" selection-start-line="4" selection-start-column="18" selection-end-line="4" selection-end-column="18" />
                   <folding />
                 </state>
               </provider>
@@ -486,9 +514,9 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
-    <editor active="false" />
+    <editor active="true" />
     <layout>
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.1796875" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.1796875" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32418162" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="CMake" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
@@ -871,7 +899,7 @@
     <entry file="file://$PROJECT_DIR$/src/executables/assimp/main.cpp">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="114" column="0" selection-start-line="114" selection-start-column="0" selection-end-line="135" selection-end-column="25" />
+          <caret line="176" column="0" selection-start-line="176" selection-start-column="0" selection-end-line="176" selection-end-column="0" />
           <folding />
         </state>
       </provider>
@@ -916,6 +944,14 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/shaders/modelSpace/GBuffer.vert">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="13" column="21" selection-start-line="13" selection-start-column="21" selection-end-line="13" selection-end-column="21" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/executables/vml/main.cpp">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -926,18 +962,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/shaders/modelSpace/GBuffer.vert">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="10" column="26" selection-start-line="10" selection-start-column="9" selection-end-line="10" selection-end-column="26" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/shaders/modelSpace/GBuffer.frag">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.16648531">
-          <caret line="9" column="18" selection-start-line="9" selection-start-column="18" selection-end-line="9" selection-end-column="18" />
+        <state vertical-scroll-proportion="0.073993474">
+          <caret line="4" column="18" selection-start-line="4" selection-start-column="18" selection-end-line="4" selection-end-column="18" />
           <folding />
         </state>
       </provider>
