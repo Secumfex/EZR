@@ -79,6 +79,10 @@ void updateVectorTexture(double elapsedTime)
 	}
 }
 
+float log_2( float n )  
+{  
+    return log( n ) / log( 2 );      // log(n)/log(2) is log_2. 
+}
 int main()
 {
 	DEBUGLOG->setAutoPrint(true);
@@ -139,6 +143,30 @@ int main()
 
 	geomShader.update("projection", perspective);
 
+	// PostProcessing
+	//FrameBufferObject mipMapFBO;
+
+	GLuint mipmap;
+	glGenTextures(1, &mipmap);
+	glBindTexture(GL_TEXTURE_2D, mipmap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, getResolution(window).x, getResolution(window).y, 0, GL_RGBA, GL_UNSIGNED_INT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // does this do anything?
+	glGenerateMipmap(GL_TEXTURE_2D);
+	int mipmapNumber = (int) log_2( max(getResolution(window).x,getResolution(window).y) );
+
+	GLuint* mipmapFBOHandles = new GLuint[mipmapNumber];
+	glGenFramebuffers(mipmapNumber, mipmapFBOHandles);
+
+	for ( int i = 0; i < mipmapNumber; i++)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, mipmapFBOHandles[i]);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mipmap, i);
+		glDrawBuffer(GL_COLOR_ATTACHMENT0);
+	}
+
+	Quad quad;
+	ShaderProgram pushShaderProgram("/screenSpace/fullscreen.vert", "/screenSpace/pushBoxBlur.frag" );
+	pushShaderProgram.bindTextureOnUse("tex", mipmap);
 
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
@@ -284,14 +312,39 @@ int main()
 		// glBindTexture(GL_TEXTURE_2D, fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2)); // position
 		// glActiveTexture(GL_TEXTURE0);
 
-		// compShader.update("colorMap",    0);
-		// compShader.update("normalMap",   1);
-		// compShader.update("positionMap", 2);
+		//compShader.update("colorMap",    0);
+		//compShader.update("normalMap",   1);
+		//compShader.update("positionMap", 2);
 
 		renderPass.render();
-		// compositing.render();
+		//compositing.render();
 
 		geom.render();
+
+		// copy window content to mipmap fbo for level 0
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		glReadBuffer(GL_BACK);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, mipmapFBOHandles[0]);
+		glBlitFramebuffer(0,0,getResolution(window).x,getResolution(window).y,0,0,getResolution(window).x,getResolution(window).y, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glBindTexture(GL_TEXTURE_2D, mipmap);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		// mipmapping
+		glDisable(GL_DEPTH_TEST);
+		pushShaderProgram.use();
+		for (int level = mipmapNumber-2; level >= 0; level--)
+		{
+			glBindFramebuffer(GL_FRAMEBUFFER, mipmapFBOHandles[level]);
+			pushShaderProgram.update("level", level);
+			quad.draw();
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		
+		// copy mipmap fbo content of level 0 to window
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glReadBuffer(GL_BACK);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, mipmapFBOHandles[0]);
+		glBlitFramebuffer(0,0,getResolution(window).x,getResolution(window).y,0,0,getResolution(window).x,getResolution(window).y, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
 		ImGui::Render();
 		glDisable(GL_BLEND);
