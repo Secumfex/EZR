@@ -26,7 +26,7 @@ void FrameBufferObject::createDepthTexture()
 
 	glGenTextures(1, &m_depthTextureHandle);
 	glBindTexture(GL_TEXTURE_2D, m_depthTextureHandle);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, m_width, m_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, m_width, m_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -56,6 +56,8 @@ GLuint FrameBufferObject::createFramebufferTexture()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return textureHandle;
 }
@@ -215,16 +217,7 @@ FrameBufferObject::FrameBufferObject(std::map<std::string, ShaderProgram::Info>*
 	int i = 0;
     for (auto e : *outputMap) 
     {	
-    	GLuint handle;
-    	glGenTextures(1, &handle);
-	    glBindTexture(GL_TEXTURE_2D, handle);
-	    glTexImage2D(GL_TEXTURE_2D, 0, s_internalFormat, m_width, m_height, 0, s_format, s_type, 0);
-	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+		GLuint handle = createFramebufferTexture();
 
 		GLuint currentAttachment = GL_COLOR_ATTACHMENT0 + static_cast<unsigned int>(e.second.location); //e.second;
 		// DEBUGLOG->log("buffer    : " + e.first);
@@ -242,12 +235,17 @@ FrameBufferObject::FrameBufferObject(std::map<std::string, ShaderProgram::Info>*
 	    i++;
     }
 
-    glDrawBuffers(size, &drawBufferHandles[0]);
+	if (!drawBufferHandles.empty() )
+    {
+		glDrawBuffers(size, &drawBufferHandles[0]);
+	}
 
-	glGenTextures( 1, &m_depthTextureHandle);
-	glBindTexture( GL_TEXTURE_2D, m_depthTextureHandle);
-	glTexImage2D(GL_TEXTURE_2D, 0,GL_DEPTH_COMPONENT16, m_width, m_height, 0,GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depthTextureHandle, 0);
+	//glGenTextures( 1, &m_depthTextureHandle);
+	//glBindTexture( GL_TEXTURE_2D, m_depthTextureHandle);
+	//glTexImage2D(GL_TEXTURE_2D, 0,GL_DEPTH_COMPONENT24, m_width, m_height, 0,GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+	//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depthTextureHandle, 0);
+
+	createDepthTexture();
 
 	// Any errors while generating fbo ?
 	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)

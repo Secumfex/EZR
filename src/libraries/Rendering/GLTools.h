@@ -30,6 +30,19 @@ void setWindowResizeCallback(GLFWwindow* window, std::function<void (int, int)> 
 glm::vec2 getResolution(GLFWwindow* window);
 float getRatio(GLFWwindow* window); //!< returns (width / height) of the window
 
+template <class T>
+GLuint bufferData(const std::vector<T>& content, GLenum drawType = GL_STATIC_DRAW)
+{
+    GLuint vbo = 0;
+	if ( content.size() != 0 )// && content.size() % dimensions == 0 )
+	{
+		glGenBuffers(1, &vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glBufferData(GL_ARRAY_BUFFER, content.size() * sizeof(T), &content[0], drawType);
+	}
+    return vbo;
+}
+
 /** upload the provided volume data to a 3D OpenGL texture object, i.e. CT-Data*/
 template <typename T>
 GLuint loadTo3DTexture(VolumeData<T>& volumeData, GLenum internalFormat = GL_R16I, GLenum format = GL_RED_INTEGER, GLenum type = GL_SHORT)

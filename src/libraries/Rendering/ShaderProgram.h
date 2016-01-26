@@ -161,7 +161,7 @@ public:
 	 * @brief Updates a list of 2D vector uniform variables
 	 * 
 	 * @param name 	Name of the uniform variable in GLSL
-	 * @param value The vector witch stores the values to update the unform with
+	 * @param value The vector which stores the values to update the unform with
 	 * 
 	 * @return The shader program
 	 */
@@ -170,7 +170,7 @@ public:
 	 * @brief Updates a list of 3D vector uniform variables
 	 * 
 	 * @param name 	Name of the uniform variable in GLSL
-	 * @param value The vector witch stores the values to update the unform with
+	 * @param value The vector which stores the values to update the unform with
 	 * 
 	 * @return The shader program
 	 */
@@ -179,11 +179,20 @@ public:
 	 * @brief Updates a list of 4D vector uniform variables
 	 * 
 	 * @param name 	Name of the uniform variable in GLSL
-	 * @param value The vector witch stores the values to update the unform with
+	 * @param value The vector which stores the values to update the unform with
 	 * 
 	 * @return The shader program
 	 */
 	ShaderProgram* update(std::string name, const std::vector<glm::vec4>& vector);
+
+	/**
+	 * @brief binds a texture to a OpenGL texture unit and updates the corresponding uniform
+	 * @param name 	Name of the (sampler) uniform variable in GLSL
+	 * @param texUnit texture unit to bind the texture to (make sure it doesn't colide with the TextureMap size)
+	 * @param textureHandle the texture to bind
+	 * @return The shader program
+	 */
+	ShaderProgram* updateAndBindTexture(std::string name, int texUnit, GLuint textureHandle, GLenum textureType = GL_TEXTURE_2D);
 
 	/**
 	 * @brief Method to add an already existing texture to the shader, which will be bound automatically wenn use() is called
@@ -315,7 +324,31 @@ protected:
 	// Map of texture handles that will be bound to the associated (sampler-) name when use() is called
 	std::map<std::string, GLuint> m_textureMap;
 
-	std::string getTypeString(GLenum type);
+public:
+	static std::string getTypeString(GLenum type);
+
+	struct BlockUniformInfo 
+	{
+		ShaderProgram::Info info;
+		GLint offset; // byte offset in the uniform block / buffer
+		GLint arrayStride;
+		GLint matrixStride;
+	};
+	struct UniformBlockInfo
+	{
+		GLint index; //!< index in the shader program
+		GLint byteSize;
+		GLint numActiveUniforms; //!< amount of active uniforms in this uniform block
+		std::map<std::string, BlockUniformInfo> uniforms; //!< uniform locations in the shader
+	};
+	static std::map<std::string, UniformBlockInfo> getAllUniformBlockInfo(ShaderProgram& shaderProgram);
+	static void printUniformBlockInfo(std::map<std::string, ShaderProgram::UniformBlockInfo>& map);
+
+	static std::vector<float> createUniformBlockDataVector(ShaderProgram::UniformBlockInfo& uniformBlock); //!< creates a std::vector equal to the byte size of the uniform block
+	static GLuint createUniformBlockBuffer(std::vector<float>& data, GLuint bindingPoint); //!< generates a buffer, fills it with data and binds it to bindingPoint
+
+	static void updateValuesInBufferData(std::string uniformName, const float* values, int numValues, ShaderProgram::UniformBlockInfo& info, std::vector<float>& buffer);
+	static void updateValueInBuffer(std::string uniformName, const float* values, int numValues, ShaderProgram::UniformBlockInfo& info, GLuint bufferHandle);
 };
 
 #endif // SHADER_PROGRAM_H

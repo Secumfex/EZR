@@ -7,17 +7,13 @@ in VertexData {
 	vec2 texCoord;
 	vec3 position;
 	vec3 normal;
-} VertexIn[];
-
-out VertexData {
-	vec2 texCoord;
-	vec3 position;
-	vec3 normal;
-} VertexOut;
+	vec3 tangent;
+} VertexGeom[];
 
 out vec2 passUVCoord;
 out vec3 passPosition;
 out vec3 passNormal;
+out vec3 passTangent;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -25,6 +21,23 @@ uniform mat4 projection;
 uniform	float strength;
 // uniform float stiffness;
 uniform sampler2D vectorTexture;
+
+float mix3(float a, float b, float c, float t)
+{
+	return 
+		mix(
+			mix(a, b, clamp(t+1,0.0,1.0)),
+			c,
+			clamp(t,0.0,1.0));
+}
+vec4 mix3(vec4 a, vec4 b, vec4 c, float t)
+{
+	return 
+		mix(
+			mix(a, b, clamp(t+1,0.0,1.0)),
+			c,
+			clamp(t,0.0,1.0));
+}
 
 /**
  * @brief not really the center, but whatever
@@ -38,108 +51,63 @@ vec4 centerPos(vec4 pos1, vec4 pos2, vec4 pos3)
 
 void main()
 {
+	// inverse transpose model view matrix
+	mat4 invTransMV =  inverse(transpose(view * model));
+
+	// model space of triangle
 	vec4 pos1 = vec4(gl_in[0].gl_Position.xyz, 1.0);
 	vec4 pos2 = vec4(gl_in[1].gl_Position.xyz, 1.0);
 	vec4 pos3 = vec4(gl_in[2].gl_Position.xyz, 1.0);
-	
-	vec4 center = centerPos(pos1,pos2,pos3);
-	vec4 centerView = (view * model * center);
 
-	vec4 offset = (texture(vectorTexture,VertexIn[0].texCoord) * 2.0 - 1.0 ) * strength;
+	// center of triangle
+//	vec4 center = centerPos(pos1,pos2,pos3);
+	float t = sin(1000.0 * pos1.x) + cos(500.0 * pos2.y);
+	vec4 center = mix3(pos1,pos2,pos3,t);
+	vec4 centerView = (view * model * center); // center in view space
+	float sizeFactor = min( 1.0 / (length(centerView.xyz) * 0.5), 1.0);
+	float size = sizeFactor * strength;
+	vec4 upView = invTransMV * vec4(0.0,0.0, size * 2.0,0.0); // up vector in view space
+
+	// vec2 offset in xz-plane according to wind field
+	vec4 offset = (texture(vectorTexture,VertexGeom[0].texCoord) * 2.0 - 1.0 ) * size;
 	offset.z = offset.y;
 	offset.y = 0.0;
 	offset.w = 0.0;
 
 	//bottom left
-	vec4 point = vec4(-strength, 0.0, 0.0, 0.0) + centerView;
-	VertexOut.texCoord = vec2(0.0,0.0);
-	VertexOut.position = point.xyz;
-	// VertexOut.normal = vec3(0.0, 0.0, 1.0);
-	VertexOut.normal = normalize(VertexIn[0].normal);
-	passUVCoord = VertexOut.texCoord;
-	passNormal = VertexOut.normal;
-	passPosition = VertexOut.position;
-
+	vec4 point = vec4(-size, 0.0, 0.0, 0.0) + centerView;
+	passUVCoord = vec2(0.0,0.0);
+	passPosition = point.xyz;
+	passNormal = normalize(	( invTransMV * vec4(VertexGeom[0].normal, 0.0) ).xyz );
+	passTangent = normalize(	( invTransMV * vec4(VertexGeom[0].tangent, 0.0) ).xyz );
 	gl_Position = projection * point;
 	EmitVertex();
 
-	point = vec4(-strength, strength*2.0, 0.0, 0.0) + centerView;
+	point = vec4(-size, 0.0, 0.0, 0.0) + upView + centerView;
 	point += offset;
-	VertexOut.texCoord = vec2(0.0,1.0);
-	VertexOut.position = point.xyz;
-	// VertexOut.normal = vec3(0.0, 0.0, 1.0);
-	VertexOut.normal = normalize(VertexIn[0].normal + offset.xyz * 4.0);
-	passUVCoord = VertexOut.texCoord;
-	passNormal = VertexOut.normal;
-	passPosition = VertexOut.position;
+	passUVCoord = vec2(0.0,1.0);
+	passPosition = point.xyz;
+	passNormal = normalize(	( invTransMV * vec4(VertexGeom[0].normal + offset.xyz * 4.0, 0.0) ).xyz);
+	passTangent = normalize( ( invTransMV * vec4(VertexGeom[0].tangent + offset.xyz * 4.0, 0.0) ).xyz);
 	gl_Position = projection * point;
 	EmitVertex();
 	
-	point = vec4(strength, 0.0, 0.0, 0.0) + centerView;
-	VertexOut.texCoord = vec2(1.0,0.0);
-	VertexOut.position = point.xyz;
-	// VertexOut.normal = vec3(0.0, 0.0, 1.0);
-	VertexOut.normal = normalize(VertexIn[0].normal);
-	passUVCoord = VertexOut.texCoord;
-	passNormal = VertexOut.normal;
-	passPosition = VertexOut.position;
+	point = vec4(size, 0.0, 0.0, 0.0) + centerView;
+	passUVCoord = vec2(1.0,0.0);
+	passPosition = point.xyz;
+	passNormal = normalize( ( invTransMV * vec4(VertexGeom[0].normal, 0.0) ).xyz);
+	passTangent = normalize( ( invTransMV * vec4(VertexGeom[0].tangent, 0.0) ).xyz);
 	gl_Position = projection * point;
 	EmitVertex();
 	
-	point = ( vec4(strength, strength*2.0, 0.0, 0.0)  + centerView);
+	point = vec4(size, 0.0, 0.0, 0.0) + upView + centerView;
 	point += offset;
-	VertexOut.texCoord = vec2(1.0,1.0);
-	VertexOut.position = point.xyz;
-	// VertexOut.normal = vec3(0.0, 0.0, 1.0);
-	VertexOut.normal = normalize(VertexIn[0].normal + offset.xyz * 4.0);	
-
-	passUVCoord = VertexOut.texCoord;
-	passNormal = VertexOut.normal;
-	passPosition = VertexOut.position;
-	
+	passUVCoord = vec2(1.0,1.0);
+	passPosition = point.xyz;
+	passNormal = normalize( ( invTransMV * vec4(VertexGeom[0].normal + offset.xyz * 4.0, 0.0) ).xyz);
+	passTangent = normalize( ( invTransMV * vec4(VertexGeom[0].tangent + offset.xyz * 4.0, 0.0) ).xyz);
 	gl_Position = projection * point ;
 	EmitVertex();
 
 	EndPrimitive();
-
-	// gl_Position = mvp * pos1;
-	// EmitVertex();
-	// gl_Position = mvp * ( center + strength * centNorm );
-	// EmitVertex();
-	// gl_Position = mvp * pos2;
-	// EmitVertex();
-	// // gl_Position = mvp * pos1;
-	// // EmitVertex();
-	// EndPrimitive();
-
-	// gl_Position = mvp * pos2;
-	// EmitVertex();
-	// gl_Position = mvp * ( center + strength * centNorm );
-	// EmitVertex();
-	// gl_Position = mvp * pos3;
-	// EmitVertex();
-	// // gl_Position = mvp * pos2;
-	// // EmitVertex();
-	// EndPrimitive();
-
-	// gl_Position = mvp * pos1;
-	// EmitVertex();
-	// gl_Position = mvp * ( center + strength * centNorm );
-	// EmitVertex();
-	// gl_Position = mvp * pos3;
-	// EmitVertex();
-	// // gl_Position = mvp * pos1;
-	// // EmitVertex();
-	// EndPrimitive();
-
-	// gl_Position = mvp * pos1;
-	// EmitVertex();
-	// gl_Position = mvp * pos2;
-	// EmitVertex();
-	// gl_Position = mvp * pos3;
-	// EmitVertex();
-	// gl_Position = mvp * pos1;
-	// EmitVertex();
-
-	// EndPrimitive();
 }

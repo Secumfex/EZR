@@ -20,7 +20,7 @@
 ////////////////////// PARAMETERS /////////////////////////////
 static bool s_isRotating = false;
 
-static glm::vec4 s_color = glm::vec4(0.75, 0.74f, 0.82f, 1.0f); // far : blueish
+static glm::vec4 s_color = glm::vec4(35.0f/255.0f, 65.0f/255.0f, 14.0f/255.0f, 1.0f); //: greenish
 static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
 
 static float s_strength = 0.05f;
@@ -106,7 +106,7 @@ int main()
 
 	// create object
 	// Sphere grid;
-	Grid grid(10,10,0.1f,0.1f,true);
+	Grid grid(100,100,0.1f,0.1f,true);
 	// Volume grid;
 
 	// load grass texture
@@ -115,35 +115,21 @@ int main()
 
 	/////////////////////// 	Renderpass     ///////////////////////////
 	DEBUGLOG->log("Shader Compilation: volume uvw coords"); DEBUGLOG->indent();
-	ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
+	ShaderProgram shaderProgram("/modelSpace/modelViewProjection.vert", "/modelSpace/simpleLighting.frag"); DEBUGLOG->outdent();
 	shaderProgram.update("model", model);
 	shaderProgram.update("view", view);
 	shaderProgram.update("projection", perspective);
-	shaderProgram.update("color", glm::vec4(1.0f,0.0f,0.0f,1.0f));
+	shaderProgram.update("color", glm::vec4(0.33f,0.29f,0.15f,1.0f)); // greenish
 
-	DEBUGLOG->log("FrameBufferObject Creation: volume uvw coords"); DEBUGLOG->indent();
-	FrameBufferObject fbo(getResolution(window).x, getResolution(window).y);
-	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
-	fbo.addColorAttachments(4); DEBUGLOG->outdent();   // G-Buffer
-	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
-
-	RenderPass renderPass(&shaderProgram, &fbo);
+	RenderPass renderPass(&shaderProgram, 0);
 	renderPass.addEnable(GL_DEPTH_TEST);
 	renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	renderPass.addRenderable(&grid);
 
-	ShaderProgram compShader("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing.frag");
-	// ShaderProgram compShader("/screenSpace/fullscreen.vert", "/screenSpace/simpleAlphaTexture.frag");
-
-	Quad quad;
-	RenderPass compositing(&compShader, 0);
-	compositing.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	compositing.addRenderable(&quad);
-
 	// Geometry test shader
 	ShaderProgram geomShader("/modelSpace/geometry.vert", "/modelSpace/simpleLighting.frag", "/geometry/simpleGeom.geom");
 	RenderPass geom(&geomShader, 0);
-	geom.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	// geom.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	geom.addRenderable(&grid);
 	geom.addEnable(GL_DEPTH_TEST);
 	geom.addEnable(GL_ALPHA_TEST);
@@ -268,10 +254,12 @@ int main()
 		// update view related uniforms
 		shaderProgram.update(   "view", view);
 		shaderProgram.update(   "model", turntable.getRotationMatrix() * model);
+		shaderProgram.update("color", s_color);
 
 		geomShader.update(   "view", view);
 		geomShader.update(   "model", turntable.getRotationMatrix() * model);
-		compShader.update(   "vLightPos", view * turntable.getRotationMatrix() * s_lightPos);
+		//compShader.update(   "vLightPos", view * turntable.getRotationMatrix() * s_lightPos);
+		geomShader.update("color",glm::vec4(0.75, 0.74f, 0.82f, 1.0f));
 
 		updateVectorTexture(elapsedTime);
 
@@ -283,7 +271,7 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, s_texHandle);
 		geomShader.update("tex", 1);
 		geomShader.update("blendColor", 2.0);
-		geomShader.update("color", s_color);
+		//geomShader.update("color", s_color);
 		geomShader.update("strength", s_strength);
 		//////////////////////////////////////////////////////////////////////////////
 		
@@ -300,7 +288,7 @@ int main()
 		// compShader.update("normalMap",   1);
 		// compShader.update("positionMap", 2);
 
-		// renderPass.render();
+		renderPass.render();
 		// compositing.render();
 
 		geom.render();
