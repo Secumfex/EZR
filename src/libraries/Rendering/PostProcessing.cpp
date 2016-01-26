@@ -10,6 +10,8 @@ namespace{float log_2( float n )
 
 PostProcessing::BoxBlur::BoxBlur(int width, int height, Quad* quad)
 	: m_pushShaderProgram("/screenSpace/fullscreen.vert", "/screenSpace/pushBoxBlur.frag" )
+	, m_height(height)
+	, m_width(width)
 {
 	if (quad == nullptr){
 		m_quad = new Quad();
@@ -24,8 +26,8 @@ PostProcessing::BoxBlur::BoxBlur(int width, int height, Quad* quad)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width,height, 0, GL_RGBA, GL_UNSIGNED_INT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // does this do anything?
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT); // does this do anything?
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT); 
 
@@ -41,6 +43,8 @@ PostProcessing::BoxBlur::BoxBlur(int width, int height, Quad* quad)
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_mipmapTextureHandle, i);
 		glDrawBuffer(GL_COLOR_ATTACHMENT0);
 	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	m_pushShaderProgram.bindTextureOnUse("tex", m_mipmapTextureHandle);
 }

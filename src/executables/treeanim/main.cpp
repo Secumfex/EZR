@@ -8,6 +8,7 @@
 #include <Rendering/GLTools.h>
 #include <Rendering/VertexArrayObjects.h>
 #include <Rendering/RenderPass.h>
+#include <Rendering/PostProcessing.h>
 
 #include "UI/imgui/imgui.h"
 #include <UI/imguiTools.h>
@@ -55,6 +56,7 @@ static float s_simulationTime = 0.0f;
 
 static float s_eye_distance = 10.0f;
 static float s_strength = 1.0f;
+static int s_num_levels = 1;
 
 static std::map<Renderable*, glm::vec4*> s_renderable_color_map;
 static std::map<Renderable*, int> s_renderable_material_map; //!< mapping a renderable to a material index
@@ -169,8 +171,8 @@ int main()
 	//FrameBufferObject gbuffer_foliage(foliageShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
 	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
 	glBindTexture(GL_TEXTURE_2D, scene_gbuffer.getBuffer("fragColor"));
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, (GLint) log_2(max(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y)) );
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, (GLint) log_2(max(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y)) );
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	DEBUGLOG->outdent();
 
 	DEBUGLOG->log("RenderPasses Creation: Trees GBuffer"); DEBUGLOG->indent();
@@ -206,8 +208,8 @@ int main()
 	treeRendering.branchRenderpasses[0]->setClearColor(0.0,0.0,0.0,0.0);
 	treeRendering.branchRenderpasses[0]->addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	DEBUGLOG->outdent();
-
 	
+	// create a grid that can optionally be visualized
 	Grid grid(30,30, 1.0f, 1.0f,true);
 	ShaderProgram gridShader("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag");
 	RenderPass gridRenderPass(&gridShader, 0);
@@ -237,16 +239,20 @@ int main()
 	compositing.addRenderable(&quad);
 
 	DEBUGLOG->log("Shader Compilation: Bloom Post Process"); DEBUGLOG->indent();
+
+	// create box blur post process and (simple) bloom shader
+	PostProcessing::BoxBlur boxBlur(WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4, &quad);
 	ShaderProgram bloomShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessBloomMipMap.frag" ); DEBUGLOG->outdent();
 	bloomShader.update("power", 2.0);
-	bloomShader.update("depth", s_strength);
-	bloomShader.bindTextureOnUse("tex", scene_gbuffer.getBuffer("fragColor"));
+	bloomShader.update("depth", 0.0);
+	bloomShader.bindTextureOnUse("tex", boxBlur.m_mipmapTextureHandle);
 
 	DEBUGLOG->log("RenderPass Creation: Bloom Post Process"); DEBUGLOG->indent();
 	RenderPass bloom(&bloomShader, 0);
 	bloom.addEnable(GL_BLEND);
 	bloom.addDisable(GL_DEPTH_TEST);
 	bloom.addRenderable(&quad);
+	DEBUGLOG->outdent();
 
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
@@ -340,6 +346,7 @@ int main()
 		ImGui::PushItemWidth(-125);
 
 		ImGui::SliderFloat("strength", &s_strength, 0.0f, 4.0f); 
+		ImGui::SliderInt("num levels", &s_num_levels, 0, boxBlur.m_mipmapFBOHandles.size()); 
 		ImGui::SliderFloat("windPower", &s_wind_power, 0.0f, 4.0f); 
 		ImGui::SliderFloat("foliageSize", &s_foliage_size, 0.0f, 3.0f);	
 
@@ -377,8 +384,8 @@ int main()
 
 		//&&&&&&&&&&& COMPOSITING UNIFORMS &&&&&&&&&&&&&&//
 		compShader.update("vLightPos", view * s_lightPos);
-		bloomShader.update("depth", s_strength);
-		bloomShader.update("intensity", 1.0 / s_strength);
+		//bloomShader.update("depth", s_strength);
+		bloomShader.update("intensity", s_strength);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
@@ -407,14 +414,17 @@ int main()
 			treeRendering.foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
 
-		// copy composited image from screen to scene color texture
+		// copy composited image from screen to box blur fbo
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 		glReadBuffer(GL_BACK);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, scene_gbuffer.getFramebufferHandle());
-		glBlitFramebuffer(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y,0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-		glBindTexture(GL_TEXTURE_2D, scene_gbuffer.getBuffer("fragColor"));
-		glGenerateMipmap(GL_TEXTURE_2D);
-		glBlendFunc(GL_ONE, GL_ONE); // this is altered by ImGui::Render(), so reset it every frame
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, boxBlur.m_mipmapFBOHandles[0]);
+		glBlitFramebuffer(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y,0,0, boxBlur.m_width, boxBlur.m_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		boxBlur.pull(); // generate mipmaps
+		boxBlur.push(s_num_levels); // blur levels
+
+		glBlendFunc(GL_ONE, GL_ONE); // add blurred image to screen
 		bloom.render();
 
 		if ( showWindField) gridRenderPass.render();

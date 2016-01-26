@@ -17,7 +17,9 @@ namespace PostProcessing
 		
 		void pull(); // generate mipmaps from current content of level 0
 		void push(int numLevels, int beginLevel = 0); // blur levels (beginLevel + numLevels) down to beginLevel
-
+		
+		const int m_width;
+		const int m_height;
 	private:
 		Quad* m_quad;
 		bool ownQuad;
