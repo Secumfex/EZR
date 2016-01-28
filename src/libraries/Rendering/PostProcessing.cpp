@@ -75,3 +75,89 @@ PostProcessing::BoxBlur::~BoxBlur()
 {
 	if (ownQuad) {delete m_quad;}
 }
+
+PostProcessing::DepthOfField::DepthOfField(int width, int height, Quad* quad)
+	: m_calcCoCShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessCircleOfConfusion.frag")
+	, m_dofShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessDOF.frag")
+	, m_dofCompShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessDOFCompositing.frag")
+	, m_width(width)
+	, m_height(height)
+{
+	if (quad == nullptr){
+		m_quad = new Quad();
+		ownQuad = true;
+	}else{
+		m_quad = quad;
+		ownQuad = false;
+	}
+
+	FrameBufferObject::s_internalFormat = GL_RGBA32F;
+	m_cocFBO 	 = new FrameBufferObject(m_calcCoCShader.getOutputInfoMap(), width, height);
+	m_hDofFBO 	 = new FrameBufferObject(m_dofShader.getOutputInfoMap(), width / 4.0, height );
+	m_vDofFBO 	 = new FrameBufferObject(m_dofShader.getOutputInfoMap(), width / 4.0, height / 4.0);
+	FrameBufferObject::s_internalFormat = GL_RGBA;
+	m_dofCompFBO = new FrameBufferObject(m_dofCompShader.getOutputInfoMap(), width, height );
+	
+	for ( auto t : m_vDofFBO->getColorAttachments() )
+	{
+		glBindTexture(GL_TEXTURE_2D, t.second);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	}
+	
+	m_dofCompShader.bindTextureOnUse("sharpFocusField", m_cocFBO->getBuffer("fragmentColor"));
+	m_dofCompShader.bindTextureOnUse("blurryNearField", m_vDofFBO->getBuffer("nearResult"));
+	m_dofCompShader.bindTextureOnUse("blurryFarField" , m_vDofFBO->getBuffer("blurResult"));
+
+	// default settings
+	m_calcCoCShader.update("focusPlaneDepths", glm::vec4(2.0,4.0,7.0,10.0));
+	m_calcCoCShader.update("focusPlaneRadi",   glm::vec2(10.0f, -5.0f) );
+
+	m_dofShader.update("maxCoCRadiusPixels", 10);
+	m_dofShader.update("nearBlurRadiusPixels", 10);
+	m_dofShader.update("invNearBlurRadiusPixels", 0.1f);
+
+	m_dofCompShader.update("maxCoCRadiusPixels", 10.0f);
+	m_dofCompShader.update("farRadiusRescale" , 2.0f);
+}
+
+PostProcessing::DepthOfField::~DepthOfField()
+{
+	if (ownQuad) {delete m_quad;}
+}
+
+void PostProcessing::DepthOfField::execute(GLuint positionMap, GLuint colorMap)
+{
+	// setup
+	GLboolean depthTestEnableState = glIsEnabled(GL_DEPTH_TEST);
+	if (depthTestEnableState) {glDisable(GL_DEPTH_TEST);}
+
+	// compute COC map
+	glViewport(0,0,m_width, m_height);
+	m_cocFBO->bind();
+	m_calcCoCShader.updateAndBindTexture("colorMap", 0, colorMap);
+	m_calcCoCShader.updateAndBindTexture("positionMap", 1, positionMap);
+	m_calcCoCShader.use();
+	m_quad->draw();
+
+	// compute DoF
+	// horizontal pass 
+	glViewport(0, 0, m_hDofFBO->getWidth(), m_hDofFBO->getHeight());
+	m_hDofFBO->bind();
+	m_dofShader.use();
+	m_dofShader.update("HORIZONTAL", true);
+	m_dofShader.updateAndBindTexture("blurSourceBuffer", 1, m_cocFBO->getBuffer("fragmentColor"));
+	m_quad->draw();
+
+	// vertical pass
+	glViewport(0,0,m_vDofFBO->getWidth(), m_vDofFBO->getHeight());
+	m_vDofFBO->bind();
+	m_dofShader.update("HORIZONTAL", false);
+	m_dofShader.updateAndBindTexture("blurSourceBuffer", 1, m_hDofFBO->getBuffer("blurResult"));
+	m_dofShader.updateAndBindTexture("nearSourceBuffer", 2, m_hDofFBO->getBuffer("nearResult"));
+	m_quad->draw();
+
+	m_dofCompFBO->bind();
+	m_dofCompShader.use();
+	m_quad->draw();
+} 

@@ -28,25 +28,17 @@ const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 
 static glm::vec4 s_color = glm::vec4(0.45 * 0.3f, 0.44f * 0.3f, 0.87f * 0.3f, 1.0f); // far : blueish
 static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
+static glm::vec3 s_scale = glm::vec3(1.0f,1.0f,1.0f);
+
 static glm::vec4 s_focusPlaneDepths = glm::vec4(2.0,4.0,7.0,10.0);
 static glm::vec2 s_focusPlaneRadi = glm::vec2(10.0f, -5.0f);
-static glm::vec3 s_scale = glm::vec3(1.0f,1.0f,1.0f);
 static float s_farRadiusRescale = 2.0f;
+
 static float s_strength = 1.0f;
 //////////////////// MISC /////////////////////////////////////
 float randFloat(float min, float max) //!< returns a random number between min and max
 {
 	return (((float) rand() / (float) RAND_MAX) * (max - min) + min); 
-}
-
-void setLinearTextureFiltering(FrameBufferObject* fbo)
-{	
-	for ( auto t : fbo->getColorAttachments() )
-	{
-		glBindTexture(GL_TEXTURE_2D, t.second);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	}
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -184,43 +176,8 @@ int main()
 	compositing.addRenderable(&quad);
 	DEBUGLOG->outdent();
 
-	// render 
-	DEBUGLOG->log("RenderPass Creation: Circle of Confusion Map RenderPass"); DEBUGLOG->indent();
-	ShaderProgram calcCOCShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessCircleOfConfusion.frag");
-	// calcCOCShader.bindTextureOnUse("depthMap", gbufferFBO.getDepthTextureHandle());
-	calcCOCShader.bindTextureOnUse("positionMap", gbufferFBO.getBuffer("fragPosition"));
-	calcCOCShader.bindTextureOnUse("colorMap",    compFBO.getBuffer("fragmentColor"));
-	FrameBufferObject::s_internalFormat = GL_RGBA32F;
-	FrameBufferObject cocFBO(calcCOCShader.getOutputInfoMap(), WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
-	FrameBufferObject::s_internalFormat = GL_RGBA;
-	RenderPass calcCOC(&calcCOCShader, &cocFBO);
-	calcCOC.addRenderable(&quad);
-	calcCOC.addDisable(GL_DEPTH_TEST);
-	DEBUGLOG->outdent();
-
-	DEBUGLOG->log("RenderPass Creation: Depth of Field Near/Far Texture Buffers"); DEBUGLOG->indent();
-	ShaderProgram dofShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessDOF.frag");
-	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
-	FrameBufferObject hDofFBO(dofShader.getOutputInfoMap(), WINDOW_RESOLUTION.x / 4.0, WINDOW_RESOLUTION.y );
-	FrameBufferObject vDofFBO(dofShader.getOutputInfoMap(), WINDOW_RESOLUTION.x / 4.0, WINDOW_RESOLUTION.y / 4.0);
-	FrameBufferObject::s_internalFormat  = GL_RGBA; // to allow arbitrary values in G-Buffer
-	// setLinearTextureFiltering(&hDofFBO);
-	setLinearTextureFiltering(&vDofFBO);
-	RenderPass depthOfField(&dofShader, &hDofFBO);
-	depthOfField.addRenderable(&quad);
-	depthOfField.addDisable(GL_DEPTH_TEST);
-	DEBUGLOG->outdent();
-
-	DEBUGLOG->log("RenderPass Creation: Depth of Field Compositing"); DEBUGLOG->indent();
-	ShaderProgram dofCompShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessDOFCompositing.frag");
-	dofCompShader.bindTextureOnUse("sharpFocusField", cocFBO.getBuffer("fragmentColor"));
-	dofCompShader.bindTextureOnUse("blurryNearField", vDofFBO.getBuffer("nearResult"));
-	dofCompShader.bindTextureOnUse("blurryFarField" , vDofFBO.getBuffer("blurResult"));
-	FrameBufferObject dofCompFBO(dofCompShader.getOutputInfoMap(), WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y );
-	RenderPass dofCompositing(&dofCompShader, &dofCompFBO);
-	dofCompositing.addRenderable(&quad);
-	dofCompositing.addDisable(GL_DEPTH_TEST);
-	DEBUGLOG->outdent();
+	// Depth Of Field 
+	PostProcessing::DepthOfField depthOfField(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y, &quad);
 
 	ShaderProgram showTexShader("/screenSpace/fullscreen.vert", "/screenSpace/simpleAlphaTexture.frag");
 	RenderPass showTex(&showTexShader,0);
@@ -329,22 +286,21 @@ int main()
 		glfwSetWindowTitle(window, window_header.c_str() );
 
 		////////////////////////////////     GUI      ////////////////////////////////
-         ImGuiIO& io = ImGui::GetIO();
-		 ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
-		 ImGui::SliderFloat3("scale", glm::value_ptr(s_scale), 0.0f, 10.0f);
+        ImGuiIO& io = ImGui::GetIO();
+		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
+		ImGui::SliderFloat3("scale", glm::value_ptr(s_scale), 0.0f, 10.0f);
 
 		ImGui::SliderFloat4("depths", glm::value_ptr(s_focusPlaneDepths), 0.0f, 10.0f);
 		ImGui::SliderFloat2("radi", glm::value_ptr(s_focusPlaneRadi), -10.0f, 10.0f);
 		
 		ImGui::SliderFloat("far radius rescale", &s_farRadiusRescale, 0.0f, 5.0f);
 
-	     //ImGui::SliderFloat("strength", &s_strength, 0.0f, 2.0f); // influence of color shift
-    	// ImGui::PushItemWidth(-100);
+	    // ImGui::PushItemWidth(-100);
+		//ImGui::SliderFloat("strength", &s_strength, 0.0f, 2.0f); // influence of color shift
 
 		// ImGui::ColorEdit4( "color", glm::value_ptr( s_color)); // color mixed at max distance
-        
-		 //ImGui::Checkbox("auto-rotate", &s_isRotating); // enable/disable rotating volume
-		 //ImGui::PopItemWidth();
+       
+		//ImGui::PopItemWidth();
 
         //////////////////////////////////////////////////////////////////////////////
 
@@ -361,15 +317,15 @@ int main()
 		compShader.update("vLightPos", view * s_lightPos);
 
 		// update blurrying parameters
-		calcCOCShader.update("focusPlaneDepths", s_focusPlaneDepths);
-		calcCOCShader.update("focusPlaneRadi",   s_focusPlaneRadi );
+		 depthOfField.m_calcCoCShader.update("focusPlaneDepths", s_focusPlaneDepths);
+		 depthOfField.m_calcCoCShader.update("focusPlaneRadi",   s_focusPlaneRadi );
 
-		dofShader.update("maxCoCRadiusPixels", (int) s_focusPlaneRadi.x);
-		dofShader.update("nearBlurRadiusPixels", (int) s_focusPlaneRadi.x/* / 4.0*/);
-		dofShader.update("invNearBlurRadiusPixels", 1.0 / (s_focusPlaneRadi.x/* / 4.0*/));
+		 depthOfField.m_dofShader.update("maxCoCRadiusPixels", (int) s_focusPlaneRadi.x);
+		 depthOfField.m_dofShader.update("nearBlurRadiusPixels", (int) s_focusPlaneRadi.x/* / 4.0*/);
+		 depthOfField.m_dofShader.update("invNearBlurRadiusPixels", 1.0 / (s_focusPlaneRadi.x/* / 4.0*/));
 
-		dofCompShader.update("maxCoCRadiusPixels", s_focusPlaneRadi.x);
-		dofCompShader.update("farRadiusRescale" , s_farRadiusRescale);
+		 depthOfField.m_dofCompShader.update("maxCoCRadiusPixels", s_focusPlaneRadi.x);
+		 depthOfField.m_dofCompShader.update("farRadiusRescale" , s_farRadiusRescale);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
@@ -378,29 +334,11 @@ int main()
 		// aka. light pass
 		compositing.render();
 
-		// from GBuffer
-		calcCOC.render();
-
-		// render once for horizontal blur
-		depthOfField.setFrameBufferObject(&hDofFBO);
-		depthOfField.setViewport(0, 0, hDofFBO.getWidth(), hDofFBO.getHeight());
-		dofShader.update("HORIZONTAL", true);
-		dofShader.updateAndBindTexture("blurSourceBuffer", 2, cocFBO.getBuffer("fragmentColor"));
-		depthOfField.render();
-
-		// render again for vertical blur
-		depthOfField.setFrameBufferObject(&vDofFBO);
-		depthOfField.setViewport(0, 0, vDofFBO.getWidth(), vDofFBO.getHeight());
-		dofShader.update("HORIZONTAL", false);
-		dofShader.updateAndBindTexture("blurSourceBuffer", 2, hDofFBO.getBuffer("blurResult"));
-		dofShader.updateAndBindTexture("nearSourceBuffer", 3, hDofFBO.getBuffer("nearResult"));
-		depthOfField.render();
-
-		// blend results
-		dofCompositing.render();
+		// execute on GBuffer position texture and compositing ( light pass ) image 
+		depthOfField.execute(gbufferFBO.getBuffer("fragPosition"), compFBO.getBuffer("fragmentColor"));
 
 		// show result
-		showTexShader.updateAndBindTexture("tex", 0, dofCompFBO.getBuffer("fragmentColor"));
+		showTexShader.updateAndBindTexture("tex", 0, depthOfField.m_dofCompFBO->getBuffer("fragmentColor"));
 		showTex.render();
 
 		 ImGui::Render();
