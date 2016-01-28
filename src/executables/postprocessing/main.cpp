@@ -10,7 +10,8 @@
 
 #include <Rendering/GLTools.h>
 #include <Rendering/VertexArrayObjects.h>
- #include <Rendering/RenderPass.h>
+#include <Rendering/RenderPass.h>
+#include <Rendering/PostProcessing.h>
 
  #include "UI/imgui/imgui.h"
  #include <UI/imguiTools.h>
@@ -54,7 +55,7 @@ int main()
 	DEBUGLOG->log("Setup: importing assets"); DEBUGLOG->indent();
 	// import using ASSIMP and check for errors
 	Assimp::Importer importer;
-	const aiScene* scene = AssimpTools::importAssetFromResourceFolder("branch_detailed.dae", importer);
+	const aiScene* scene = AssimpTools::importAssetFromResourceFolder("cube.dae", importer);
 
 	//////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////// RENDERING  ///////////////////////////////////
@@ -154,19 +155,42 @@ int main()
 
 	 // regular GBuffer compositing
 	 DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
-	 ShaderProgram compShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessDOF.frag"); DEBUGLOG->outdent();
+	 ShaderProgram compShader("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing.frag"); DEBUGLOG->outdent();
 	 // set texture references
 	 compShader.bindTextureOnUse("colorMap", 	 gbufferFBO.getBuffer("fragColor"));
-	 //compShader.bindTextureOnUse("normalMap", 	 gbufferFBO.getBuffer("fragNormal"));
+	 compShader.bindTextureOnUse("normalMap", 	 gbufferFBO.getBuffer("fragNormal"));
 	 compShader.bindTextureOnUse("positionMap",  gbufferFBO.getBuffer("fragPosition"));
+
+	 FrameBufferObject compFBO(compShader.getOutputInfoMap(), WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 
 	 DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
 	 Quad quad;
-	 RenderPass compositing(&compShader, 0);
-	 compositing.addClearBit(GL_COLOR_BUFFER_BIT);
+	 RenderPass compositing(&compShader, &compFBO);
+	 compositing.addClearBit(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	 compositing.setClearColor(0.25,0.25,0.35,0.0);
 	 compositing.addDisable(GL_DEPTH_TEST);
 	 compositing.addRenderable(&quad);
+
+	 // render 
+	 ShaderProgram calcCOCShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessCircleOfConfusion.frag");
+	 FrameBufferObject cocFBO(calcCOCShader.getOutputInfoMap(), WINDOW_RESOLUTION.x / 2.0f, WINDOW_RESOLUTION.y / 2.0f);
+	 RenderPass calcCOC(&calcCOCShader, &cocFBO);
+	 calcCOC.addRenderable(&quad);
+	 calcCOC.addDisable(GL_DEPTH_TEST);
+	 calcCOCShader.bindTextureOnUse("depthMap", gbufferFBO.getDepthTextureHandle());
+	 calcCOCShader.bindTextureOnUse("colorMap", compFBO.getBuffer("fragmentColor"));
+	 calcCOCShader.update("invRenderTargetSize", glm::vec2(1.0f / cocFBO.getWidth(), 1.0f / cocFBO.getHeight()));
+
+
+	 ShaderProgram showTexShader("/screenSpace/fullscreen.vert", "/screenSpace/simpleAlphaTexture.frag");
+	 RenderPass showTex(&showTexShader,0);
+	 showTex.addRenderable(&quad);
+	 showTex.addDisable(GL_DEPTH_TEST);
+	 showTex.addDisable(GL_BLEND);
+	 showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
+
+	// Blur stuff
+	//PostProcessing::BoxBlur boxBlur(gbufferFBO.getWidth(), gbufferFBO.getHeight(),&quad);
 
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
@@ -268,7 +292,7 @@ int main()
          ImGuiIO& io = ImGui::GetIO();
 		 ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
 		 ImGui::SliderFloat3("scale", glm::value_ptr(s_scale), 0.0f, 10.0f);
-	     ImGui::SliderFloat("strength", &s_strength, 0.0f, 2.0f); // influence of color shift
+	     //ImGui::SliderFloat("strength", &s_strength, 0.0f, 2.0f); // influence of color shift
     	// ImGui::PushItemWidth(-100);
 
 		// ImGui::ColorEdit4( "color", glm::value_ptr( s_color)); // color mixed at max distance
@@ -287,14 +311,25 @@ int main()
 		shaderProgram.update( "view", view);
 		shaderProgram.update( "color", s_color);
 
-		compShader.update( "strength", s_strength);
-		//compShader.update("vLightPos", view * s_lightPos);
+		//compShader.update( "strength", s_strength);
+		compShader.update("vLightPos", view * s_lightPos);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
 		renderGBuffer.render();
 
 		compositing.render();
+
+		calcCOC.render();
+
+		showTexShader.updateAndBindTexture("tex", 0, cocFBO.getBuffer("fragmentColor"));
+		showTex.render();
+
+		//glBindFramebuffer(GL_DRAW_BUFFER, 0);
+		//glBindFramebuffer(GL_READ_BUFFER, compFBO.getFramebufferHandle());
+		//glReadBuffer(GL_COLOR_ATTACHMENT0);
+		//glBlitFramebuffer(0,0,compFBO.getWidth(), compFBO.getHeight(), 0,0, WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		 ImGui::Render();
 		 glDisable(GL_BLEND);
