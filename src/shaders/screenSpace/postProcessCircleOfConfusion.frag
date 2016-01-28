@@ -2,7 +2,7 @@
 
 in vec2 passUV;
 
-// uniform sampler2D colorMap;
+uniform sampler2D colorMap;
 // uniform sampler2D depthMap;
 uniform sampler2D positionMap;
 
@@ -15,6 +15,7 @@ out vec4 fragmentColor;
 
 void main() {
     // float depth = texture(depthMap, passUV).r;
+    vec3 color = texture(colorMap,passUV).rgb;
     float depth = length(texture(positionMap, passUV).xyz);
 
     float nearBlurryDepth = focusPlaneDepths.x;
@@ -41,5 +42,5 @@ void main() {
 		cocRadius = max(mix(farSharpRadius, farBlurryRadius, (depth-farSharpDepth)/(farBlurryDepth-farSharpDepth)), farBlurryRadius);
 	}
 
-	fragmentColor = vec4(cocRadius);
+	fragmentColor = vec4(color,cocRadius);
 }    
