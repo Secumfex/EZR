@@ -3,35 +3,52 @@
 in vec2 passUV;
 
 uniform sampler2D colorMap;
-uniform sampler2D normalMap;
-uniform sampler2D positionMap;
+uniform sampler2D cocMap;
 
-uniform float strength;
+out vec4 focusAndFarField;
+out vec4 nearFieldWithAlpha;
 
-out vec4 fragmentColor;
+bool inNearField(float cocRadius)
+{
+    if ( cocRadius > 0.5 )
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+float saturate(float val)
+{
+    return min(1.0,max(0.0,val));
+}
 
 void main() {
-    vec4 position = texture(positionMap, passUV);
-    if (position.a == 0.0) { discard; }
-    vec4 normal =   texture(normalMap, passUV);
     vec4 color =    texture(colorMap, passUV);
-    
-    float dist = length(position.xyz);
-    dist = dist;
+    float radius = abs(texture(cocMap, passUV).x);
 
     int samples = 16;
     int validSamples = 1;
     float stepRad = 2.0 * 3.14159 / float(samples);
+    // if ( radius > 0.5 || radius < -0.5)
+    // {
     for (int i = 0; i < samples; i++)
     {   
-        vec2 off = vec2(sin(stepRad * float(i)), cos(samples * float(i))) * dist / 800.0f * strength * (cos(100.0 * float(i)) * 0.5 + 0.5);
-        if ( length(texture(positionMap, passUV + off).xyz) <= dist )
-        {
-            color += texture(colorMap, passUV + off);
-            validSamples ++;
-        }
+        vec2 off = vec2( sin(stepRad * float(i)), cos(samples * float(i))) * radius / 800.0f;
+        float sampleRadius = texture(cocMap, passUV + off).x;
+        // if ( sampleRadius >= radius)
+        // {
+        // float wNormal =  float ( !inNearField(sampleRadius) ) *
+        // saturate( abs(radius) - abs(sampleRadius) + 1.5) *        
+        color += texture(colorMap, passUV + off);
+        validSamples ++;
+        // }
     }
     color /= float(validSamples);
+    // }
 
-fragmentColor = vec4(color);
+    focusAndFarField = color;
+    nearFieldWithAlpha = color;
 }

@@ -28,7 +28,8 @@ const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 
 static glm::vec4 s_color = glm::vec4(0.45 * 0.3f, 0.44f * 0.3f, 0.87f * 0.3f, 1.0f); // far : blueish
 static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
-
+static glm::vec4 s_focusPlaneDepths = glm::vec4(2.0,4.0,7.0,10.0);
+static glm::vec2 s_focusPlaneRadi = glm::vec2(10.0f, -5.0f);
 static glm::vec3 s_scale = glm::vec3(1.0f,1.0f,1.0f);
 static float s_strength = 1.0f;
 //////////////////// MISC /////////////////////////////////////
@@ -125,69 +126,83 @@ int main()
 	//center = glm::vec4(glm::vec3(center) + 0.5f * (bbox_max - bbox_min) + bbox_min, center.w);
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
-	 // regular GBuffer
-	 DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
-	 ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
-	 shaderProgram.update("view", view);
-	 shaderProgram.update("projection", perspective);
+	// regular GBuffer
+	DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
+	ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
+	shaderProgram.update("view", view);
+	shaderProgram.update("projection", perspective);
 
-	 // check for displayable textures 
-	 if (textures.find(aiTextureType_DIFFUSE) != textures.end())
-	 { shaderProgram.bindTextureOnUse("tex", textures.at(aiTextureType_DIFFUSE)); shaderProgram.update("mixTexture", 1.0);}
-	 if (textures.find(aiTextureType_NORMALS) != textures.end() && shaderProgram.getUniformInfoMap()->find("normalTex") != shaderProgram.getUniformInfoMap()->end()) 
-	 { shaderProgram.bindTextureOnUse("normalTex", textures.at(aiTextureType_NORMALS));shaderProgram.update("hasNormalTex", true);}
+	// check for displayable textures 
+	if (textures.find(aiTextureType_DIFFUSE) != textures.end())
+	{ shaderProgram.bindTextureOnUse("tex", textures.at(aiTextureType_DIFFUSE)); shaderProgram.update("mixTexture", 1.0);}
+	if (textures.find(aiTextureType_NORMALS) != textures.end() && shaderProgram.getUniformInfoMap()->find("normalTex") != shaderProgram.getUniformInfoMap()->end()) 
+	{ shaderProgram.bindTextureOnUse("normalTex", textures.at(aiTextureType_NORMALS));shaderProgram.update("hasNormalTex", true);}
 
-	 DEBUGLOG->outdent();
+	DEBUGLOG->outdent();
 
-	 DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
-	 FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
-	 FrameBufferObject gbufferFBO(shaderProgram.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
-	 FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
-	 DEBUGLOG->outdent();
+	DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
+	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
+	FrameBufferObject gbufferFBO(shaderProgram.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
+	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
+	DEBUGLOG->outdent();
 
-	 DEBUGLOG->log("RenderPass Creation: GBuffer"); DEBUGLOG->indent();
-	 RenderPass renderGBuffer(&shaderProgram, &gbufferFBO);
-	 renderGBuffer.addEnable(GL_DEPTH_TEST);	
-	 renderGBuffer.setClearColor(0.0,0.0,0.0,0.0);
-	 renderGBuffer.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	 for (auto r : objects){renderGBuffer.addRenderable(r);}  
-	 DEBUGLOG->outdent();
+	DEBUGLOG->log("RenderPass Creation: GBuffer"); DEBUGLOG->indent();
+	RenderPass renderGBuffer(&shaderProgram, &gbufferFBO);
+	renderGBuffer.addEnable(GL_DEPTH_TEST);	
+	renderGBuffer.setClearColor(0.0,0.0,0.0,0.0);
+	renderGBuffer.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	for (auto r : objects){renderGBuffer.addRenderable(r);}  
+	DEBUGLOG->outdent();
 
-	 // regular GBuffer compositing
-	 DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
-	 ShaderProgram compShader("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing.frag"); DEBUGLOG->outdent();
-	 // set texture references
-	 compShader.bindTextureOnUse("colorMap", 	 gbufferFBO.getBuffer("fragColor"));
-	 compShader.bindTextureOnUse("normalMap", 	 gbufferFBO.getBuffer("fragNormal"));
-	 compShader.bindTextureOnUse("positionMap",  gbufferFBO.getBuffer("fragPosition"));
+	// regular GBuffer compositing
+	DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
+	ShaderProgram compShader("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing.frag"); DEBUGLOG->outdent();
+	// set texture references
+	compShader.bindTextureOnUse("colorMap", 	 gbufferFBO.getBuffer("fragColor"));
+	compShader.bindTextureOnUse("normalMap", 	 gbufferFBO.getBuffer("fragNormal"));
+	compShader.bindTextureOnUse("positionMap",  gbufferFBO.getBuffer("fragPosition"));
 
-	 FrameBufferObject compFBO(compShader.getOutputInfoMap(), WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
+	FrameBufferObject compFBO(compShader.getOutputInfoMap(), WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 
-	 DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
-	 Quad quad;
-	 RenderPass compositing(&compShader, &compFBO);
-	 compositing.addClearBit(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	 compositing.setClearColor(0.25,0.25,0.35,0.0);
-	 compositing.addDisable(GL_DEPTH_TEST);
-	 compositing.addRenderable(&quad);
+	DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
+	Quad quad;
+	RenderPass compositing(&compShader, &compFBO);
+	compositing.addClearBit(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	compositing.setClearColor(0.25,0.25,0.35,0.0);
+	compositing.addDisable(GL_DEPTH_TEST);
+	compositing.addRenderable(&quad);
+	DEBUGLOG->outdent();
 
-	 // render 
-	 ShaderProgram calcCOCShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessCircleOfConfusion.frag");
-	 FrameBufferObject cocFBO(calcCOCShader.getOutputInfoMap(), WINDOW_RESOLUTION.x / 2.0f, WINDOW_RESOLUTION.y / 2.0f);
-	 RenderPass calcCOC(&calcCOCShader, &cocFBO);
-	 calcCOC.addRenderable(&quad);
-	 calcCOC.addDisable(GL_DEPTH_TEST);
-	 calcCOCShader.bindTextureOnUse("depthMap", gbufferFBO.getDepthTextureHandle());
-	 calcCOCShader.bindTextureOnUse("colorMap", compFBO.getBuffer("fragmentColor"));
-	 calcCOCShader.update("invRenderTargetSize", glm::vec2(1.0f / cocFBO.getWidth(), 1.0f / cocFBO.getHeight()));
+	// render 
+	DEBUGLOG->log("RenderPass Creation: Circle of Confusion Map RenderPass"); DEBUGLOG->indent();
+	ShaderProgram calcCOCShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessCircleOfConfusion.frag");
+	// calcCOCShader.bindTextureOnUse("depthMap", gbufferFBO.getDepthTextureHandle());
+	calcCOCShader.bindTextureOnUse("positionMap", gbufferFBO.getBuffer("fragPosition"));
+	FrameBufferObject::s_internalFormat = GL_RGBA32F;
+	FrameBufferObject cocFBO(calcCOCShader.getOutputInfoMap(), WINDOW_RESOLUTION.x / 2.0f, WINDOW_RESOLUTION.y / 2.0f);
+	FrameBufferObject::s_internalFormat = GL_RGBA;
+	RenderPass calcCOC(&calcCOCShader, &cocFBO);
+	calcCOC.addRenderable(&quad);
+	calcCOC.addDisable(GL_DEPTH_TEST);
+	DEBUGLOG->outdent();
+
+	DEBUGLOG->log("RenderPass Creation: Depth of Field Post Processing"); DEBUGLOG->indent();
+	ShaderProgram dofShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessDOF.frag");
+	FrameBufferObject dofFBO(dofShader.getOutputInfoMap(), WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
+	RenderPass depthOfField(&dofShader, &dofFBO);
+	depthOfField.addRenderable(&quad);
+	depthOfField.addDisable(GL_DEPTH_TEST);
+	dofShader.bindTextureOnUse("cocMap", cocFBO.getBuffer("fragmentColor"));
+	dofShader.bindTextureOnUse("colorMap", compFBO.getBuffer("fragmentColor"));
+	DEBUGLOG->outdent();
 
 
-	 ShaderProgram showTexShader("/screenSpace/fullscreen.vert", "/screenSpace/simpleAlphaTexture.frag");
-	 RenderPass showTex(&showTexShader,0);
-	 showTex.addRenderable(&quad);
-	 showTex.addDisable(GL_DEPTH_TEST);
-	 showTex.addDisable(GL_BLEND);
-	 showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
+	ShaderProgram showTexShader("/screenSpace/fullscreen.vert", "/screenSpace/simpleAlphaTexture.frag");
+	RenderPass showTex(&showTexShader,0);
+	showTex.addRenderable(&quad);
+	showTex.addDisable(GL_DEPTH_TEST);
+	showTex.addDisable(GL_BLEND);
+	showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 
 	// Blur stuff
 	//PostProcessing::BoxBlur boxBlur(gbufferFBO.getWidth(), gbufferFBO.getHeight(),&quad);
@@ -292,6 +307,10 @@ int main()
          ImGuiIO& io = ImGui::GetIO();
 		 ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
 		 ImGui::SliderFloat3("scale", glm::value_ptr(s_scale), 0.0f, 10.0f);
+
+		ImGui::SliderFloat4("depths", glm::value_ptr(s_focusPlaneDepths), 0.0f, 10.0f);
+		ImGui::SliderFloat2("radi", glm::value_ptr(s_focusPlaneRadi), -10.0f, 10.0f);
+
 	     //ImGui::SliderFloat("strength", &s_strength, 0.0f, 2.0f); // influence of color shift
     	// ImGui::PushItemWidth(-100);
 
@@ -313,6 +332,10 @@ int main()
 
 		//compShader.update( "strength", s_strength);
 		compShader.update("vLightPos", view * s_lightPos);
+
+		// update blurrying parameters
+		calcCOCShader.update("focusPlaneDepths", s_focusPlaneDepths);
+		calcCOCShader.update("focusPlaneRadi",   s_focusPlaneRadi );
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
@@ -322,7 +345,10 @@ int main()
 
 		calcCOC.render();
 
-		showTexShader.updateAndBindTexture("tex", 0, cocFBO.getBuffer("fragmentColor"));
+		depthOfField.render();
+
+		showTexShader.updateAndBindTexture("tex", 0, dofFBO.getBuffer("focusAndFarField"));
+		// showTexShader.updateAndBindTexture("tex", 0, cocFBO.getBuffer("fragmentColor"));
 		showTex.render();
 
 		//glBindFramebuffer(GL_DRAW_BUFFER, 0);
