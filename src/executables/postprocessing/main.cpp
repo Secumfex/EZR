@@ -336,11 +336,21 @@ int main()
 		{
 			// read center depth
 			gbufferFBO.bind();
-			GLfloat value;
-			checkGLError();
-			glReadPixels(gbufferFBO.getWidth() / 2, gbufferFBO.getHeight() /2, 1, 1, GL_DEPTH_COMPONENT ,GL_FLOAT, &value );
-			checkGLError();
-			DEBUGLOG->log("center depth:", (float) value);
+			glm::vec4 value;
+			// checkGLError();
+			glReadBuffer(GL_COLOR_ATTACHMENT2);
+			glReadPixels(gbufferFBO.getWidth() / 2, gbufferFBO.getHeight() /2, 1, 1,
+			 GL_RGBA ,GL_FLOAT, glm::value_ptr(value) );
+			// checkGLError();
+			// DEBUGLOG->log("center depth:", value);
+			float depth = glm::length(glm::vec3(value));
+
+			float diffNear = (depth / 2.0f)-s_focusPlaneDepths.y;
+			float diffFar =(depth + depth/2.0f)- s_focusPlaneDepths.z;
+			s_focusPlaneDepths.x = s_focusPlaneDepths.x + diffNear * dt;
+			s_focusPlaneDepths.y = s_focusPlaneDepths.y + diffNear * dt;
+			s_focusPlaneDepths.z = s_focusPlaneDepths.z + diffFar * dt;
+			s_focusPlaneDepths.w = s_focusPlaneDepths.w + diffFar * dt;
 		}
 
 		// aka. light pass
