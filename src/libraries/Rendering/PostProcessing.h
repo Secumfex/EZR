@@ -24,4 +24,30 @@ namespace PostProcessing
 		Quad* m_quad;
 		bool ownQuad;
 	};
+
+	/*Box Blur using quadric interpolation*/
+	class DepthOfField
+	{
+	public:
+		DepthOfField(int width, int height, Quad* quad = nullptr);
+		~DepthOfField();
+
+		FrameBufferObject* m_cocFBO;  
+		FrameBufferObject* m_hDofFBO; // horizontal pass
+		FrameBufferObject* m_vDofFBO; // vertical pass
+		FrameBufferObject* m_dofCompFBO; // composed image
+
+		ShaderProgram m_calcCoCShader;
+		ShaderProgram m_dofShader;
+		ShaderProgram m_dofCompShader;
+
+		void execute(GLuint positionMap, GLuint colorMap); 
+		
+		const int m_width;
+		const int m_height;
+	private:
+		Quad* m_quad;
+		bool ownQuad;
+	};
+
 } // namespace PostProcessing

@@ -36,6 +36,14 @@ void RenderPass::setShaderProgram(ShaderProgram* shaderProgram)
 
 void RenderPass::setFrameBufferObject( FrameBufferObject* fbo)
 {
+	// set viewport if no viewport has been set before
+	if ( m_viewport == glm::ivec4(-1) && fbo != 0)
+	{
+		m_viewport.x = 0;
+		m_viewport.y = 0;
+		m_viewport.z = fbo->getWidth();
+		m_viewport.w = fbo->getHeight();
+	}
 	m_fbo = fbo;
 }
 
