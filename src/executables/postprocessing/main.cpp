@@ -297,9 +297,10 @@ int main()
 
 	    // ImGui::PushItemWidth(-100);
 		//ImGui::SliderFloat("strength", &s_strength, 0.0f, 2.0f); // influence of color shift
-
 		// ImGui::ColorEdit4( "color", glm::value_ptr( s_color)); // color mixed at max distance
        
+		static bool s_dynamicDoF = false;
+		ImGui::Checkbox("dynamic DoF", &s_dynamicDoF);
 		//ImGui::PopItemWidth();
 
         //////////////////////////////////////////////////////////////////////////////
@@ -317,19 +318,30 @@ int main()
 		compShader.update("vLightPos", view * s_lightPos);
 
 		// update blurrying parameters
-		 depthOfField.m_calcCoCShader.update("focusPlaneDepths", s_focusPlaneDepths);
-		 depthOfField.m_calcCoCShader.update("focusPlaneRadi",   s_focusPlaneRadi );
+		depthOfField.m_calcCoCShader.update("focusPlaneDepths", s_focusPlaneDepths);
+		depthOfField.m_calcCoCShader.update("focusPlaneRadi",   s_focusPlaneRadi );
 
-		 depthOfField.m_dofShader.update("maxCoCRadiusPixels", (int) s_focusPlaneRadi.x);
-		 depthOfField.m_dofShader.update("nearBlurRadiusPixels", (int) s_focusPlaneRadi.x/* / 4.0*/);
-		 depthOfField.m_dofShader.update("invNearBlurRadiusPixels", 1.0 / (s_focusPlaneRadi.x/* / 4.0*/));
+		depthOfField.m_dofShader.update("maxCoCRadiusPixels", (int) s_focusPlaneRadi.x);
+		depthOfField.m_dofShader.update("nearBlurRadiusPixels", (int) s_focusPlaneRadi.x/* / 4.0*/);
+		depthOfField.m_dofShader.update("invNearBlurRadiusPixels", 1.0 / (s_focusPlaneRadi.x/* / 4.0*/));
 
-		 depthOfField.m_dofCompShader.update("maxCoCRadiusPixels", s_focusPlaneRadi.x);
-		 depthOfField.m_dofCompShader.update("farRadiusRescale" , s_farRadiusRescale);
+		depthOfField.m_dofCompShader.update("maxCoCRadiusPixels", s_focusPlaneRadi.x);
+		depthOfField.m_dofCompShader.update("farRadiusRescale" , s_farRadiusRescale);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
 		renderGBuffer.render();
+
+		if ( s_dynamicDoF )
+		{
+			// read center depth
+			gbufferFBO.bind();
+			GLfloat value;
+			checkGLError();
+			glReadPixels(gbufferFBO.getWidth() / 2, gbufferFBO.getHeight() /2, 1, 1, GL_DEPTH_COMPONENT ,GL_FLOAT, &value );
+			checkGLError();
+			DEBUGLOG->log("center depth:", (float) value);
+		}
 
 		// aka. light pass
 		compositing.render();
