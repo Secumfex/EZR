@@ -1,0 +1,21 @@
+#version 430
+
+layout(triangles, equal_spacing, cw) in;
+
+in vec4 tcPosition[];
+
+out vec4 tePosition;
+
+uniform mat4 projection;
+uniform mat4 view;
+uniform mat4 model;
+
+void main() {
+	vec4 p0 = gl_TessCoord.x * tcPosition[0];	
+	vec4 p1 = gl_TessCoord.y * tcPosition[1];
+	vec4 p2 = gl_TessCoord.z * tcPosition[2];
+	
+	//tePosition = (p0 + p1 + p2) / 3.0;
+	tePosition = normalize(p0 + p1 + p2);
+	gl_Position = projection * view * model * tePosition;
+}

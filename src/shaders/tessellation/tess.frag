@@ -1,8 +1,14 @@
-out vec4 FragColor;
+#version 430
+
 in vec3 gFacetNormal;
 in vec3 gTriDistance;
 in vec3 gPatchDistance;
 in float gPrimitive;
+
+in vec3 tePosition[3];
+in vec3 tePatchDistance[3];
+
+out vec4 FragColor;
 
 uniform vec3 LightPosition;
 uniform vec3 DiffuseMaterial;
@@ -29,5 +35,5 @@ void main()
     float d1 = min(min(gTriDistance.x, gTriDistance.y), gTriDistance.z);
     float d2 = min(min(gPatchDistance.x, gPatchDistance.y), gPatchDistance.z);
     color = amplify(d1, 40, -0.5) * amplify(d2, 60, -0.5) * color;
-    FragColor = vec4(color, 1.0);
+    FragColor = vec4(vec3(1,0,0), 1.0);
 }

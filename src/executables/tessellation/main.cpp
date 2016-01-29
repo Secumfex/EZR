@@ -60,11 +60,12 @@ int main()
 	//float bb_width = 1.0f;
 	float ground_size = 3.0f;
 
-	Grid grid(10,10,0.1f,0.1f,true);
-
+	Grid grid(20,10,0.4f,0.1f,true);
 
 	std::vector<Renderable* > objects;
-	objects.push_back(new Grid( 1,1, ground_size, ground_size, true ));
+	//objects.push_back(new Grid( 10, 10, 0.1, 0.1, true ));
+	objects.push_back(new Quad());
+	//objects.push_back(new Grid( 1,1, ground_size, ground_size, true ));
 	//objects.push_back(new Sphere( 20, 40, object_size ) );
 	//objects.push_back(new Grid( 1,1, bb_width, bb_height, false ) ); // origin bottom left
 	//objects.push_back(new Volume( object_size * 4.0f, object_size * 3.0f, object_size ) ); //box
@@ -96,13 +97,14 @@ int main()
 	// TODO 
 	// in and outs fix
 	//ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag", "/tessellation/tc.tesc", "/tessellation/te.tese"); DEBUGLOG->outdent();
-	ShaderProgram shaderProgram("/modelSpace/modelViewProjection.vert", "/tessellation/tess.frag", "/tessellation/tc.tesc", "/tessellation/te.tese", "/tessellation/tess_geom.geom"); DEBUGLOG->outdent();//
+	//ShaderProgram shaderProgram("/modelSpace/modelViewProjection.vert", "/tessellation/tess.frag", "/tessellation/tc.tesc", "/tessellation/te.tese", "/tessellation/tess_geom.geom"); DEBUGLOG->outdent();//
+	ShaderProgram shaderProgram("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag.frag", "/tessellation/test/test_tc.tc", "/tessellation/test/test_te.te"); DEBUGLOG->outdent();//
 	//ShaderProgram shaderProgram("/modelSpace/modelViewProjection.vert", "/tessellation/test.frag"); DEBUGLOG->outdent();
 	shaderProgram.update("model", model);
 	shaderProgram.update("view", view);
 	shaderProgram.update("projection", perspective);
-	shaderProgram.update("tessLevelInner", 4.0f );
-	shaderProgram.update("tessLevelOuter", 4.0f );
+	//shaderProgram.update("tessLevelInner", 4.0f );
+	//shaderProgram.update("tessLevelOuter", 4.0f );
 
 
 	//DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
@@ -124,7 +126,7 @@ int main()
 	// renderPass.addEnable(GL_BLEND);
 	renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	renderPass.setClearColor(0.0, 0.0, 0.4,0.0);
-	renderPass.addRenderable(&quad);
+	//renderPass.addRenderable(&quad);
 	for (auto r : objects){renderPass.addRenderable(r);}
 
 
@@ -313,7 +315,7 @@ int main()
 		// update view related uniforms
 		//shaderProgram.update( "color", s_color);
 		shaderProgram.update( "view", view);
-	shaderProgram.update("tessLevelOuter", 4.0f );
+		//shaderProgram.update("tessLevelOuter", 4.0f );
 
 
 		//ssrShader.update( "view", view);

@@ -299,16 +299,25 @@ Quad::Quad()
 
     m_positions.m_vboHandle = positionBuffer;
 
-    m_mode = GL_TRIANGLE_STRIP;
-    
-    float positions[] = 
+  //  m_mode = GL_TRIANGLE_STRIP;
+    m_mode = GL_PATCHES;
+        
+  //  float positions[] = 
+  //  {
+  //      -1.0f, -1.0f,
+  //      -1.0f, 1.0f,
+  //      1.0f, -1.0f,
+  //      1.0f, 1.0f
+  //  };
+	  float positions[] = 
     {
-        -1.0f, -1.0f,
-        -1.0f, 1.0f,
-        1.0f, -1.0f,
-        1.0f, 1.0f
+        -1.0f, -1.0f,  //1
+        -1.0f, 1.0f,	//2
+       // 1.0f, -1.0f,	//3
+       // 1.0f, -1.0f,	//3
+       // -1.0f, 1.0f,	//2
+	//	1.0f, 1.0f	//4
     };
-
     float uv[] = 
     {
         0.0f, 0.0f,
@@ -317,12 +326,14 @@ Quad::Quad()
         1.0f, 1.0f
     };
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*8, positions, GL_STATIC_DRAW);
+   // glBufferData(GL_ARRAY_BUFFER, sizeof(float)*8, positions, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*12, positions, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float)*8, uv, GL_STATIC_DRAW);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(1);
+	glPatchParameteri(GL_PATCH_VERTICES, 3);
 }
 
 Quad::~Quad()
@@ -334,7 +345,8 @@ Quad::~Quad()
 void Quad::draw()
 {
     glBindVertexArray(m_vao);
-    glDrawArrays(m_mode, 0, 4);
+    //glDrawArrays(m_mode, 0, 4);
+    glDrawArrays(GL_PATCHES, 0, 3);
 }
 
 #include <glm/gtc/constants.hpp>
@@ -594,15 +606,36 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
 
     int top = 0;
     int bottom = fieldsX+1;
+
+	indices[1] = 0;
+	indices[2] = fieldsY+1;
+	indices[3] = fieldsX+1;
+	indices[4] = fieldsX+1;
+	indices[5] = fieldsY+1;
+	indices[6] = fieldsX+2;
+	indices[7] = fieldsX+2;
+	indices[8] = fieldsY+1;
+	indices[9] = fieldsX+3;
+	indices[10] = fieldsX+3;
+	indices[11] = fieldsY+1;
+	indices[11] = fieldsX+4;
+
+
     for (int i = 0; i < indices.size(); i++)
     {
-        if (i%2 == 0) // even index: top vertex
+		//indices[i] = top;
+		//indices[i+1] = top-1;
+		//indices[i+2] = top-2;
+		
+		
+		
+		if (i%2 == 0) // even index: top vertex
         {
-            indices[i] = top;
+           // indices[i] = top;
             top++;
         } 
         else{   //odd index: bottom vertex
-            indices[i] = bottom;
+           // indices[i] = bottom;
             bottom++;
         }
 
@@ -618,6 +651,7 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
     m_indices.m_size = indices.size();
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*indices.size(), &indices[0], GL_STATIC_DRAW);
+	glPatchParameteri(GL_PATCH_VERTICES, 3);
 }
 
 Grid::~Grid()
@@ -631,6 +665,7 @@ void Grid::draw()
 {
     glBindVertexArray(m_vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indices.m_vboHandle);
-    glDrawElements(GL_TRIANGLE_STRIP, m_indices.m_size, GL_UNSIGNED_INT, 0);
+   // glDrawElements(GL_TRIANGLE_STRIP, m_indices.m_size, GL_UNSIGNED_INT, 0);
     // glDrawArrays(GL_POINTS,  0, m_positions.m_size);
+	glDrawArrays(GL_PATCHES, 0, m_indices.m_size);
 }

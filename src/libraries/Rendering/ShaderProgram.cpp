@@ -119,9 +119,11 @@ ShaderProgram::ShaderProgram(std::string vertexshader, std::string fragmentshade
 
 	// Set up shader program
 	attachShader(vertexShader);
-	attachShader(fragmentShader);
 	attachShader(tessControllShader);
 	attachShader(tessEvalShader);
+	attachShader(geometryShader);
+	attachShader(fragmentShader);
+
     link();
 
     mapShaderProperties(GL_UNIFORM, &m_uniformMap);
@@ -129,6 +131,50 @@ ShaderProgram::ShaderProgram(std::string vertexshader, std::string fragmentshade
     mapShaderProperties(GL_PROGRAM_OUTPUT, &m_outputMap);
 	//readUniforms();
 }
+
+ShaderProgram::ShaderProgram(std::string vertexshader, std::string fragmentshader, std::string tessellationcontrollshader, std::string tessellationevaluationshader) 
+{
+    // Initially, we have zero shaders attached to the program
+	m_shaderCount = 0;
+
+	// Generate a unique Id / handle for the shader program
+	// Note: We MUST have a valid rendering context before generating
+	// the m_shaderProgramHandle or it causes a segfault!
+	m_shaderProgramHandle = glCreateProgram();
+
+    Shader vertexShader(GL_VERTEX_SHADER);
+	vertexShader.loadFromFile(SHADERS_PATH + vertexshader);
+	vertexShader.compile();
+
+	Shader tessControllShader(GL_TESS_CONTROL_SHADER);
+	tessControllShader.loadFromFile(SHADERS_PATH + tessellationcontrollshader );
+	tessControllShader.compile();
+	
+	Shader tessEvalShader(GL_TESS_EVALUATION_SHADER);
+	tessEvalShader.loadFromFile(SHADERS_PATH + tessellationevaluationshader );
+	tessEvalShader.compile();
+
+	//Set up fragment shader
+	Shader fragmentShader(GL_FRAGMENT_SHADER);
+	fragmentShader.loadFromFile(SHADERS_PATH + fragmentshader);
+	fragmentShader.compile();
+
+	//readOutputs(fragmentShader);
+
+	// Set up shader program
+	attachShader(vertexShader);
+	attachShader(tessControllShader);
+	attachShader(tessEvalShader);
+	attachShader(fragmentShader);
+    link();
+
+    mapShaderProperties(GL_UNIFORM, &m_uniformMap);
+    mapShaderProperties(GL_PROGRAM_INPUT, &m_inputMap);
+    mapShaderProperties(GL_PROGRAM_OUTPUT, &m_outputMap);
+	//readUniforms();
+}
+
+
 
 ShaderProgram::~ShaderProgram()
 {

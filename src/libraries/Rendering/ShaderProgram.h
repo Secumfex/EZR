@@ -41,6 +41,8 @@ public:
 	 * 
 	 */
 	ShaderProgram(std::string vertexshader, std::string fragmentshader, std::string tessellationcontrollshader, std::string tessellationevaluationshader, std::string geometryshader);
+	
+	ShaderProgram(std::string vertexshader, std::string fragmentshader, std::string tessellationcontrollshader, std::string tessellationevaluationshader);
 
 
 	/**
