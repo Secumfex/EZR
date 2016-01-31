@@ -117,35 +117,72 @@ int main()
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
 	 // regular GBuffer
-	 DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
+	 /*DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
 	 ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
 	 shaderProgram.update("model", model);
 	 shaderProgram.update("view", view);
-	 shaderProgram.update("projection", perspective);
+	 shaderProgram.update("projection", perspective);*/
+
+	//gbuffer shader
+	 DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
+	 ShaderProgram gShader("/screenSpaceReflection/gBuffer.vert", "/screenSpaceReflection/gBuffer.frag"); DEBUGLOG->outdent();
+	 gShader.update("model", model);
+	 gShader.update("view", view);
+	 gShader.update("projection", perspective);
+
+	 glm::mat4 wsNormalMat = glm::transpose(glm::inverse(model));
+	 glm::mat4 vsNormalMat = glm::transpose(glm::inverse(view * model));
+	 glm::mat4 mvp = perspective * view * model;
+	 bool useNM = true;
+
+	 gShader.update("camPosition",eye);
+	 gShader.update("wsNormalMatrix",wsNormalMat);
+	 gShader.update("vsNormalMatrix",vsNormalMat);
+	 gShader.update("MVPMatrix", mvp);
+
+	 gShader.update("matId",); 			//woher bekommen?
+	 gShader.update("useNormalMapping", useNM);
+	 gShader.update("lightColor", ); 	//woher bekommen?
 
 	 // check for displayable textures
-	 if (textures.find(aiTextureType_DIFFUSE) != textures.end())
+	 /*if (textures.find(aiTextureType_DIFFUSE) != textures.end())
 	 { shaderProgram.bindTextureOnUse("tex", textures.at(aiTextureType_DIFFUSE)); shaderProgram.update("mixTexture", 1.0);}
 	 if (textures.find(aiTextureType_NORMALS) != textures.end() && shaderProgram.getUniformInfoMap()->find("normalTex") != shaderProgram.getUniformInfoMap()->end())
-	 { shaderProgram.bindTextureOnUse("normalTex", textures.at(aiTextureType_NORMALS));shaderProgram.update("hasNormalTex", true);}
+	 { shaderProgram.bindTextureOnUse("normalTex", textures.at(aiTextureType_NORMALS));shaderProgram.update("hasNormalTex", true);}*/
 
 	 DEBUGLOG->outdent();
 
-	 DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
+	 /*DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
 	 FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
 	 FrameBufferObject fbo(shaderProgram.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
 	 FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
+	 DEBUGLOG->outdent();*/
+
+	 //gbuffer fbo
+	 DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
+	 FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
+	 FrameBufferObject gFBO(gShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
+	 FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
+	 //damit fertig? alle texturen/colorattachm erstellt??
 	 DEBUGLOG->outdent();
 
-	 DEBUGLOG->log("RenderPass Creation: GBuffer"); DEBUGLOG->indent();
+	 /*DEBUGLOG->log("RenderPass Creation: GBuffer"); DEBUGLOG->indent();
 	 RenderPass renderPass(&shaderProgram, &fbo);
 	 renderPass.addEnable(GL_DEPTH_TEST);
 	 // renderPass.addEnable(GL_BLEND);
 	 renderPass.setClearColor(0.0,0.0,0.0,0.0);
 	 renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	 for (auto r : objects){renderPass.addRenderable(r);}
-	 DEBUGLOG->outdent();
+	 DEBUGLOG->outdent();*/
 
+	 DEBUGLOG->log("RenderPass Creation: GBuffer"); DEBUGLOG->indent();
+	 RenderPass renderPass(&gShader, &gFBO);
+	 renderPass.addEnable(GL_DEPTH_TEST);
+	 // renderPass.addEnable(GL_BLEND);
+	 renderPass.setClearColor(0.0,0.0,0.0,0.0);
+	 renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	 for (auto r : objects){renderPass.addRenderable(r);}
+	 DEBUGLOG->outdent();
 
 	 //screen space render pass
 	 DEBUGLOG->log("Shader Compilation: ssrShader"); DEBUGLOG->indent();
@@ -329,9 +366,13 @@ int main()
 
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
 		// update view related uniforms
-		shaderProgram.update( "view", view);
+		/*shaderProgram.update( "view", view);
 		shaderProgram.update( "color", s_color);
-		shaderProgram.update( "model", turntable.getRotationMatrix() * model * glm::scale(s_scale));
+		shaderProgram.update( "model", turntable.getRotationMatrix() * model * glm::scale(s_scale));*/
+
+		gShader.update("view", view);
+		gShader.update("wsNormalMatrix", glm::transpose(glm::inverse(view * model)));
+		gShader.update("MVPMatrix", perspective * view * model);
 
 		//update ssr uniforms
 		//...
