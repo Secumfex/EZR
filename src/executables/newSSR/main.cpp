@@ -140,7 +140,7 @@ int main()
 	 gShader.update("vsNormalMatrix",vsNormalMat);
 	 gShader.update("MVPMatrix", mvp);
 
-	 gShader.update("matId",); 			//woher bekommen?
+	 gShader.update("matId",); 			//woher bekommen?	//todo
 	 gShader.update("useNormalMapping", useNM);
 	 gShader.update("lightColor", ); 	//woher bekommen?
 
@@ -190,7 +190,7 @@ int main()
 	 lightShader.update("view", view);
 	 lightShader.update("projection", perspective);
 
-	 lightShader.update("lightPosition",);	//woher bekommen?
+	 lightShader.update("lightPosition",);	//woher bekommen?	//todo
 	 lightShader.update("lightDiffuse",);	//woher bekommen?
 	 lightShader.update("lightSpecular",);	//woher bekommen?
 	 lightShader.update("lightcount",);		//woher bekommen?
@@ -200,7 +200,7 @@ int main()
 
 	 lightShader.update("shadingModelID",currShadingModel);
 	 lightShader.update("Shininess",currShininess);
-	 lightShader.update("ambientColor",); 	//woher bekommen?
+	 lightShader.update("ambientColor",); 	//woher bekommen?	//todo
 
 	 lightShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	 lightShader.bindTextureOnUse("vsNormalTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
@@ -250,7 +250,7 @@ int main()
 	 //ssrShader.bindTextureOnUse();
 	 //uniform sampler2D wsPositionTex;
 	 // uniform sampler2D wsNormalTex;
-	 ssrShader.bindTextureOnUse("vsPositionTex",fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
+	 ssrShader.bindTextureOnUse("vsPositionTex",fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));	//todo
 	 ssrShader.bindTextureOnUse("vsNormalTex",fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
 	 ssrShader.bindTextureOnUse("ReflectanceTex",fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT3)); //?
 	 ssrShader.bindTextureOnUse("DepthTex",fbo.getDepthTextureHandle());
@@ -273,21 +273,45 @@ int main()
 
 
 	 // regular GBuffer compositing
-	 DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
+	 /*DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
 	 ShaderProgram compShader("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing.frag"); DEBUGLOG->outdent();
 	 // set texture references
 	 compShader.bindTextureOnUse("colorMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	 compShader.bindTextureOnUse("normalMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
-	 compShader.bindTextureOnUse("positionMap",  fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
+	 compShader.bindTextureOnUse("positionMap",  fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));*/
 
-	 DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
+	 DEBUGLOG->log("Shader Compilation: compositing"); DEBUGLOG->indent();
+	 ShaderProgram compoShader("/screenSpaceReflection/comp.vert", "/screenSpaceReflection/comp.frag"); DEBUGLOG->outdent();
+	 compoShader.update("textureID",);	//woher bekommen?	//todo
+
+	 bool doBlur =false;
+	 bool doSSR = true;
+
+	 compoShader.update("blurSwitch", doBlur);
+	 compoShader.update("SSR", doSSR);
+	 compoShader.update("kernelX", );	//woher bekommen?	//todo
+	 compoShader.update("kernelY", );	//woher bekommen?
+
+	 compoShader.bindTextureOnUse();
+	 //...TODO
+
+	 /*DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
 	 Quad quad;
 	 RenderPass compositing(&compShader, 0);
 	 compositing.addClearBit(GL_COLOR_BUFFER_BIT);
 	 compositing.setClearColor(0.25,0.25,0.35,0.0);
 	 // compositing.addEnable(GL_BLEND);
 	 compositing.addDisable(GL_DEPTH_TEST);
-	 compositing.addRenderable(&quad);
+	 compositing.addRenderable(&quad);*/
+
+	 DEBUGLOG->log("RenderPass Creation: Compositing"); DEBUGLOG->indent();
+	 Quad quad;		//wofür istdas quad?
+	 RenderPass compoPass(&compoShader, 0);
+	 compoPass.addClearBit(GL_COLOR_BUFFER_BIT);
+	 compoPass.setClearColor(0.25,0.25,0.35,0.0);
+	 // compositing.addEnable(GL_BLEND);
+	 compoPass.addDisable(GL_DEPTH_TEST);
+	 compoPass.addRenderable(&quad);
 
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
@@ -417,21 +441,26 @@ int main()
 		lightShader.update("view", view);
 
 		//update ssr uniforms
-		//...
+		//...todo
 
-		compShader.update("vLightPos", view * s_lightPos);
+		///compShader.update("vLightPos", view * s_lightPos);
+
+		//update compo uniforms
+		//...todo
+
 		//////////////////////////////////////////////////////////////////////////////
 
 		////////////////////////////////  RENDERING //// /////////////////////////////
 		gPass.render();
 		lightPass.render();
 		ssrPass.render();
+		compoPass.render();
 
-		compositing.render();
+		//compositing.render();
 
-		 ImGui::Render();
-		 glDisable(GL_BLEND);
-		 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
+		ImGui::Render();
+		glDisable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
 		//////////////////////////////////////////////////////////////////////////////
 
 	});
