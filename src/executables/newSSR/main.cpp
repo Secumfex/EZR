@@ -29,6 +29,10 @@ static glm::vec4 s_color = glm::vec4(0.45 * 0.3f, 0.44f * 0.3f, 0.87f * 0.3f, 1.
 static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
 
 static glm::vec3 s_scale = glm::vec3(1.0f,1.0f,1.0f);
+
+float cameraNear = 0.1f;
+float cameraFar = 200.0f;
+int rayStep = 0.0f;
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -145,35 +149,35 @@ int main()
 
 	 //screen space render pass
 	 DEBUGLOG->log("Shader Compilation: ssrShader"); DEBUGLOG->indent();
-	 ShaderProgram ssrShader("/screenSpaceReflection/screenSpaceReflection.vert", "/screenSpaceReflection/screenSpaceReflections.frag"); DEBUGLOG->outdent();
+	 ShaderProgram ssrShader("/screenSpaceReflection/screenSpaceReflection.vert", "/screenSpaceReflection/screenSpaceReflection.frag"); DEBUGLOG->outdent();
 	 //update uniforms
 	 ssrShader.update("screenWidth", WINDOW_RESOLUTION);
 	 ssrShader.update("screenHeight", WINDOW_RESOLUTION);
 
-	 ssrShader.update("cameraFOV", );
-	 ssrShader.update("cameraNearPlane", ); //= 0.1f
-	 ssrShader.update("cameraFarPlane", );  //= 200.0f
-	 ssrShader.update("cameraLookAt", );
-	 ssrShader.update("cameraPosition", );
+	 //ssrShader.update("cameraFOV", );
+	 ssrShader.update("cameraNearPlane",cameraNear); //= 0.1f
+	 ssrShader.update("cameraFarPlane",cameraFar);  //= 200.0f
+	 //ssrShader.update("cameraLookAt", );
+	 //ssrShader.update("cameraPosition", );
 	 //...
-	 uniform int user_pixelStepSize;
-	 uniform float fadeYparameter;
+	 ssrShader.update("user_pixelStepSize",rayStep);//rayStepSize = 0.0f
+	 /*uniform float fadeYparameter;
 	 uniform bool toggleSSR;
 	 uniform bool toggleGlossy;
 	 uniform bool optimizedSSR;
 	 uniform bool experimentalSSR;
-	 uniform bool fadeToEdges;
-	 uniform mat4 ViewMatrix;
-	 uniform mat4 ProjectionMatrix;
+	 uniform bool fadeToEdges;*/
+	 ssrShader.update("ViewMatrix", view);
+	 ssrShader.update("ProjectionMatrix",perspective);
 	 //...
-	 ssrShader.bindTextureOnUse();
-	 uniform sampler2D wsPositionTex;
-	 uniform sampler2D vsPositionTex;
-	 uniform sampler2D wsNormalTex;
-	 uniform sampler2D vsNormalTex;
-	 uniform sampler2D ReflectanceTex;
-	 uniform sampler2D DepthTex;
-	 uniform sampler2D DiffuseTex;
+	 //ssrShader.bindTextureOnUse();
+	 //uniform sampler2D wsPositionTex;
+	 // uniform sampler2D wsNormalTex;
+	 ssrShader.bindTextureOnUse("vsPositionTex",fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
+	 ssrShader.bindTextureOnUse("vsNormalTex",fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
+	 ssrShader.bindTextureOnUse("ReflectanceTex",fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT3)); //?
+	 ssrShader.bindTextureOnUse("DepthTex",fbo.getDepthTextureHandle());
+	 ssrShader.bindTextureOnUse("DiffuseTex",fbo.getBuffer("fragColor"));
 	 //...
 
 	 //fbo
@@ -328,6 +332,9 @@ int main()
 		shaderProgram.update( "view", view);
 		shaderProgram.update( "color", s_color);
 		shaderProgram.update( "model", turntable.getRotationMatrix() * model * glm::scale(s_scale));
+
+		//update ssr uniforms
+		//...
 
 		compShader.update("vLightPos", view * s_lightPos);
 		//////////////////////////////////////////////////////////////////////////////

@@ -50,65 +50,85 @@ float linearizeDepth(float depth) {
 
 
 //!< ssr func
-vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsReflectionVector){ 
+vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsReflectionVector){
+    
+    float factor = dot(vsReflectionVector, vsNormal);
 
- vec4 reflectedColor = vec4(0.0); 
- vec2 pixelsize = 1.0/vec2(screenWidth, screenHeight);
- vec4 csPosition = ProjectionMatrix * vec4(vsPosition, 1.0); 
- vec3 ndcsPosition = csPosition.xyz / csPosition.w;
- vec3 ssPosition = 0.5 * ndcsPosition + 0.5;
- 
- //Project reflectedvectorintoscreenspace 
- vsReflectionVector += vsPosition;
- vec4 csReflectionVector = ProjectionMatrix * vec4(vsReflectionVector, 1.0);
- vec3 ndcsReflectionVector = csReflectionVector.xyz / csReflectionVector.w;
- vec3 ssReflectionVector = 0.5 * ndcsReflectionVector + 0.5;
- ssReflectionVector = normalize(ssReflectionVector - ssPosition);
- 
- vec3 lastSamplePosition; 
- vec3 currentSamplePosition;
- float initalStep; 
- float pixelStepSize;
- 
- //Ray tracing 
- initalStep = 1.0 / sampleCount; 
- ssReflectionVector = ssReflectionVector * initalStep;
- lastSamplePosition = ssPosition + ssReflectionVector; 
- currentSamplePosition = lastSamplePosition + ssReflectionVector;
-  
- intsampleCount = max(int(screenHeight), int(screenWidth)); 
- intcount = 0; 
- while(count< sampleCount) { 
- 
-  //Out ofscreenspace = break, exemplarisch, komponentenweise durchführen (x, y, z) 
-  if(currentSamplePosition < 0.0 || currentSamplePosition > 1.0){
-   break; 
-  }
-  vec2samplingPosition = currentSamplePosition.xy; 
- 
-  //http://www.ozone3d.net/blogs/lab/20090206/how-to-linearize-the-depth-value/ 
-  floatsampledDepth = linearizeDepth( texture(DepthTex, samplingPosition).z ); 
-  floatrayDepth = linearizeDepth(currentSamplePosition.z);
-  floatdelta = abs(rayDepth-sampledDepth);
- 
-  //Step ray 
-  if(rayDepth< sampledDepth){ 
-   lastSamplePosition = currentSamplePosition; 
-   currentSamplePosition = lastSamplePosition + ssReflectionVector;
-  } 
-  else{ 
-   if(rayDepth > sampledDepth){ 
-    lastSamplePosition = currentSamplePosition;
-    currentSamplePosition = lastSamplePosition - ssReflectionVector;
-   } 
-   if(delta < minimumDelta){ 
-    reflectedColor = texture(DiffuseTex, samplingPosition); 
-    break; 
-   } 
-  }           
-  count++;
- } 
- returnreflectedColor;
+    // Variables
+    vec4 reflectedColor = vec4(0.0);
+    vec2 pixelsize = 1.0/vec2(screenWidth, screenHeight);
+
+    // Get texture informations
+    vec4 csPosition = ProjectionMatrix * vec4(vsPosition, 1.0);
+    vec3 ndcsPosition = csPosition.xyz / csPosition.w;
+    vec3 ssPosition = 0.5 * ndcsPosition + 0.5;
+
+    // Project reflected vector into screen space
+    vsReflectionVector += vsPosition;
+    vec4 csReflectionVector = ProjectionMatrix * vec4(vsReflectionVector, 1.0);
+    vec3 ndcsReflectionVector = csReflectionVector.xyz / csReflectionVector.w;
+    vec3 ssReflectionVector = 0.5 * ndcsReflectionVector + 0.5;
+    ssReflectionVector = normalize(ssReflectionVector - ssPosition);
+
+    vec3 lastSamplePosition;
+    vec3 currentSamplePosition;
+
+    float initalStep;
+    float pixelStepSize;
+
+    int sampleCount = max(int(screenWidth), int(screenHeight));
+    int count = 0;
+    
+    // Ray trace
+    initalStep = max(pixelsize.x, pixelsize.y);
+    pixelStepSize = user_pixelStepSize;
+    ssReflectionVector *= initalStep;
+
+    lastSamplePosition = ssPosition + ssReflectionVector;
+    currentSamplePosition = lastSamplePosition + ssReflectionVector;
+
+    while(count < sampleCount){
+    	// Out of screen space --> break
+        if(currentSamplePosition.x < 0.0 || currentSamplePosition.x > 1.0 ||
+           currentSamplePosition.y < 0.0 || currentSamplePosition.y > 1.0 ||
+           currentSamplePosition.z < 0.0 || currentSamplePosition.z > 1.0){
+        	break;
+        }           
+        vec2 samplingPosition = currentSamplePosition.xy;
+        float sampledDepth = linearizeDepth( texture(DepthTex, samplingPosition).z );
+        float currentDepth = linearizeDepth(currentSamplePosition.z);
+
+        if(currentDepth > sampledDepth){   
+            float delta = abs(currentDepth - sampledDepth);
+            if(delta <= 0.001f){
+                float f = currentDepth;
+                float blurSize = 30 * f; 
+                reflectedColor = texture2D(DiffuseTex, vec2(samplingPosition.x, samplingPosition.y));
+
+                for(float i= - blurSize/2.0; i < blurSize/2.0; i+= 1.0){
+                    reflectedColor += texture2D(DiffuseTex, vec2(samplingPosition.x, samplingPosition.y + i * pixelsize.y));
+                }
+                reflectedColor /= blurSize;
+                break;  
+            }
+        }
+        else{
+            // Step ray
+            lastSamplePosition = currentSamplePosition;
+            currentSamplePosition = lastSamplePosition + ssReflectionVector * pixelStepSize;    
+        }
+        count++;
+    }
+
+    // Fading to screen edges
+    vec2 fadeToScreenEdge = vec2(1.0);
+    if(fadeToEdges){
+        fadeToScreenEdge.x = distance(lastSamplePosition.x , 1.0);
+        fadeToScreenEdge.x *= distance(lastSamplePosition.x, 0.0) * 4.0;
+        fadeToScreenEdge.y = distance(lastSamplePosition.y, 1.0);
+        fadeToScreenEdge.y *= distance(lastSamplePosition.y, 0.0) * 4.0;
+    }
+    return (reflectedColor * fadeToScreenEdge.x * fadeToScreenEdge.y);
 }
 
 //!< main
@@ -134,14 +154,14 @@ void main(void){
 
 
 //!< pseudo-code
-input : Reflected ray R,
-Depth buffer texture DepthT ex (G-Buffer),
-Diffuse texture DiffuseT ex (lighting pass),
-output: Reflected color RC
-1 ssR = project R into screen space;
-2 while Raymarch along ssR do
-3 if ssR.z > DepthT ex at position ssR.xy) then
-4 RC = DiffuseT ex at position ssR.xy);
-5 end
-6 end
-7 return RC;
+//input : Reflected ray R,
+//Depth buffer texture DepthT ex (G-Buffer),
+//Diffuse texture DiffuseT ex (lighting pass),
+//output: Reflected color RC
+//1 ssR = project R into screen space;
+//2 while Raymarch along ssR do
+//3 if ssR.z > DepthT ex at position ssR.xy) then
+//4 RC = DiffuseT ex at position ssR.xy);
+//5 end
+//6 end
+//7 return RC;
