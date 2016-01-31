@@ -27,7 +27,7 @@
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 
 static glm::vec4 s_color = glm::vec4(0.45 * 0.3f, 0.44f * 0.3f, 0.87f * 0.3f, 1.0f); // far : blueish
-static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
+static glm::vec4 s_light_position = glm::vec4(2.0,2.0,2.0,1.0);
 static glm::vec3 s_scale = glm::vec3(1.0f,1.0f,1.0f);
 
 static glm::vec4 s_focusPlaneDepths = glm::vec4(2.0,4.0,7.0,10.0);
@@ -179,6 +179,20 @@ int main()
 	// Depth Of Field 
 	PostProcessing::DepthOfField depthOfField(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y, &quad);
 
+	// lens flare
+	Renderable* sun = new Sphere();
+	glm::mat4 sunModel = glm::translate(glm::vec3(0.0f,0.0f,0.0f));
+	glm::vec3 light_position(0.0f);
+	
+	ShaderProgram sunShader("/screenSpace/postProcessSunOcclusionTest.vert", "/screenSpace/postProcessSunOcclusionTest.frag");
+	FrameBufferObject miniFBO(sunShader.getOutputInfoMap(),16,16);
+	RenderPass sunPass(&sunShader,&miniFBO);
+	sunPass.addClearBit(GL_COLOR_BUFFER_BIT);
+	sunPass.addRenderable(&quad);
+	sunShader.update("projection", perspective);
+	sunShader.update("invTexRes", glm::vec2(1.0f / gbufferFBO.getWidth(), 1.0f/gbufferFBO.getHeight()));
+	sunShader.bindTextureOnUse("depthTexture", gbufferFBO.getDepthTextureHandle());
+
 	ShaderProgram showTexShader("/screenSpace/fullscreen.vert", "/screenSpace/simpleAlphaTexture.frag");
 	RenderPass showTex(&showTexShader,0);
 	showTex.addRenderable(&quad);
@@ -305,7 +319,7 @@ int main()
 
         //////////////////////////////////////////////////////////////////////////////
 
-		///////////////////////////// MATRIX UPDATING ///////////////////////////////
+		///////////////////////////// VARIABLE UPDATING ///////////////////////////////
 		view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0.0f, 1.0f, 0.0f));
 		//////////////////////////////////////////////////////////////////////////////
 				
@@ -314,8 +328,15 @@ int main()
 		shaderProgram.update( "view", view);
 		shaderProgram.update( "color", s_color);
 
+		//update light data
+		glm::vec4 lightData = perspective * view * s_light_position;//multiply with the view-projection matrix
+		lightData = lightData / lightData.w;//perform perspective division
+		lightData.x = lightData.x*0.5+0.5;//the x/y screen coordinates come out between -1 and 1, so
+		lightData.y = lightData.y*0.5+0.5;//we need to rescale them to be 0 to 1 tex-coords
+		sunShader.update("lightData", lightData);
+
 		//compShader.update( "strength", s_strength);
-		compShader.update("vLightPos", view * s_lightPos);
+		compShader.update("vLightPos", view * s_light_position);
 
 		// update blurrying parameters
 		depthOfField.m_calcCoCShader.update("focusPlaneDepths", s_focusPlaneDepths);
@@ -331,6 +352,30 @@ int main()
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
 		renderGBuffer.render();
+
+		// lens flare occlusion query
+		GLuint queryId;
+		glGenQueries(1, &queryId);
+		glBeginQuery(GL_SAMPLES_PASSED, queryId);
+
+		//DEBUGLOG->log("LightData: ", lightData);
+		sunPass.render();
+
+		GLuint queryState = GL_FALSE;
+		glEndQuery(GL_SAMPLES_PASSED);
+		checkGLError();
+		while ( queryState != GL_TRUE)
+		{
+			glGetQueryObjectuiv(queryId, GL_QUERY_RESULT_AVAILABLE, &queryState);
+			checkGLError();
+		}
+		GLuint pixelCount;
+		glGetQueryObjectuiv(queryId, GL_QUERY_RESULT, &pixelCount);
+ 		glDeleteQueries(1, &queryId);
+		glDisable(GL_DEPTH_TEST);
+
+		// show light visibility in GUI
+		ImGui::Value("sun visibility", (float) pixelCount / 256.0f);
 
 		if ( s_dynamicDoF )
 		{
@@ -360,8 +405,15 @@ int main()
 		depthOfField.execute(gbufferFBO.getBuffer("fragPosition"), compFBO.getBuffer("fragmentColor"));
 
 		// show result
+		showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 		showTexShader.updateAndBindTexture("tex", 0, depthOfField.m_dofCompFBO->getBuffer("fragmentColor"));
 		showTex.render();
+		
+		showTex.setViewport(0,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
+		showTexShader.updateAndBindTexture("tex", 0, miniFBO.getBuffer("fragmentColor"));
+		showTex.render();
+
+		glViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y);
 
 		 ImGui::Render();
 		 glDisable(GL_BLEND);
