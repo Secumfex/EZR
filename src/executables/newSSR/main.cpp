@@ -123,7 +123,7 @@ int main()
 	 shaderProgram.update("view", view);
 	 shaderProgram.update("projection", perspective);*/
 
-	//gbuffer shader
+	 //gbuffer pass
 	 DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
 	 ShaderProgram gShader("/screenSpaceReflection/gBuffer.vert", "/screenSpaceReflection/gBuffer.frag"); DEBUGLOG->outdent();
 	 gShader.update("model", model);
@@ -176,12 +176,52 @@ int main()
 	 DEBUGLOG->outdent();*/
 
 	 DEBUGLOG->log("RenderPass Creation: GBuffer"); DEBUGLOG->indent();
-	 RenderPass renderPass(&gShader, &gFBO);
-	 renderPass.addEnable(GL_DEPTH_TEST);
+	 RenderPass gPass(&gShader, &gFBO);
+	 gPass.addEnable(GL_DEPTH_TEST);
 	 // renderPass.addEnable(GL_BLEND);
-	 renderPass.setClearColor(0.0,0.0,0.0,0.0);
-	 renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	 for (auto r : objects){renderPass.addRenderable(r);}
+	 gPass.setClearColor(0.0,0.0,0.0,0.0);
+	 gPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	 for (auto r : objects){gPass.addRenderable(r);}
+	 DEBUGLOG->outdent();
+
+	 //light pass
+	 DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
+	 ShaderProgram lightShader("/screenSpaceReflection/light.vert", "/screenSpaceReflection/light.frag"); DEBUGLOG->outdent();
+	 lightShader.update("view", view);
+	 lightShader.update("projection", perspective);
+
+	 lightShader.update("lightPosition",);	//woher bekommen?
+	 lightShader.update("lightDiffuse",);	//woher bekommen?
+	 lightShader.update("lightSpecular",);	//woher bekommen?
+	 lightShader.update("lightcount",);		//woher bekommen?
+
+	 int currShadingModel = 1;
+	 float currShininess = 12.0f;
+
+	 lightShader.update("shadingModelID",currShadingModel);
+	 lightShader.update("Shininess",currShininess);
+	 lightShader.update("ambientColor",); 	//woher bekommen?
+
+	 lightShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+	 lightShader.bindTextureOnUse("vsNormalTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
+	 lightShader.bindTextureOnUse("ColorTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
+	 DEBUGLOG->outdent();
+
+	 //light fbo
+	 DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
+	 FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
+	 FrameBufferObject lightFBO(lightShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
+	 FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
+	 //damit fertig? alle texturen/colorattachm erstellt??
+	 DEBUGLOG->outdent();
+
+	 DEBUGLOG->log("RenderPass Creation: light"); DEBUGLOG->indent();
+	 RenderPass lightPass(&lightShader, &lightFBO);
+	 lightPass.addEnable(GL_DEPTH_TEST);
+	 // renderPass.addEnable(GL_BLEND);
+	 lightPass.setClearColor(0.0,0.0,0.0,0.0);
+	 lightPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	 //for (auto r : objects){lightPass.addRenderable(r);}
 	 DEBUGLOG->outdent();
 
 	 //screen space render pass
@@ -374,6 +414,8 @@ int main()
 		gShader.update("wsNormalMatrix", glm::transpose(glm::inverse(view * model)));
 		gShader.update("MVPMatrix", perspective * view * model);
 
+		lightShader.update("view", view);
+
 		//update ssr uniforms
 		//...
 
@@ -381,8 +423,8 @@ int main()
 		//////////////////////////////////////////////////////////////////////////////
 
 		////////////////////////////////  RENDERING //// /////////////////////////////
-		renderPass.render();
-
+		gPass.render();
+		lightPass.render();
 		ssrPass.render();
 
 		compositing.render();

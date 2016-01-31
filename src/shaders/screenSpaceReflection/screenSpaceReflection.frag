@@ -1,4 +1,4 @@
-//!< fragment shader
+//!< ssr fragment shader
 #version 430
 
 //!< in-vars

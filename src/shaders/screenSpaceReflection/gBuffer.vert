@@ -1,4 +1,4 @@
-//!< vertex shader
+//!< gbuffer vertex shader
 #version 430
 
 //!< in-vars

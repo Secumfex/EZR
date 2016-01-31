@@ -1,4 +1,4 @@
-//!< vertex shader
+//!< ssr vertex shader
 #version 430 
  
 //!< in-vars

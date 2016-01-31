@@ -1,4 +1,4 @@
-//!< fragment shader
+//!< gbuffer fragment shader
 #version 430
 
 //!< in-vars
