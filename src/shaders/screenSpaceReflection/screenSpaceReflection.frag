@@ -10,26 +10,26 @@ uniform float screenWidth;
 uniform float screenHeight;
 
 //camera infos
-uniform float cameraFOV; 
-uniform float cameraNearPlane; 
-uniform float cameraFarPlane; 
-uniform vec3 cameraLookAt; 
-uniform vec3 cameraPosition; 
+//uniform float camFOV; 
+uniform float camNearPlane; 
+uniform float camFarPlane; 
+//uniform vec3 camLookAt; 
+//uniform vec3 camPosition; 
 
 
 uniform int user_pixelStepSize; 
-uniform float fadeYparameter; 
+//uniform float fadeYparameter; 
 uniform bool toggleSSR; 
-uniform bool toggleGlossy; 
-uniform bool optimizedSSR; 
-uniform bool experimentalSSR; 
+//uniform bool toggleGlossy; 
+//uniform bool optimizedSSR; 
+//uniform bool experimentalSSR; 
 uniform bool fadeToEdges; 
-uniform mat4 ViewMatrix; 
-uniform mat4 ProjectionMatrix; 
+uniform mat4 view; 
+uniform mat4 projection; 
  
-uniform sampler2D wsPositionTex; 
+//uniform sampler2D wsPositionTex; 
 uniform sampler2D vsPositionTex; 
-uniform sampler2D wsNormalTex; 
+//uniform sampler2D wsNormalTex; 
 uniform sampler2D vsNormalTex; 
 uniform sampler2D ReflectanceTex; 
 uniform sampler2D DepthTex; 
@@ -41,8 +41,8 @@ out vec4 FragColor;
 //!< Linearizes a depth value 
 //  Source: http://www.geeks3d.com/20091216/geexlab-how-to-visualize-the-depth-buffer-in-glsl/ 
 float linearizeDepth(float depth) { 
- float near = cameraNearPlane; 
- float far = cameraFarPlane; 
+ float near = camNearPlane; 
+ float far = camFarPlane; 
  float linearDepth = (2.0 * near) / (far + near - depth * (far - near)); 
  
  return linearDepth; 

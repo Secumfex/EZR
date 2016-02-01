@@ -5,9 +5,7 @@
 layout(location = 0) in vec3 vertex; 
 layout(location = 1) in vec2 uv; 
  
-//!< in-vars
- 
-//!< in-vars
+//!< out-vars
 out vec2 vert_UV; 
  
 //!< main

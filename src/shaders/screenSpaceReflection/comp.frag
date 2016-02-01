@@ -28,13 +28,13 @@ uniform sampler2D vsPositionTex;
 uniform sampler2D vsNormalTex;
 uniform sampler2D ColorTex;
 uniform sampler2D ReflectanceTex;
-uniform sampler2D ReflecVecTex;
-uniform sampler2D EyeVecTex;
+//uniform sampler2D ReflecVecTex;
+//uniform sampler2D EyeVecTex;
 uniform sampler2D DepthTex;
 uniform sampler2D DiffuseTex;
-uniform sampler2D BlurredDiffuseTex;
+//uniform sampler2D BlurredDiffuseTex;
 uniform sampler2D SSRTex;
-uniform sampler2D BBTex;
+//uniform sampler2D BBTex;	//?
 
 uniform float kernelX;
 uniform float kernelY;

@@ -33,6 +33,7 @@ static glm::vec3 s_scale = glm::vec3(1.0f,1.0f,1.0f);
 float cameraNear = 0.1f;
 float cameraFar = 200.0f;
 int rayStep = 0.0f;
+bool fadeEdges = true;
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -242,19 +243,19 @@ int main()
 	 uniform bool toggleSSR;
 	 uniform bool toggleGlossy;
 	 uniform bool optimizedSSR;
-	 uniform bool experimentalSSR;
-	 uniform bool fadeToEdges;*/
-	 ssrShader.update("ViewMatrix", view);
-	 ssrShader.update("ProjectionMatrix",perspective);
+	 uniform bool experimentalSSR;*/
+	 ssrShader.update("fadeToEdges",fadeEdges);//fadeEdges = true
+	 ssrShader.update("view", view);
+	 ssrShader.update("projection",perspective);
 	 //...
 	 //ssrShader.bindTextureOnUse();
 	 //uniform sampler2D wsPositionTex;
 	 // uniform sampler2D wsNormalTex;
-	 ssrShader.bindTextureOnUse("vsPositionTex",fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));	//todo
-	 ssrShader.bindTextureOnUse("vsNormalTex",fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
-	 ssrShader.bindTextureOnUse("ReflectanceTex",fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT3)); //?
-	 ssrShader.bindTextureOnUse("DepthTex",fbo.getDepthTextureHandle());
-	 ssrShader.bindTextureOnUse("DiffuseTex",fbo.getBuffer("fragColor"));
+	 ssrShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+	 ssrShader.bindTextureOnUse("vsNormalTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
+	 ssrShader.bindTextureOnUse("ReflectanceTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT3)); //?
+	 ssrShader.bindTextureOnUse("DepthTex",gFBO.getDepthTextureHandle());
+	 ssrShader.bindTextureOnUse("DiffuseTex",lightFBO.getBuffer("fragColor"));
 	 //...
 
 	 //fbo
@@ -292,8 +293,13 @@ int main()
 	 compoShader.update("kernelX", );	//woher bekommen?	//todo
 	 compoShader.update("kernelY", );	//woher bekommen?
 
-	 compoShader.bindTextureOnUse();
-	 //...TODO
+	 compoShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+	 compoShader.bindTextureOnUse("vsNormalTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
+	 compoShader.bindTextureOnUse("ColorTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
+	 compoShader.bindTextureOnUse("ReflectanceTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT3));
+	 compoShader.bindTextureOnUse("DepthTex",gFBO.getDepthTextureHandle());
+	 compoShader.bindTextureOnUse("DiffuseTex",lightFBO.getBuffer("fragColor"));
+	 compoShader.bindTextureOnUse("SSRTex",ssrFBO.getBuffer("fragColor"));		//geht das so?!
 
 	 /*DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
 	 Quad quad;
@@ -441,12 +447,12 @@ int main()
 		lightShader.update("view", view);
 
 		//update ssr uniforms
-		//...todo
+		ssrShader.update("view", view);
 
 		///compShader.update("vLightPos", view * s_lightPos);
 
 		//update compo uniforms
-		//...todo
+
 
 		//////////////////////////////////////////////////////////////////////////////
 
