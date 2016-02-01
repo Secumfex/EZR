@@ -180,18 +180,14 @@ int main()
 	PostProcessing::DepthOfField depthOfField(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y, &quad);
 
 	// lens flare
-	Renderable* sun = new Sphere();
-	glm::mat4 sunModel = glm::translate(glm::vec3(0.0f,0.0f,0.0f));
-	glm::vec3 light_position(0.0f);
 	
-	ShaderProgram sunShader("/screenSpace/postProcessSunOcclusionTest.vert", "/screenSpace/postProcessSunOcclusionTest.frag");
-	FrameBufferObject miniFBO(sunShader.getOutputInfoMap(),16,16);
-	RenderPass sunPass(&sunShader,&miniFBO);
-	sunPass.addClearBit(GL_COLOR_BUFFER_BIT);
-	sunPass.addRenderable(&quad);
-	sunShader.update("projection", perspective);
-	sunShader.update("invTexRes", glm::vec2(1.0f / gbufferFBO.getWidth(), 1.0f/gbufferFBO.getHeight()));
-	sunShader.bindTextureOnUse("depthTexture", gbufferFBO.getDepthTextureHandle());
+	ShaderProgram sunOcclusionShader("/screenSpace/postProcessSunOcclusionTest.vert", "/screenSpace/postProcessSunOcclusionTest.frag");
+	FrameBufferObject sunOcclusionFBO(sunOcclusionShader.getOutputInfoMap(),16,16);
+	RenderPass sunOcclusionPass(&sunOcclusionShader,&sunOcclusionFBO);
+	sunOcclusionPass.addClearBit(GL_COLOR_BUFFER_BIT);
+	sunOcclusionPass.addRenderable(&quad);
+	sunOcclusionShader.update("invTexRes", glm::vec2(1.0f / gbufferFBO.getWidth(), 1.0f/gbufferFBO.getHeight()));
+	sunOcclusionShader.bindTextureOnUse("depthTexture", gbufferFBO.getDepthTextureHandle());
 
 	ShaderProgram showTexShader("/screenSpace/fullscreen.vert", "/screenSpace/simpleAlphaTexture.frag");
 	RenderPass showTex(&showTexShader,0);
@@ -200,6 +196,15 @@ int main()
 	showTex.addDisable(GL_BLEND);
 	showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 
+	ShaderProgram sunShader("/modelSpace/billboardProjection.vert", "/modelSpace/simpleColor.frag");
+	sunShader.update("projection", perspective);
+	//sunShader.update("color", glm::vec4(1.0,1.0,0.9,1.0));
+	sunShader.bindTextureOnUse("tex", TextureTools::loadTextureFromResourceFolder("sun.png"));
+	sunShader.update("blendColor", 1.0f);
+	RenderPass sunPass(&sunShader, &compFBO);
+	sunPass.addRenderable(&quad);
+	sunPass.addEnable(GL_BLEND);
+	sunPass.addDisable(GL_DEPTH_TEST);
 	// Blur stuff
 	//PostProcessing::BoxBlur boxBlur(gbufferFBO.getWidth(), gbufferFBO.getHeight(),&quad);
 
@@ -329,14 +334,19 @@ int main()
 		shaderProgram.update( "color", s_color);
 
 		//update light data
-		glm::vec4 lightData = perspective * view * s_light_position;//multiply with the view-projection matrix
+		glm::vec4 lightData = perspective * glm::mat4(glm::mat3(view)) * turntable.getRotationMatrix() * s_light_position;//multiply with the view-projection matrix
 		lightData = lightData / lightData.w;//perform perspective division
 		lightData.x = lightData.x*0.5+0.5;//the x/y screen coordinates come out between -1 and 1, so
 		lightData.y = lightData.y*0.5+0.5;//we need to rescale them to be 0 to 1 tex-coords
-		sunShader.update("lightData", lightData);
+		sunOcclusionShader.update("lightData", lightData);
+
+		// debug rendering of a quad where the sun is
+		sunShader.update("view", glm::mat4(glm::mat3(view))); // remove translation component
+		sunShader.update("position", turntable.getRotationMatrix() * s_light_position);
+		sunShader.update("scale", glm::vec3(0.3f, 0.3f * getRatio(window), 1.0f) );
 
 		//compShader.update( "strength", s_strength);
-		compShader.update("vLightPos", view * s_light_position);
+		compShader.update("vLightPos", view * turntable.getRotationMatrix() * s_light_position);
 
 		// update blurrying parameters
 		depthOfField.m_calcCoCShader.update("focusPlaneDepths", s_focusPlaneDepths);
@@ -359,7 +369,7 @@ int main()
 		glBeginQuery(GL_SAMPLES_PASSED, queryId);
 
 		//DEBUGLOG->log("LightData: ", lightData);
-		sunPass.render();
+		sunOcclusionPass.render();
 
 		GLuint queryState = GL_FALSE;
 		glEndQuery(GL_SAMPLES_PASSED);
@@ -400,6 +410,9 @@ int main()
 
 		// aka. light pass
 		compositing.render();
+		
+		// render sun
+		sunPass.render();
 
 		// execute on GBuffer position texture and compositing ( light pass ) image 
 		depthOfField.execute(gbufferFBO.getBuffer("fragPosition"), compFBO.getBuffer("fragmentColor"));
@@ -410,14 +423,14 @@ int main()
 		showTex.render();
 		
 		showTex.setViewport(0,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
-		showTexShader.updateAndBindTexture("tex", 0, miniFBO.getBuffer("fragmentColor"));
+		showTexShader.updateAndBindTexture("tex", 0, sunOcclusionFBO.getBuffer("fragmentColor"));
 		showTex.render();
 
 		glViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y);
 
-		 ImGui::Render();
-		 glDisable(GL_BLEND);
-		 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
+		ImGui::Render();
+		glDisable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
 		//////////////////////////////////////////////////////////////////////////////
 
 	});
