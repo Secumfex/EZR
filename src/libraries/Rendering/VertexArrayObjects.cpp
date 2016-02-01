@@ -108,6 +108,95 @@ void Renderable::setDrawMode(GLenum type)
     m_mode = type;
 }
 
+Skybox::Skybox()
+{
+	m_mode = GL_TRIANGLES;
+
+    glGenVertexArrays(1, &m_vao);
+    glBindVertexArray(m_vao);
+
+    GLuint vertexBufferHandles[3];
+    glGenBuffers(3, vertexBufferHandles);
+
+	m_positions.m_vboHandle = vertexBufferHandles[0];
+	m_uvs.m_vboHandle = vertexBufferHandles[1];
+	m_normals.m_vboHandle = vertexBufferHandles[2];
+
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferHandles[0]);
+
+    GLfloat skyboxVertices[] = {
+        // Positions          
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+  
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+  
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+   
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+  
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+  
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f
+    };
+    // Setup skybox VAO
+	glGenVertexArrays(1, &m_vao);
+	glGenBuffers(1, &m_positions.m_vboHandle);
+    glBindVertexArray(m_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_positions.m_vboHandle);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glBindVertexArray(0);
+
+	m_mode = GL_TRIANGLES;
+}
+
+Skybox::~Skybox()
+{
+	std::vector<GLuint> buffers;
+	buffers.push_back(m_positions.m_vboHandle);
+	buffers.push_back(m_uvs.m_vboHandle);
+	buffers.push_back(m_normals.m_vboHandle);
+
+	glDeleteBuffersARB(3, &buffers[0]);
+}
+
+void Skybox::draw()
+{
+    glBindVertexArray(m_vao);
+    glDrawArrays(m_mode, 0, 36);
+}
+
 void Volume::generateBuffers(float size_x, float size_y, float size_z)
 {
 	m_mode = GL_TRIANGLES;

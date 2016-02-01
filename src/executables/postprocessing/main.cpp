@@ -77,25 +77,23 @@ int main()
 
 	//positions
 	DEBUGLOG->log("Setup: model matrices"); DEBUGLOG->indent();
-	std::vector<glm::mat4> modelMatrices(7);
+	std::vector<glm::mat4> modelMatrices(6);
 	modelMatrices[0] = glm::translate(glm::vec3(randFloat(-3.0f,-2.0f), 0.0f, randFloat(-3,-2.0f)));
 	modelMatrices[1] = glm::translate(glm::vec3(randFloat(0.0f,1.0f),randFloat(2.0f,3.0f),randFloat(-5.0f,5.0f)));
 	modelMatrices[2] = glm::translate(glm::vec3(randFloat(-1.0f,1.0f),randFloat(-1.0f,0.0f),randFloat(0.0f,5.0f)));
 	modelMatrices[3] = glm::translate(glm::vec3(randFloat(0.5f,1.0f), randFloat(-5.0,-1.0),randFloat(0.0,5.0f)));
 	modelMatrices[4] = glm::translate(glm::vec3(randFloat(1.0f,5.0f), randFloat(0.0,2.0),randFloat(0.0,5.0f)));
 	modelMatrices[5] = glm::translate(glm::vec3(0.0f,-2.0f,0.0f)) * glm::rotate(glm::radians(90.0f), glm::vec3(1.0f,0.0,0.0));
-	modelMatrices[6] = glm::scale( glm::vec3( 8.0f, 8.0f, 8.0f) );
 	DEBUGLOG->outdent();
 
 	srand(time(NULL));
-	std::vector<glm::vec4> colors(7);
+	std::vector<glm::vec4> colors(6);
 	colors[0] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
 	colors[1] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
 	colors[2] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
 	colors[3] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
 	colors[4] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
 	colors[5] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
-	colors[6] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
 
 	/////////////////////     Upload assets (create Renderables / VAOs from data)    //////////////////////////
 	DEBUGLOG->log("Setup: creating VAOs from mesh data"); DEBUGLOG->indent();
@@ -107,7 +105,6 @@ int main()
 		objects.push_back(renderables[0]);
 	}
 	objects.push_back(new Grid(10,10,1.0,1.0,true));
-	objects.push_back(renderables[0]);
 	
 	// upload textures used by mesh
 	std::map<aiTextureType, GLuint> textures;
@@ -125,8 +122,6 @@ int main()
 	}
 
 	DEBUGLOG->outdent();
-	// recenter view
-	//center = glm::vec4(glm::vec3(center) + 0.5f * (bbox_max - bbox_min) + bbox_min, center.w);
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
 	// regular GBuffer
@@ -180,7 +175,6 @@ int main()
 	PostProcessing::DepthOfField depthOfField(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y, &quad);
 
 	// lens flare
-	
 	ShaderProgram sunOcclusionShader("/screenSpace/postProcessSunOcclusionTest.vert", "/screenSpace/postProcessSunOcclusionTest.frag");
 	FrameBufferObject sunOcclusionFBO(sunOcclusionShader.getOutputInfoMap(),16,16);
 	RenderPass sunOcclusionPass(&sunOcclusionShader,&sunOcclusionFBO);
@@ -205,6 +199,25 @@ int main()
 	sunPass.addRenderable(&quad);
 	sunPass.addEnable(GL_BLEND);
 	sunPass.addDisable(GL_DEPTH_TEST);
+
+	// Skybox
+	// load skybox textures
+	std::vector<std::string> cubeMapFiles;
+	cubeMapFiles.push_back("cubemap/cloudtop_rt.tga");
+	cubeMapFiles.push_back("cubemap/cloudtop_lt.tga");
+	cubeMapFiles.push_back("cubemap/cloudtop_up.tga");
+	cubeMapFiles.push_back("cubemap/cloudtop_dn.tga");
+	cubeMapFiles.push_back("cubemap/cloudtop_ft.tga");
+	cubeMapFiles.push_back("cubemap/cloudtop_bk.tga");
+	GLuint cubeMapTexture = TextureTools::loadCubemapFromResourceFolder(cubeMapFiles);
+
+	ShaderProgram skyboxShader("/cubemap/cubemap.vert", "/cubemap/cubemap.frag");
+	skyboxShader.update("projection", perspective);
+	Skybox skybox;
+	RenderPass skyboxPass(&skyboxShader, &gbufferFBO);
+	skyboxPass.addRenderable(&skybox);
+	skyboxPass.addEnable(GL_DEPTH_TEST);
+
 	// Blur stuff
 	//PostProcessing::BoxBlur boxBlur(gbufferFBO.getWidth(), gbufferFBO.getHeight(),&quad);
 
@@ -345,6 +358,9 @@ int main()
 		sunShader.update("position", turntable.getRotationMatrix() * s_light_position);
 		sunShader.update("scale", glm::vec3(0.3f, 0.3f * getRatio(window), 1.0f) );
 
+		// skybox
+		skyboxShader.update("view", glm::mat4(glm::mat3(view)) * turntable.getRotationMatrix());
+
 		//compShader.update( "strength", s_strength);
 		compShader.update("vLightPos", view * turntable.getRotationMatrix() * s_light_position);
 
@@ -373,7 +389,6 @@ int main()
 
 		GLuint queryState = GL_FALSE;
 		glEndQuery(GL_SAMPLES_PASSED);
-		checkGLError();
 		while ( queryState != GL_TRUE)
 		{
 			glGetQueryObjectuiv(queryId, GL_QUERY_RESULT_AVAILABLE, &queryState);
@@ -416,6 +431,19 @@ int main()
 
 		// execute on GBuffer position texture and compositing ( light pass ) image 
 		depthOfField.execute(gbufferFBO.getBuffer("fragPosition"), compFBO.getBuffer("fragmentColor"));
+
+		// render skybox
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
+        glActiveTexture(GL_TEXTURE0);
+		//glBindBuffer(GL_READ_BUFFER, gbufferFBO.getFramebufferHandle());
+		//glBindBuffer(GL_DRAW_BUFFER, depthOfField.m_dofCompFBO->getFramebufferHandle());
+		skyboxShader.use();
+		skyboxShader.update("skybox", 0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture);
+		skybox.draw();
+		glDepthFunc(GL_LESS);
+		glDisable(GL_DEPTH_TEST);
 
 		// show result
 		showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
