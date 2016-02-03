@@ -82,7 +82,7 @@ namespace TextureTools {
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 	for(GLuint i = 0; i < faces.size(); i++)
 	{
-		stbi_set_flip_vertically_on_load(true);
+		stbi_set_flip_vertically_on_load(false);
         image = stbi_load(faces[i].c_str(), &width, &height, &bytesPerPixel, 0);
 		        //send image data to the new texture
         if (bytesPerPixel < 3) {

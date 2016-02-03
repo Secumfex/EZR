@@ -27,7 +27,7 @@
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 
 static glm::vec4 s_color = glm::vec4(0.45 * 0.3f, 0.44f * 0.3f, 0.87f * 0.3f, 1.0f); // far : blueish
-static glm::vec4 s_light_position = glm::vec4(2.0,2.0,2.0,1.0);
+static glm::vec4 s_light_position = glm::vec4(-2.16f, 2.6f, 10.0f,1.0);
 static glm::vec3 s_scale = glm::vec3(1.0f,1.0f,1.0f);
 
 static glm::vec4 s_focusPlaneDepths = glm::vec4(2.0,4.0,7.0,10.0);
@@ -198,17 +198,23 @@ int main()
 	RenderPass sunPass(&sunShader, &compFBO);
 	sunPass.addRenderable(&quad);
 	sunPass.addEnable(GL_BLEND);
-	sunPass.addDisable(GL_DEPTH_TEST);
+	sunPass.addEnable(GL_DEPTH_TEST);
 
 	// Skybox
 	// load skybox textures
 	std::vector<std::string> cubeMapFiles;
+	//cubeMapFiles.push_back("cubemap/right.jpg");
+	//cubeMapFiles.push_back("cubemap/left.jpg");
+	//cubeMapFiles.push_back("cubemap/top.jpg");
+	//cubeMapFiles.push_back("cubemap/bottom.jpg");
+	//cubeMapFiles.push_back("cubemap/back.jpg");
+	//cubeMapFiles.push_back("cubemap/front.jpg");
 	cubeMapFiles.push_back("cubemap/cloudtop_rt.tga");
-	cubeMapFiles.push_back("cubemap/cloudtop_lt.tga");
+	cubeMapFiles.push_back("cubemap/cloudtop_lf.tga");
 	cubeMapFiles.push_back("cubemap/cloudtop_up.tga");
 	cubeMapFiles.push_back("cubemap/cloudtop_dn.tga");
-	cubeMapFiles.push_back("cubemap/cloudtop_ft.tga");
 	cubeMapFiles.push_back("cubemap/cloudtop_bk.tga");
+	cubeMapFiles.push_back("cubemap/cloudtop_ft.tga");
 	GLuint cubeMapTexture = TextureTools::loadCubemapFromResourceFolder(cubeMapFiles);
 
 	ShaderProgram skyboxShader("/cubemap/cubemap.vert", "/cubemap/cubemap.frag");
@@ -324,6 +330,7 @@ int main()
 
 		ImGui::SliderFloat4("depths", glm::value_ptr(s_focusPlaneDepths), 0.0f, 10.0f);
 		ImGui::SliderFloat2("radi", glm::value_ptr(s_focusPlaneRadi), -10.0f, 10.0f);
+		ImGui::SliderFloat4("light", glm::value_ptr(s_light_position), -3.0f, 10.0f);
 		
 		ImGui::SliderFloat("far radius rescale", &s_farRadiusRescale, 0.0f, 5.0f);
 
@@ -356,7 +363,7 @@ int main()
 		// debug rendering of a quad where the sun is
 		sunShader.update("view", glm::mat4(glm::mat3(view))); // remove translation component
 		sunShader.update("position", turntable.getRotationMatrix() * s_light_position);
-		sunShader.update("scale", glm::vec3(0.3f, 0.3f * getRatio(window), 1.0f) );
+		sunShader.update("scale", glm::vec3(0.1f, 0.1f * getRatio(window), 1.0f) );
 
 		// skybox
 		skyboxShader.update("view", glm::mat4(glm::mat3(view)) * turntable.getRotationMatrix());
@@ -425,25 +432,29 @@ int main()
 
 		// aka. light pass
 		compositing.render();
-		
+
+		// copy gbuffer depth buffer to compositing fbo
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, gbufferFBO.getFramebufferHandle());
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, compFBO.getFramebufferHandle());
+		glBlitFramebuffer(0,0,gbufferFBO.getWidth(), gbufferFBO.getHeight(), 0,0,compFBO.getWidth(), compFBO.getHeight(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+		// render skybox
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
+		compFBO.bind();
+		skyboxShader.use();
+		skyboxShader.update("skybox", 0);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture);
+		skybox.draw();
+		glDepthFunc(GL_LESS);
+		glDisable(GL_DEPTH_TEST);
+
 		// render sun
 		sunPass.render();
 
 		// execute on GBuffer position texture and compositing ( light pass ) image 
 		depthOfField.execute(gbufferFBO.getBuffer("fragPosition"), compFBO.getBuffer("fragmentColor"));
-
-		// render skybox
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LEQUAL);
-        glActiveTexture(GL_TEXTURE0);
-		//glBindBuffer(GL_READ_BUFFER, gbufferFBO.getFramebufferHandle());
-		//glBindBuffer(GL_DRAW_BUFFER, depthOfField.m_dofCompFBO->getFramebufferHandle());
-		skyboxShader.use();
-		skyboxShader.update("skybox", 0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture);
-		skybox.draw();
-		glDepthFunc(GL_LESS);
-		glDisable(GL_DEPTH_TEST);
 
 		// show result
 		showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
