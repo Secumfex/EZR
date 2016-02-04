@@ -50,4 +50,37 @@ namespace PostProcessing
 		bool ownQuad;
 	};
 
+	/* renders a SkyBox */
+	class SkyboxRendering
+	{
+	public:
+		SkyboxRendering(std::string fShader = "/cubemap/cubemap.frag", std::string vShader = "/cubemap/cubemap.vert", Renderable* skybox = nullptr);
+		~SkyboxRendering();
+
+		Renderable* m_skybox;
+		ShaderProgram m_skyboxShader;
+		void render(GLuint cubeMapTexture, FrameBufferObject* target = nullptr);
+	private:
+		bool ownSkybox;
+	};
+
+	class SunOcclusionQuery
+	{
+	public:
+		GLuint mQueryId;
+		GLuint lastNumVisiblePixels;
+
+		SunOcclusionQuery(GLuint depthTexture = -1, glm::vec2 textureSize = glm::vec2(1.0f,1.0f), Renderable* sun = nullptr);
+		~SunOcclusionQuery();
+
+		GLuint performQuery(glm::vec4 sunScreenPos);
+
+		ShaderProgram m_occlusionShader;
+		FrameBufferObject* m_occlusionFBO;
+
+	private:
+		Renderable* m_sun;
+		bool ownRenderable;
+
+	};
 } // namespace PostProcessing

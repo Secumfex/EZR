@@ -161,3 +161,93 @@ void PostProcessing::DepthOfField::execute(GLuint positionMap, GLuint colorMap)
 	m_dofCompShader.use();
 	m_quad->draw();
 } 
+
+PostProcessing::SkyboxRendering::SkyboxRendering(std::string fShader, std::string vShader, Renderable* skybox)
+	: m_skyboxShader(vShader, fShader)
+{
+	if (skybox == nullptr)
+	{
+		m_skybox = new Skybox();
+		ownSkybox = true;
+	}
+	else{
+		m_skybox = skybox;
+		ownSkybox = false;
+	}
+
+}
+PostProcessing::SkyboxRendering::~SkyboxRendering()
+{
+	if (ownSkybox)
+	{
+		delete m_skybox;
+	}
+}
+void PostProcessing::SkyboxRendering::render(GLuint cubeMapTexture, FrameBufferObject* target)
+{
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
+	
+	if(target != nullptr) {target->bind();}
+	else{glBindFramebuffer(GL_FRAMEBUFFER, 0);}
+
+	m_skyboxShader.use();
+	m_skyboxShader.update("skybox", 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture);
+	m_skybox->draw();
+	glDepthFunc(GL_LESS);
+	glDisable(GL_DEPTH_TEST);
+}
+
+PostProcessing::SunOcclusionQuery::SunOcclusionQuery(GLuint depthTexture, glm::vec2 textureSize, Renderable* sun)
+	: m_occlusionShader("/screenSpace/postProcessSunOcclusionTest.vert", "/screenSpace/postProcessSunOcclusionTest.frag")
+{
+	m_occlusionFBO = new FrameBufferObject(m_occlusionShader.getOutputInfoMap(),16,16);
+	if (sun == nullptr)
+	{
+		m_sun = new Quad();
+		ownRenderable = true;
+	}
+	else{
+		m_sun = sun;
+		ownRenderable = false;
+	}
+
+	glGenQueries(1, &mQueryId);
+
+	if (depthTexture != -1)
+	{
+		m_occlusionShader.bindTextureOnUse("depthTexture", depthTexture);
+		m_occlusionShader.update("invTexRes", glm::vec2(1.0f / textureSize.x, 1.0f / textureSize.y));
+	}
+}
+
+PostProcessing::SunOcclusionQuery::~SunOcclusionQuery()
+{
+ 	glDeleteQueries(1, &mQueryId);
+	delete m_occlusionFBO;
+}
+
+
+GLuint PostProcessing::SunOcclusionQuery::performQuery(glm::vec4 sunScreenPos)
+{
+	m_occlusionShader.update("lightData", sunScreenPos);
+
+	glBeginQuery(GL_SAMPLES_PASSED, mQueryId);
+	
+	m_occlusionShader.use();
+	m_occlusionFBO->bind();
+	glClear(GL_COLOR_BUFFER_BIT);
+	m_sun->draw();
+
+	GLuint queryState = GL_FALSE;
+	glEndQuery(GL_SAMPLES_PASSED);
+	while ( queryState != GL_TRUE)
+	{
+		glGetQueryObjectuiv(mQueryId, GL_QUERY_RESULT_AVAILABLE, &queryState);
+	}
+	glGetQueryObjectuiv(mQueryId, GL_QUERY_RESULT, &lastNumVisiblePixels);
+
+	return lastNumVisiblePixels;
+}

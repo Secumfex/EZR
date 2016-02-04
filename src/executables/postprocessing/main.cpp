@@ -173,16 +173,11 @@ int main()
 
 	// Depth Of Field 
 	PostProcessing::DepthOfField depthOfField(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y, &quad);
+	
+	// lens flare related stuff
+	PostProcessing::SunOcclusionQuery sunOcclusionQuery(gbufferFBO.getDepthTextureHandle(), glm::vec2(gbufferFBO.getWidth(), gbufferFBO.getHeight()));
 
-	// lens flare
-	ShaderProgram sunOcclusionShader("/screenSpace/postProcessSunOcclusionTest.vert", "/screenSpace/postProcessSunOcclusionTest.frag");
-	FrameBufferObject sunOcclusionFBO(sunOcclusionShader.getOutputInfoMap(),16,16);
-	RenderPass sunOcclusionPass(&sunOcclusionShader,&sunOcclusionFBO);
-	sunOcclusionPass.addClearBit(GL_COLOR_BUFFER_BIT);
-	sunOcclusionPass.addRenderable(&quad);
-	sunOcclusionShader.update("invTexRes", glm::vec2(1.0f / gbufferFBO.getWidth(), 1.0f/gbufferFBO.getHeight()));
-	sunOcclusionShader.bindTextureOnUse("depthTexture", gbufferFBO.getDepthTextureHandle());
-
+	// arbitrary texture display shader
 	ShaderProgram showTexShader("/screenSpace/fullscreen.vert", "/screenSpace/simpleAlphaTexture.frag");
 	RenderPass showTex(&showTexShader,0);
 	showTex.addRenderable(&quad);
@@ -190,6 +185,7 @@ int main()
 	showTex.addDisable(GL_BLEND);
 	showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 
+	// misc display of sun
 	ShaderProgram sunShader("/modelSpace/billboardProjection.vert", "/modelSpace/simpleColor.frag");
 	sunShader.update("projection", perspective);
 	//sunShader.update("color", glm::vec4(1.0,1.0,0.9,1.0));
@@ -201,28 +197,11 @@ int main()
 	sunPass.addEnable(GL_DEPTH_TEST);
 
 	// Skybox
-	// load skybox textures
-	std::vector<std::string> cubeMapFiles;
-	//cubeMapFiles.push_back("cubemap/right.jpg");
-	//cubeMapFiles.push_back("cubemap/left.jpg");
-	//cubeMapFiles.push_back("cubemap/top.jpg");
-	//cubeMapFiles.push_back("cubemap/bottom.jpg");
-	//cubeMapFiles.push_back("cubemap/back.jpg");
-	//cubeMapFiles.push_back("cubemap/front.jpg");
-	cubeMapFiles.push_back("cubemap/cloudtop_rt.tga");
-	cubeMapFiles.push_back("cubemap/cloudtop_lf.tga");
-	cubeMapFiles.push_back("cubemap/cloudtop_up.tga");
-	cubeMapFiles.push_back("cubemap/cloudtop_dn.tga");
-	cubeMapFiles.push_back("cubemap/cloudtop_bk.tga");
-	cubeMapFiles.push_back("cubemap/cloudtop_ft.tga");
-	GLuint cubeMapTexture = TextureTools::loadCubemapFromResourceFolder(cubeMapFiles);
+	GLuint cubeMapTexture = TextureTools::loadDefaultCubemap();
 
-	ShaderProgram skyboxShader("/cubemap/cubemap.vert", "/cubemap/cubemap.frag");
-	skyboxShader.update("projection", perspective);
-	Skybox skybox;
-	RenderPass skyboxPass(&skyboxShader, &gbufferFBO);
-	skyboxPass.addRenderable(&skybox);
-	skyboxPass.addEnable(GL_DEPTH_TEST);
+	// skybox rendering
+	PostProcessing::SkyboxRendering skyboxRendering;
+	skyboxRendering.m_skyboxShader.update("projection", perspective);
 
 	// Blur stuff
 	//PostProcessing::BoxBlur boxBlur(gbufferFBO.getWidth(), gbufferFBO.getHeight(),&quad);
@@ -239,7 +218,6 @@ int main()
     double old_y;
 	glfwGetCursorPos(window, &old_x, &old_y);
 	
-
 	auto cursorPosCB = [&](double x, double y)
 	{
 	 	ImGuiIO& io = ImGui::GetIO();
@@ -354,11 +332,11 @@ int main()
 		shaderProgram.update( "color", s_color);
 
 		//update light data
-		glm::vec4 lightData = perspective * glm::mat4(glm::mat3(view)) * turntable.getRotationMatrix() * s_light_position;//multiply with the view-projection matrix
-		lightData = lightData / lightData.w;//perform perspective division
-		lightData.x = lightData.x*0.5+0.5;//the x/y screen coordinates come out between -1 and 1, so
-		lightData.y = lightData.y*0.5+0.5;//we need to rescale them to be 0 to 1 tex-coords
-		sunOcclusionShader.update("lightData", lightData);
+		glm::vec4 projectedLightPos = perspective * glm::mat4(glm::mat3(view)) * turntable.getRotationMatrix() * s_light_position;//multiply with the view-projection matrix
+		projectedLightPos = projectedLightPos / projectedLightPos.w;//perform perspective division
+		projectedLightPos.x = projectedLightPos.x*0.5+0.5;//the x/y screen coordinates come out between -1 and 1, so
+		projectedLightPos.y = projectedLightPos.y*0.5+0.5;//we need to rescale them to be 0 to 1 tex-coords
+		sunOcclusionShader.update("lightData", projectedLightPos);
 
 		// debug rendering of a quad where the sun is
 		sunShader.update("view", glm::mat4(glm::mat3(view))); // remove translation component
@@ -366,7 +344,7 @@ int main()
 		sunShader.update("scale", glm::vec3(0.1f, 0.1f * getRatio(window), 1.0f) );
 
 		// skybox
-		skyboxShader.update("view", glm::mat4(glm::mat3(view)) * turntable.getRotationMatrix());
+		skyboxRendering.m_skyboxShader.update("view", glm::mat4(glm::mat3(view)) * turntable.getRotationMatrix());
 
 		//compShader.update( "strength", s_strength);
 		compShader.update("vLightPos", view * turntable.getRotationMatrix() * s_light_position);
@@ -386,25 +364,7 @@ int main()
 		////////////////////////////////  RENDERING //// /////////////////////////////
 		renderGBuffer.render();
 
-		// lens flare occlusion query
-		GLuint queryId;
-		glGenQueries(1, &queryId);
-		glBeginQuery(GL_SAMPLES_PASSED, queryId);
-
-		//DEBUGLOG->log("LightData: ", lightData);
-		sunOcclusionPass.render();
-
-		GLuint queryState = GL_FALSE;
-		glEndQuery(GL_SAMPLES_PASSED);
-		while ( queryState != GL_TRUE)
-		{
-			glGetQueryObjectuiv(queryId, GL_QUERY_RESULT_AVAILABLE, &queryState);
-			checkGLError();
-		}
-		GLuint pixelCount;
-		glGetQueryObjectuiv(queryId, GL_QUERY_RESULT, &pixelCount);
- 		glDeleteQueries(1, &queryId);
-		glDisable(GL_DEPTH_TEST);
+		GLuint pixelCount = sunOcclusionQuery.performQuery(projectedLightPos);
 
 		// show light visibility in GUI
 		ImGui::Value("sun visibility", (float) pixelCount / 256.0f);
@@ -439,16 +399,7 @@ int main()
 		glBlitFramebuffer(0,0,gbufferFBO.getWidth(), gbufferFBO.getHeight(), 0,0,compFBO.getWidth(), compFBO.getHeight(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
 		// render skybox
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LEQUAL);
-		compFBO.bind();
-		skyboxShader.use();
-		skyboxShader.update("skybox", 0);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture);
-		skybox.draw();
-		glDepthFunc(GL_LESS);
-		glDisable(GL_DEPTH_TEST);
+		skyboxRendering.render(cubeMapTexture, &compFBO);
 
 		// render sun
 		sunPass.render();
@@ -462,7 +413,8 @@ int main()
 		showTex.render();
 		
 		showTex.setViewport(0,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
-		showTexShader.updateAndBindTexture("tex", 0, sunOcclusionFBO.getBuffer("fragmentColor"));
+		showTexShader.updateAndBindTexture("tex", 0, sunOcclusionQuery.m_occlusionFBO->getBuffer("fragmentColor"));
+		//showTexShader.updateAndBindTexture("tex", 0, sunOcclusionFBO.getBuffer("fragmentColor"));
 		showTex.render();
 
 		glViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y);
