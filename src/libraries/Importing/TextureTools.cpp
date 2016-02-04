@@ -116,4 +116,16 @@ namespace TextureTools {
 		}
 		return loadCubemap(fileNames);
     }
+
+    GLuint loadDefaultCubemap()
+    {
+        std::vector<std::string> cubeMapFiles;
+        cubeMapFiles.push_back("cubemap/cloudtop_rt.tga");
+        cubeMapFiles.push_back("cubemap/cloudtop_lf.tga");
+        cubeMapFiles.push_back("cubemap/cloudtop_up.tga");
+        cubeMapFiles.push_back("cubemap/cloudtop_dn.tga");
+        cubeMapFiles.push_back("cubemap/cloudtop_bk.tga");
+        cubeMapFiles.push_back("cubemap/cloudtop_ft.tga");
+        return TextureTools::loadCubemapFromResourceFolder(cubeMapFiles);
+    }
 }

@@ -37,6 +37,7 @@ namespace TextureTools {
 	
 	// +X (right), -X(left), +Y (top), -Y (bottom), +Z (front), -Z (back)
 	GLuint loadCubemapFromResourceFolder(std::vector<std::string> fileNames) ;
+	GLuint loadDefaultCubemap();
 }
 
 #endif
