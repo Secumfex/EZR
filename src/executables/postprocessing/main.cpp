@@ -29,6 +29,12 @@ const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 static glm::vec4 s_color = glm::vec4(0.45 * 0.3f, 0.44f * 0.3f, 0.87f * 0.3f, 1.0f); // far : blueish
 static glm::vec4 s_light_position = glm::vec4(-2.16f, 2.6f, 10.0f,1.0);
 static glm::vec3 s_scale = glm::vec3(1.0f,1.0f,1.0f);
+static float s_lensflare_scale = 5.0f;
+static float s_lensflare_bias = -0.9f;
+static int s_lensflare_num_ghosts = 3;
+static float s_lensflare_ghost_dispersal = 0.6f;
+static float s_lensflare_halo_width = 0.44f;
+static float s_lensflare_strength = 0.7f;
 
 static glm::vec4 s_focusPlaneDepths = glm::vec4(2.0,4.0,7.0,10.0);
 static glm::vec2 s_focusPlaneRadi = glm::vec2(10.0f, -5.0f);
@@ -176,6 +182,7 @@ int main()
 	
 	// lens flare related stuff
 	PostProcessing::SunOcclusionQuery sunOcclusionQuery(gbufferFBO.getDepthTextureHandle(), glm::vec2(gbufferFBO.getWidth(), gbufferFBO.getHeight()));
+	PostProcessing::LensFlare lensFlare(gbufferFBO.getWidth() / 2, gbufferFBO.getHeight() / 2);
 
 	// arbitrary texture display shader
 	ShaderProgram showTexShader("/screenSpace/fullscreen.vert", "/screenSpace/simpleAlphaTexture.frag");
@@ -184,6 +191,14 @@ int main()
 	showTex.addDisable(GL_DEPTH_TEST);
 	showTex.addDisable(GL_BLEND);
 	showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
+
+	// arbitrary texture display shader
+	ShaderProgram addTexShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessAddTexture.frag");
+	RenderPass addTex(&addTexShader,0);
+	addTex.addRenderable(&quad);
+	addTex.addDisable(GL_DEPTH_TEST);
+	addTex.addDisable(GL_BLEND);
+	addTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 
 	// misc display of sun
 	ShaderProgram sunShader("/modelSpace/billboardProjection.vert", "/modelSpace/simpleColor.frag");
@@ -311,15 +326,24 @@ int main()
 		ImGui::SliderFloat4("light", glm::value_ptr(s_light_position), -3.0f, 10.0f);
 		
 		ImGui::SliderFloat("far radius rescale", &s_farRadiusRescale, 0.0f, 5.0f);
-
-	    // ImGui::PushItemWidth(-100);
+		
+	    ImGui::PushItemWidth(-150);
+		if (ImGui::CollapsingHeader("lens flare"))
+		{
+			ImGui::SliderFloat("lens flare bias", &s_lensflare_bias, -2.0f, 2.0f);
+			ImGui::SliderFloat("lens flare scale", &s_lensflare_scale, -5.0f, 5.0f);
+			ImGui::SliderFloat("lens flare halo width", &s_lensflare_halo_width, 0.0f, 5.0f);
+			ImGui::SliderInt("lens flare num ghosts", &s_lensflare_num_ghosts, 0, 10);
+			ImGui::SliderFloat("lens flare ghost dispersal", &s_lensflare_ghost_dispersal, 0.0f, 5.0f);
+			ImGui::SliderFloat("lens flare add strength", &s_lensflare_strength, 0.0f, 5.0f);
+			ImGui::PopItemWidth();
+		}
 		//ImGui::SliderFloat("strength", &s_strength, 0.0f, 2.0f); // influence of color shift
 		// ImGui::ColorEdit4( "color", glm::value_ptr( s_color)); // color mixed at max distance
        
 		static bool s_dynamicDoF = false;
 		ImGui::Checkbox("dynamic DoF", &s_dynamicDoF);
-		//ImGui::PopItemWidth();
-
+		
         //////////////////////////////////////////////////////////////////////////////
 
 		///////////////////////////// VARIABLE UPDATING ///////////////////////////////
@@ -336,7 +360,6 @@ int main()
 		projectedLightPos = projectedLightPos / projectedLightPos.w;//perform perspective division
 		projectedLightPos.x = projectedLightPos.x*0.5+0.5;//the x/y screen coordinates come out between -1 and 1, so
 		projectedLightPos.y = projectedLightPos.y*0.5+0.5;//we need to rescale them to be 0 to 1 tex-coords
-		sunOcclusionShader.update("lightData", projectedLightPos);
 
 		// debug rendering of a quad where the sun is
 		sunShader.update("view", glm::mat4(glm::mat3(view))); // remove translation component
@@ -359,6 +382,15 @@ int main()
 
 		depthOfField.m_dofCompShader.update("maxCoCRadiusPixels", s_focusPlaneRadi.x);
 		depthOfField.m_dofCompShader.update("farRadiusRescale" , s_farRadiusRescale);
+
+		// lens flare parameters
+		lensFlare.m_downSampleShader.update("uScale", glm::vec4(s_lensflare_scale));
+		lensFlare.m_downSampleShader.update("uBias",  glm::vec4(s_lensflare_bias));
+		lensFlare.m_ghostingShader.update("uGhosts", s_lensflare_num_ghosts);
+		lensFlare.m_ghostingShader.update("uGhostDispersal", s_lensflare_ghost_dispersal);
+		lensFlare.m_ghostingShader.update("uHaloWidth",  s_lensflare_halo_width);
+
+		addTexShader.update("strength", s_lensflare_strength);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
@@ -407,15 +439,23 @@ int main()
 		// execute on GBuffer position texture and compositing ( light pass ) image 
 		depthOfField.execute(gbufferFBO.getBuffer("fragPosition"), compFBO.getBuffer("fragmentColor"));
 
-		// show result
-		showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
-		showTexShader.updateAndBindTexture("tex", 0, depthOfField.m_dofCompFBO->getBuffer("fragmentColor"));
-		showTex.render();
+		// do it
+		lensFlare.renderLensFlare(depthOfField.m_dofCompFBO->getBuffer("fragmentColor"));
+
+		addTexShader.updateAndBindTexture("tex", 0, depthOfField.m_dofCompFBO->getBuffer("fragmentColor"));
+		addTexShader.updateAndBindTexture("addTex", 1, lensFlare.m_featuresFBO->getBuffer("fResult"));
+		addTex.render();
 		
-		showTex.setViewport(0,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
-		showTexShader.updateAndBindTexture("tex", 0, sunOcclusionQuery.m_occlusionFBO->getBuffer("fragmentColor"));
-		//showTexShader.updateAndBindTexture("tex", 0, sunOcclusionFBO.getBuffer("fragmentColor"));
-		showTex.render();
+		// show result
+		// showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
+		// showTexShader.updateAndBindTexture("tex", 0, depthOfField.m_dofCompFBO->getBuffer("fragmentColor"));
+		// showTex.render();
+
+		// showTex.setViewport(0,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
+		// showTexShader.updateAndBindTexture("tex", 0, lensFlare.m_featuresFBO->getBuffer("fResult"));
+		// //showTexShader.updateAndBindTexture("tex", 0, sunOcclusionQuery.m_occlusionFBO->getBuffer("fragmentColor"));
+		// //showTexShader.updateAndBindTexture("tex", 0, sunOcclusionFBO.getBuffer("fragmentColor"));
+		// showTex.render();
 
 		glViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y);
 

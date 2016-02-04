@@ -251,3 +251,105 @@ GLuint PostProcessing::SunOcclusionQuery::performQuery(glm::vec4 sunScreenPos)
 
 	return lastNumVisiblePixels;
 }
+
+#include <Importing/stb_image.h>
+//#include <Rendering/GLTools.h>
+GLuint PostProcessing::LensFlare::loadLensColorTexture()
+{
+	std::string fileName = RESOURCES_PATH "/lenscolor.png";
+	std::string fileString = std::string(fileName);
+	fileString = fileString.substr(fileString.find_last_of("/"));
+
+	int width, height, bytesPerPixel;
+    unsigned char *data = stbi_load(fileName.c_str(), &width, &height, &bytesPerPixel, 0);
+
+    if(data == NULL){
+    	DEBUGLOG->log("ERROR : Unable to open image " + fileString);
+    	  return -1;}
+
+    //create new texture
+    GLuint textureHandle;
+    glGenTextures(1, &textureHandle);
+ 
+    //bind the texture
+    glBindTexture(GL_TEXTURE_1D, textureHandle);
+
+    //send image data to the new texture
+    if (bytesPerPixel < 3) {
+    	DEBUGLOG->log("ERROR : Unable to open image " + fileString);
+        return -1;
+    } else if (bytesPerPixel == 3){
+        glTexImage1D(GL_TEXTURE_1D, 0,GL_RGB, width, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    } else if (bytesPerPixel == 4) {
+        glTexImage1D(GL_TEXTURE_1D, 0,GL_RGBA, width, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    } else {
+    	DEBUGLOG->log("Unknown format for bytes per pixel... Changed to \"4\"");
+        glTexImage1D(GL_TEXTURE_1D, 0,GL_RGBA, width, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    }
+
+    //texture settings
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_1D, 0);
+
+    stbi_image_free(data);
+    DEBUGLOG->log( "SUCCESS: image loaded from " + fileString );
+
+	return textureHandle;
+}
+
+PostProcessing::LensFlare::LensFlare(int width, int height)
+	: m_downSampleShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessLFDownSampling.frag")
+	, m_ghostingShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessLFGhosting.frag")
+	//, m_lensFlareShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessLensFlareOverlay.frag")
+{
+	m_downSampleFBO = new FrameBufferObject(m_downSampleShader.getOutputInfoMap(),width,height);
+	m_featuresFBO = new FrameBufferObject(m_ghostingShader.getOutputInfoMap(),width,height);
+
+	// change texture filtering parameters
+	glBindTexture(GL_TEXTURE_2D, m_downSampleFBO->getBuffer("fResult"));
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	
+	// 1D texture
+	m_lensColorTexture = loadLensColorTexture();
+
+	// default values
+	m_downSampleShader.update("uScale", glm::vec4(5.0f));
+	m_downSampleShader.update("uBias",  glm::vec4(-0.9f));
+	m_ghostingShader.update("uGhosts", 3);
+	m_ghostingShader.update("uGhostDispersal", 0.6);
+	m_ghostingShader.update("uHaloWidth", 0.44f);
+}
+
+PostProcessing::LensFlare::~LensFlare()
+{
+	delete m_downSampleFBO;
+	delete m_featuresFBO;
+}
+
+void PostProcessing::LensFlare::renderLensFlare(GLuint sourceTexture, FrameBufferObject* target)
+{
+	// downsample
+	m_downSampleFBO->bind();
+	glClear(GL_COLOR_BUFFER_BIT);
+	m_downSampleShader.updateAndBindTexture("uInputTex", 0, sourceTexture);
+	m_downSampleShader.use();
+	m_quad.draw();
+
+	// produce features
+	m_featuresFBO->bind();
+	glClear(GL_COLOR_BUFFER_BIT);
+	m_ghostingShader.updateAndBindTexture("uInputTex", 0, m_downSampleFBO->getBuffer("fResult"));
+	m_ghostingShader.updateAndBindTexture("uLensColor", 1, m_lensColorTexture, GL_TEXTURE_1D);
+	m_ghostingShader.use();
+	m_quad.draw();
+
+	// dont bind any fbo
+	if ( target != nullptr)
+	{
+		target->bind();
+	}
+}

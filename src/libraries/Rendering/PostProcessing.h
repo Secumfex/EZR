@@ -83,4 +83,27 @@ namespace PostProcessing
 		bool ownRenderable;
 
 	};
+
+	class LensFlare
+	{
+	public:
+		ShaderProgram m_downSampleShader; // produces dark downsampled version of input
+		ShaderProgram m_ghostingShader; // produces "ghosts"
+		//ShaderProgram m_lensFlareShader; // produces lens flares
+
+		LensFlare(int width, int height);
+		~LensFlare();
+
+		void renderLensFlare(GLuint sourceTexture, FrameBufferObject* target = nullptr);
+
+		GLuint m_lensColorTexture;
+
+		FrameBufferObject* m_downSampleFBO;
+		FrameBufferObject* m_featuresFBO; // aka lens flares / ghosts
+
+	private:
+		Quad m_quad;
+		GLuint loadLensColorTexture();
+	};
+
 } // namespace PostProcessing
