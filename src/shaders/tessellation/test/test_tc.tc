@@ -1,13 +1,13 @@
 # version 430
 #define id gl_InvocationID
 
-layout(vertices = 4) out;
+layout(vertices = 9) out;
 
 out vec3 tcPosition[];
 
 void main() {
 	//tcPosition[gl_InvocationID] = gl_in[gl_InvocationID].gl_Position;
-	float level = 3.0;
+	float level = 4.0;
 	if (gl_InvocationID == 0) {
 		gl_TessLevelInner[0] = level;
 		gl_TessLevelInner[1] = level;

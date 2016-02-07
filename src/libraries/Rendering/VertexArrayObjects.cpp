@@ -368,21 +368,34 @@ Terrain::Terrain()
       //-1.0f, 1.0f, -2.0f,	//2
 	//	0.5f, 1.0f, 1.0f	//4
     
-	  0.000f,  0.000f,  1.000f,
-      0.894f,  0.000f,  0.447f,
-      0.276f,  0.851f,  0.447f,
+		// erste reihe
+	  0.000f,  0.000f,  0.000f,
+      0.5f,  0.000f,  0.0f,
+      1.0f,  0.000f,  0.0f,
 
-	 -0.724f,  0.526f,  0.447f,
-     -0.724f, -0.526f,  0.447f,
-      0.276f, -0.851f,  0.447f,
-	  
-	  0.724f,  0.526f, -0.447f,
-      -0.276f,  0.851f, -0.447f,
-      -0.894f,  0.000f, -0.447f,
+	  //zweite reihe
+     0.0f,  0.5f,  0.25f,
+     0.5f,  0.5f,  0.25f,
+     1.0f,  0.5f,  0.25f,
 
-      -0.276f, -0.851f, -0.447f,
-       0.724f, -0.526f, -0.447f,
-       0.000f,  0.000f, -1.000f
+	 //dritte reihe
+     0.0f,  1.000f,  0.0f,
+     0.5f,  1.000f,  0.0f,
+     1.0f,  1.000f,  0.0f,
+
+     // 0.276f,  0.851f,  0.447f,
+	 //-0.724f,  0.526f,  0.447f,
+
+   //  -0.724f, -0.526f,  0.447f,
+   //   0.276f, -0.851f,  0.447f,
+	//  
+	//  0.724f,  0.526f, -0.447f,
+   //   -0.276f,  0.851f, -0.447f,
+   //   -0.894f,  0.000f, -0.447f,
+   //
+   //   -0.276f, -0.851f, -0.447f,
+   //    0.724f, -0.526f, -0.447f,
+   //    0.000f,  0.000f, -1.000f
 	  };
 
     float uv[] = 
@@ -393,14 +406,14 @@ Terrain::Terrain()
         1.0f, 1.0f
     };
     
-	glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(positions),  &positions[0], GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(float) * 4, 0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
    // glBufferData(GL_ARRAY_BUFFER, sizeof(float)*8, uv, GL_STATIC_DRAW);
    // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
    // glEnableVertexAttribArray(1);
-	glPatchParameteri(GL_PATCH_VERTICES, 4);
+	glPatchParameteri(GL_PATCH_VERTICES, 9);
 }
 
 Terrain::~Terrain()
@@ -412,8 +425,7 @@ Terrain::~Terrain()
 void Terrain::draw()
 {
     glBindVertexArray(m_vao);
-    //glDrawArrays(m_mode, 0, 4);
-    glDrawArrays(GL_PATCHES, 0, 12);
+    glDrawArrays(GL_PATCHES, 0, 9);
 }
 
 
