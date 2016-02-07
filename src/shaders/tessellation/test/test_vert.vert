@@ -1,9 +1,9 @@
 #version 430
 
-in vec4 position;
+layout(location = 0) in vec4 positions;
 out vec3 passPosition;
 
 void main () {
-	passPosition = position.xyz;
-	gl_Position = position;
+	passPosition = positions.xyz;
+	gl_Position = positions;
 }

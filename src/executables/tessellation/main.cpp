@@ -64,7 +64,7 @@ int main()
 
 	std::vector<Renderable* > objects;
 	//objects.push_back(new Grid( 10, 10, 0.1, 0.1, true ));
-	objects.push_back(new Quad());
+	objects.push_back(new Terrain());
 	//objects.push_back(new Grid( 1,1, ground_size, ground_size, true ));
 	//objects.push_back(new Sphere( 20, 40, object_size ) );
 	//objects.push_back(new Grid( 1,1, bb_width, bb_height, false ) ); // origin bottom left

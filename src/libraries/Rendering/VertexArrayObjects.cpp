@@ -299,25 +299,16 @@ Quad::Quad()
 
     m_positions.m_vboHandle = positionBuffer;
 
-  //  m_mode = GL_TRIANGLE_STRIP;
-    m_mode = GL_PATCHES;
+    m_mode = GL_TRIANGLE_STRIP;
         
-  //  float positions[] = 
-  //  {
-  //      -1.0f, -1.0f,
-  //      -1.0f, 1.0f,
-  //      1.0f, -1.0f,
-  //      1.0f, 1.0f
-  //  };
-	  float positions[] = 
+    float positions[] = 
     {
-        -1.0f, -1.0f,  //1
-        -1.0f, 1.0f,	//2
-       // 1.0f, -1.0f,	//3
-       // 1.0f, -1.0f,	//3
-       // -1.0f, 1.0f,	//2
-	//	1.0f, 1.0f	//4
+        -1.0f, -1.0f,
+        -1.0f, 1.0f,
+        1.0f, -1.0f,
+        1.0f, 1.0f
     };
+
     float uv[] = 
     {
         0.0f, 0.0f,
@@ -326,14 +317,13 @@ Quad::Quad()
         1.0f, 1.0f
     };
 
-   // glBufferData(GL_ARRAY_BUFFER, sizeof(float)*8, positions, GL_STATIC_DRAW);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*12, positions, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(0);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float), positions, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+
     glBufferData(GL_ARRAY_BUFFER, sizeof(float)*8, uv, GL_STATIC_DRAW);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(1);
-	glPatchParameteri(GL_PATCH_VERTICES, 3);
 }
 
 Quad::~Quad()
@@ -345,9 +335,88 @@ Quad::~Quad()
 void Quad::draw()
 {
     glBindVertexArray(m_vao);
-    //glDrawArrays(m_mode, 0, 4);
-    glDrawArrays(GL_PATCHES, 0, 3);
+    glDrawArrays(m_mode, 0, 4);
 }
+
+
+Terrain::Terrain()
+{
+    glGenVertexArrays(1, &m_vao);
+    glBindVertexArray(m_vao);
+
+    GLuint positionBuffer;
+    glGenBuffers(1, &positionBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
+
+    m_positions.m_vboHandle = positionBuffer;
+    m_mode = GL_PATCHES;
+
+	float shift = 0.5;
+	  float positions[] = 
+    {
+     //   -1.0f, -1.0f, 1.0f, //1
+     //   -1.0f, 1.0f, -1.0f,	//2
+     //   1.0f, -1.0f, 1.0f,	//3
+     //   1.5f, -1.0f, 1.0f,	//3
+     //   -1.0f, 1.0f, -1.0f,	//2
+	//	1.0f, 1.0f, 1.0f	//4
+		
+	//	0.0f, 0.0f, 0.0f, //1 
+     //   0.25f, 0.5f, 0.0f,	//2  
+     //   1.0f, 1.0f, 0.0f	//3	
+      //1.5f, -1.0f, 2.0f,	//3
+      //-1.0f, 1.0f, -2.0f,	//2
+	//	0.5f, 1.0f, 1.0f	//4
+    
+	  0.000f,  0.000f,  1.000f,
+      0.894f,  0.000f,  0.447f,
+      0.276f,  0.851f,  0.447f,
+
+	 -0.724f,  0.526f,  0.447f,
+     -0.724f, -0.526f,  0.447f,
+      0.276f, -0.851f,  0.447f,
+	  
+	  0.724f,  0.526f, -0.447f,
+      -0.276f,  0.851f, -0.447f,
+      -0.894f,  0.000f, -0.447f,
+
+      -0.276f, -0.851f, -0.447f,
+       0.724f, -0.526f, -0.447f,
+       0.000f,  0.000f, -1.000f
+	  };
+
+    float uv[] = 
+    {
+        0.0f, 0.0f,
+        0.0f, 1.0f,
+        1.0f, 0.0f,
+        1.0f, 1.0f
+    };
+    
+	glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(float) * 4, 0);
+
+   // glBufferData(GL_ARRAY_BUFFER, sizeof(float)*8, uv, GL_STATIC_DRAW);
+   // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+   // glEnableVertexAttribArray(1);
+	glPatchParameteri(GL_PATCH_VERTICES, 4);
+}
+
+Terrain::~Terrain()
+{
+    glDeleteBuffersARB(1, &(m_positions.m_vboHandle));
+    glDeleteBuffersARB(1, &(m_uvs.m_vboHandle));
+}
+
+void Terrain::draw()
+{
+    glBindVertexArray(m_vao);
+    //glDrawArrays(m_mode, 0, 4);
+    glDrawArrays(GL_PATCHES, 0, 12);
+}
+
+
 
 #include <glm/gtc/constants.hpp>
 
