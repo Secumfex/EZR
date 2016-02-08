@@ -1,7 +1,7 @@
 # version 430
 #define id gl_InvocationID
 
-layout(vertices = 9) out;
+layout(vertices = 16) out;
 
 out vec3 tcPosition[];
 

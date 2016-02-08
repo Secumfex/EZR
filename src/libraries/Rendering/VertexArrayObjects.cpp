@@ -370,18 +370,42 @@ Terrain::Terrain()
     
 		// erste reihe
 	  0.000f,  0.000f,  0.000f,
-      0.5f,  0.000f,  0.0f,
+      0.33f,  0.000f,  0.0f,
+      0.66f,  0.000f,  0.0f,
       1.0f,  0.000f,  0.0f,
 
 	  //zweite reihe
-     0.0f,  0.5f,  0.25f,
-     0.5f,  0.5f,  0.25f,
-     1.0f,  0.5f,  0.25f,
+     0.0f,  0.33f,  0.25f,
+     0.33f,  0.33f,  0.25f,
+     0.66f,  0.33f,  0.25f,
+     1.0f,  0.33f,  0.25f,
 
 	 //dritte reihe
-     0.0f,  1.000f,  0.0f,
-     0.5f,  1.000f,  0.0f,
-     1.0f,  1.000f,  0.0f,
+     0.0f,  0.66f,  0.250f,
+     0.33f,  0.660f,  0.250f,
+     0.66f,  0.660f,  0.250f,
+     1.0f,  0.660f,  0.250f,
+
+	 // vierte reihe
+	 0.0f, 1.0f, 0.0f,
+	 0.33f, 1.0f, 0.0f,
+	 0.66f, 1.0f, 0.0f,
+	 1.0f, 1.0f, 0.0f,
+
+//		// erste reihe
+//	  1.000f,  1.000f,  0.000f,
+//      1.5f,  1.000f,  0.0f,
+//      2.0f,  1.000f,  0.0f,
+//
+//		//zweite reihe
+//     1.0f,  1.5f,  0.25f,
+//     1.5f,  1.5f,  0.25f,
+//     2.0f,  1.5f,  0.25f,
+//
+//		//dritte reihe
+//     1.0f,  2.000f,  0.0f,
+//     1.5f,  2.000f,  0.0f,
+//     2.0f,  2.000f,  0.0f,
 
      // 0.276f,  0.851f,  0.447f,
 	 //-0.724f,  0.526f,  0.447f,
@@ -413,7 +437,7 @@ Terrain::Terrain()
    // glBufferData(GL_ARRAY_BUFFER, sizeof(float)*8, uv, GL_STATIC_DRAW);
    // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
    // glEnableVertexAttribArray(1);
-	glPatchParameteri(GL_PATCH_VERTICES, 9);
+	glPatchParameteri(GL_PATCH_VERTICES, 16);
 }
 
 Terrain::~Terrain()
@@ -425,7 +449,7 @@ Terrain::~Terrain()
 void Terrain::draw()
 {
     glBindVertexArray(m_vao);
-    glDrawArrays(GL_PATCHES, 0, 9);
+    glDrawArrays(GL_PATCHES, 0, 16);
 }
 
 

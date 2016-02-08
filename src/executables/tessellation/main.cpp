@@ -25,6 +25,15 @@ static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
 
 static float s_strength = 0.5f;
 
+glm::mat4 bezier = glm::mat4(
+	-1, 3, -3, 1,
+	3, -6, 3, 0,
+	-3, 3, 0, 0,
+	1, 0, 0, 0
+);
+
+glm::mat4 bezier_transposed = glm::transpose(bezier);
+
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -98,11 +107,13 @@ int main()
 	// in and outs fix
 	//ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag", "/tessellation/tc.tesc", "/tessellation/te.tese"); DEBUGLOG->outdent();
 	//ShaderProgram shaderProgram("/modelSpace/modelViewProjection.vert", "/tessellation/tess.frag", "/tessellation/tc.tesc", "/tessellation/te.tese", "/tessellation/tess_geom.geom"); DEBUGLOG->outdent();//
-	ShaderProgram shaderProgram("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag.frag", "/tessellation/test/test_tc.tc", "/tessellation/test/test_te.te"); DEBUGLOG->outdent();//
+	ShaderProgram shaderProgram("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag.frag", "/tessellation/test/test_tc.tc", "/tessellation/test/test_te_bezier.te"); DEBUGLOG->outdent();//
 	//ShaderProgram shaderProgram("/modelSpace/modelViewProjection.vert", "/tessellation/test.frag"); DEBUGLOG->outdent();
 	shaderProgram.update("model", model);
 	shaderProgram.update("view", view);
 	shaderProgram.update("projection", perspective);
+	shaderProgram.update("b", bezier);
+	shaderProgram.update("bt", bezier_transposed);
 	//shaderProgram.update("tessLevelInner", 4.0f );
 	//shaderProgram.update("tessLevelOuter", 4.0f );
 
