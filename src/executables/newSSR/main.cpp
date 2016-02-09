@@ -50,7 +50,7 @@ int main()
 	DEBUGLOG->log("Setup: importing assets"); DEBUGLOG->indent();
 
 	// get file name
-	std::string input = "cube.obj";
+	std::string input = "tscene.obj";
 	std::string file = RESOURCES_PATH "/" + input;
 
 	// import using ASSIMP and check for errors
@@ -61,6 +61,25 @@ int main()
 	const aiScene* scene = importer.GetScene();
 
 	DEBUGLOG->log("Asset has been loaded successfully");
+	DEBUGLOG->outdent();
+
+	DEBUGLOG->log("Asset (scene) info: ");	DEBUGLOG->indent();
+		DEBUGLOG->log("has meshes: "	 , scene->HasMeshes());
+		DEBUGLOG->log("num meshes: "     , scene->mNumMeshes); DEBUGLOG->indent();
+		for ( unsigned int i = 0; i < scene->mNumMeshes ; i++ )
+		{
+			aiMesh* m = scene->mMeshes[i];
+			DEBUGLOG->log(std::string("mesh ") + DebugLog::to_string(i) + std::string(": ") + std::string( m->mName.C_Str() ));
+		}
+		for ( unsigned int i = 0; i < scene->mNumMaterials; i++ )
+		{
+			DEBUGLOG->log(std::string("material ") + DebugLog::to_string(i) + std::string(": "));
+			auto matInfo = AssimpTools::getMaterialInfo(scene, i);
+			DEBUGLOG->indent();
+				AssimpTools::printMaterialInfo(matInfo);
+			DEBUGLOG->outdent();
+		}
+		DEBUGLOG->outdent();
 	DEBUGLOG->outdent();
 
 	// create window and opengl context
@@ -75,7 +94,7 @@ int main()
 	glm::vec4 center(0.0f,0.0f,0.0f,1.0f);
 	glm::mat4 view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0,1,0));
 
-	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 10.f);
+	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 20.f);
 
 	// object sizes
 	float object_size = 1.0f;
@@ -133,17 +152,32 @@ int main()
 
 	 glm::mat4 wsNormalMat = glm::transpose(glm::inverse(model));
 	 glm::mat4 vsNormalMat = glm::transpose(glm::inverse(view * model));
-	 glm::mat4 mvp = perspective * view * model;
+	 //glm::mat4 mvp = perspective * view * model;	//not used
 	 bool useNM = true;
 
 	 gShader.update("camPosition",eye);
 	 gShader.update("wsNormalMatrix",wsNormalMat);
 	 gShader.update("vsNormalMatrix",vsNormalMat);
-	 gShader.update("MVPMatrix", mvp);
+	 //gShader.update("MVPMatrix", mvp);	//not used
 
-	 gShader.update("matId",); 			//woher bekommen?	//todo
+	 //gShader.bindTextureOnUse("ColorTex",);
+	 //gShader.bindTextureOnUse("NormalTex",);
+	 // check for displayable textures
+	 if (textures.find(aiTextureType_DIFFUSE) != textures.end()){
+		 gShader.bindTextureOnUse("ColorTex", textures.at(aiTextureType_DIFFUSE));
+		 //gShader.update("mixTexture", 1.0);
+	 }
+	 if (textures.find(aiTextureType_NORMALS) != textures.end() && gShader.getUniformInfoMap()->find("NormalTex") != gShader.getUniformInfoMap()->end()){
+		 gShader.bindTextureOnUse("NormalTex", textures.at(aiTextureType_NORMALS));
+		 //gShader.update("hasNormalTex", true);
+	 }
+
+
+	 //auto matInfo = AssimpTools::getMaterialInfo(scene, 2);
+
+	 gShader.update("matId",2); 			//woher bekommen?	//todo
 	 gShader.update("useNormalMapping", useNM);
-	 gShader.update("lightColor", ); 	//woher bekommen?
+	 gShader.update("lightColor", s_color);
 
 	 // check for displayable textures
 	 /*if (textures.find(aiTextureType_DIFFUSE) != textures.end())
@@ -186,22 +220,26 @@ int main()
 	 DEBUGLOG->outdent();
 
 	 //light pass
-	 DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
+	 DEBUGLOG->log("Shader Compilation: light"); DEBUGLOG->indent();
 	 ShaderProgram lightShader("/screenSpaceReflection/light.vert", "/screenSpaceReflection/light.frag"); DEBUGLOG->outdent();
 	 lightShader.update("view", view);
-	 lightShader.update("projection", perspective);
+	 //lightShader.update("projection", perspective);	//not used!
 
-	 lightShader.update("lightPosition",);	//woher bekommen?	//todo
-	 lightShader.update("lightDiffuse",);	//woher bekommen?
-	 lightShader.update("lightSpecular",);	//woher bekommen?
-	 lightShader.update("lightcount",);		//woher bekommen?
+	 glm::vec3 ldiff = glm::vec3(0.95f, 0.85f, 0.75f);
+	 glm::vec3 lspec = glm::vec3(1.0f,1.0f,1.0f);
+	 int lc = 1;
+
+	 lightShader.update("lightPosition",s_lightPos);
+	 lightShader.update("lightDiffuse",ldiff);	//woher lichtinfos?!
+	 lightShader.update("lightSpecular",lspec);
+	 lightShader.update("lightCount",lc);
 
 	 int currShadingModel = 1;
 	 float currShininess = 12.0f;
 
 	 lightShader.update("shadingModelID",currShadingModel);
 	 lightShader.update("Shininess",currShininess);
-	 lightShader.update("ambientColor",); 	//woher bekommen?	//todo
+	 lightShader.update("ambientColor",s_color); 	//woher bekommen?	//todo
 
 	 lightShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	 lightShader.bindTextureOnUse("vsNormalTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
@@ -209,7 +247,7 @@ int main()
 	 DEBUGLOG->outdent();
 
 	 //light fbo
-	 DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
+	 DEBUGLOG->log("FrameBufferObject Creation: light"); DEBUGLOG->indent();
 	 FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
 	 FrameBufferObject lightFBO(lightShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
 	 FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
@@ -233,8 +271,8 @@ int main()
 	 ssrShader.update("screenHeight", WINDOW_RESOLUTION);
 
 	 //ssrShader.update("cameraFOV", );
-	 ssrShader.update("cameraNearPlane",cameraNear); //= 0.1f
-	 ssrShader.update("cameraFarPlane",cameraFar);  //= 200.0f
+	 ssrShader.update("camNearPlane",cameraNear); //= 0.1f
+	 ssrShader.update("camFarPlane",cameraFar);  //= 200.0f
 	 //ssrShader.update("cameraLookAt", );
 	 //ssrShader.update("cameraPosition", );
 	 //...
@@ -245,7 +283,7 @@ int main()
 	 uniform bool optimizedSSR;
 	 uniform bool experimentalSSR;*/
 	 ssrShader.update("fadeToEdges",fadeEdges);//fadeEdges = true
-	 ssrShader.update("view", view);
+	 //ssrShader.update("view", view);	//not used!
 	 ssrShader.update("projection",perspective);
 	 //...
 	 //ssrShader.bindTextureOnUse();
@@ -283,15 +321,14 @@ int main()
 
 	 DEBUGLOG->log("Shader Compilation: compositing"); DEBUGLOG->indent();
 	 ShaderProgram compoShader("/screenSpaceReflection/comp.vert", "/screenSpaceReflection/comp.frag"); DEBUGLOG->outdent();
-	 compoShader.update("textureID",);	//woher bekommen?	//todo
-
+	 compoShader.update("textureID",0);	//durchflitsch. was gerendert werden soll
 	 bool doBlur =false;
-	 bool doSSR = true;
+	 //bool doSSR = true;	//notused!
 
 	 compoShader.update("blurSwitch", doBlur);
-	 compoShader.update("SSR", doSSR);
-	 compoShader.update("kernelX", );	//woher bekommen?	//todo
-	 compoShader.update("kernelY", );	//woher bekommen?
+	 //compoShader.update("SSR", doSSR);	//notused!
+	// compoShader.update("kernelX", );	//woher bekommen?	//todo
+	// compoShader.update("kernelY", );	//woher bekommen?
 
 	 compoShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	 compoShader.bindTextureOnUse("vsNormalTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
@@ -442,12 +479,12 @@ int main()
 
 		gShader.update("view", view);
 		gShader.update("wsNormalMatrix", glm::transpose(glm::inverse(view * model)));
-		gShader.update("MVPMatrix", perspective * view * model);
+		//gShader.update("MVPMatrix", perspective * view * model);	//not used!
 
 		lightShader.update("view", view);
 
 		//update ssr uniforms
-		ssrShader.update("view", view);
+		//ssrShader.update("view", view);	//not used!
 
 		///compShader.update("vLightPos", view * s_lightPos);
 

@@ -27,26 +27,26 @@ uniform mat4 vsNormalMatrix;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-uniform mat4 MVPMatrix;
+//uniform mat4 MVPMatrix;	//not used!
 
 //!< main
 void main(void){	
 	//pos, normals
 	//ws
-	vec3 wsPosition = ( ModelMatrix * vec4(vertex, 1.0f) ).xyz;
+	vec3 wsPosition = ( model * vec4(vertex, 1.0f) ).xyz;
 	vert_wsPosition = wsPosition; 
 	vert_wsNormal = ( wsNormalMatrix * vec4(normal, 0.0f) ).xyz;
 	//vs
-	vec3 vsPosition = ( ViewMatrix * (ModelMatrix * vec4(vertex, 1.0f)) ).xyz;
+	vec3 vsPosition = ( view * (model * vec4(vertex, 1.0f)) ).xyz;
 	vert_vsPosition = vsPosition;
 	vert_vsNormal = ( vsNormalMatrix * vec4(normal, 0.0f) ).xyz;
 	//tex coords
 	vert_UV = uv;	
 	//eye vec
 	vert_vsEyeVector = vert_vsPosition;
-	vert_wsEyePosition = Camera.Position;
-	vert_wsEyeVector = vert_wsPosition - Camera.Position;
+	vert_wsEyePosition = camPosition;
+	vert_wsEyeVector = vert_wsPosition - camPosition;
 
 	//vertex transform with MVP-mat
-	gl_Position = ProjectionMatrix * ViewMatrix * ModelMatrix * vec4(vertex, 1.0f);
+	gl_Position = projection * view * model * vec4(vertex, 1.0f);
 }

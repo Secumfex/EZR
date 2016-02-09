@@ -20,7 +20,7 @@ uniform float camFarPlane;
 
 uniform int textureID;
 uniform bool blurSwitch;
-uniform bool SSR;
+//uniform bool SSR;	//notused!
 //uniform bool BB;
 //uniform bool PCCM;
 
@@ -96,15 +96,15 @@ void main(void){
 
 	vec4 SSR          = vec4(texture(SSRTex, vert_UV).rgb, 1.0);
 	vec4 EnvMap       = Reflectance * texture(ReflectanceTex, vert_UV);
-	vec4 BB           = Reflectance * texture(BBTex, vert_UV);
+	//vec4 BB           = Reflectance * texture(BBTex, vert_UV);
 
 	// Compositing
 	if(textureID == -1){
 		if(blurSwitch){
-			FragColor = diffuse + SSR + BB + EnvMap;
+			FragColor = diffuse + SSR;	//+ BB + EnvMap
 		}
 		else{
-			FragColor = diffuse + SSR + BB + EnvMap;
+			FragColor = diffuse + SSR;	//+ BB + EnvMap
 		}
 	}
 	// View space positions
@@ -175,9 +175,9 @@ void main(void){
 		vec3 color = texture(SSRTex, vert_UV).rgb;
 		FragColor = vec4(color, 1.0);
 	}
-	// Screen space reflections
+	// Screen space reflections, billboard
 	else if(textureID == 8){
-		vec3 color = texture(BBTex, vert_UV).rgb;
-		FragColor = vec4(color, 1.0);
+		//vec3 color = texture(BBTex, vert_UV).rgb;
+		//FragColor = vec4(color, 1.0);
 	}
 }

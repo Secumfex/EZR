@@ -32,7 +32,12 @@ uniform mat4 vsNormalMatrix;
 uniform mat4 ModelMatrix;
 uniform mat4 ViewMatrix;
 uniform mat4 ProjectionMatrix;
-uniform mat4 MVPMatrix;
+//uniform mat4 MVPMatrix;	//not used
+
+uniform sampler2D ColorTex;
+//uniform sampler2D ImpostorTex[3];
+uniform sampler2D NormalTex;
+//uniform samplerCube CubeMapTex;
 
 //!< fresnel func
 float fresnel(vec3 reflection, vec3 normal, float R0) {

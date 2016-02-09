@@ -9,8 +9,8 @@ layout (location = 0) out vec4 FragColor;
 
 //!< uniforms
 //lightInfo
-uniform vec3[30] lightPosition;
-uniform vec3[30] lightDiffuse;
+uniform vec3 lightPosition;		//[30] entfernt, ebenso [i] bei zugriffen
+uniform vec3 lightDiffuse;		//[30] entfernt, ebenso [i] bei zugriffen
 uniform vec3 lightSpecular;
 uniform int lightCount;
 
@@ -20,7 +20,7 @@ uniform float Shininess;
 //uniform float Attenu;
 uniform vec3 ambientColor;
 uniform mat4 view;
-uniform mat4 projection;
+//uniform mat4 projection;	//not used!
 
 uniform sampler2D vsPositionTex;
 uniform sampler2D vsNormalTex;
@@ -132,13 +132,13 @@ void main(void){
 			shaded = vec4(materialColorD.rgb, 1.0);
 		}
 		else{
-			lightVector = normalize( (ViewMatrix *  vec4(lightPosition[i], 1.0f)) - vsPosition ).xyz;
+			lightVector = normalize( (view *  vec4(lightPosition, 1.0f)) - vsPosition ).xyz;
 			halfVector = normalize(lightVector);
-			vsLightPosition = vec3(ViewMatrix * vec4(lightPosition[i], 1.0f));
+			vsLightPosition = vec3(view * vec4(lightPosition, 1.0f));
 
 			float Luminosity = attenuation(vsLightPosition, vsPosition.xyz, 0.025f);
 
-			vec3 lightDiffuse = lightDiffuse[i].rgb;
+			vec3 lightDiffuse = lightDiffuse.rgb;
 			vec3 lightSpecular = lightSpecular.rgb;
 
 			if(shadingModelID == 0)

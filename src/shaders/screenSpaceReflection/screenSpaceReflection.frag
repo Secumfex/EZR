@@ -24,7 +24,7 @@ uniform bool toggleSSR;
 //uniform bool optimizedSSR; 
 //uniform bool experimentalSSR; 
 uniform bool fadeToEdges; 
-uniform mat4 view; 
+//uniform mat4 view; 	//not used!
 uniform mat4 projection; 
  
 //uniform sampler2D wsPositionTex; 
@@ -59,13 +59,13 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
     vec2 pixelsize = 1.0/vec2(screenWidth, screenHeight);
 
     // Get texture informations
-    vec4 csPosition = ProjectionMatrix * vec4(vsPosition, 1.0);
+    vec4 csPosition = projection * vec4(vsPosition, 1.0);
     vec3 ndcsPosition = csPosition.xyz / csPosition.w;
     vec3 ssPosition = 0.5 * ndcsPosition + 0.5;
 
     // Project reflected vector into screen space
     vsReflectionVector += vsPosition;
-    vec4 csReflectionVector = ProjectionMatrix * vec4(vsReflectionVector, 1.0);
+    vec4 csReflectionVector = projection * vec4(vsReflectionVector, 1.0);
     vec3 ndcsReflectionVector = csReflectionVector.xyz / csReflectionVector.w;
     vec3 ssReflectionVector = 0.5 * ndcsReflectionVector + 0.5;
     ssReflectionVector = normalize(ssReflectionVector - ssPosition);
