@@ -45,6 +45,7 @@ void main(){
 		normalView = tangentSpaceView * normalTangentSpace;
 	}
 
+	fragWorldPos = vec4(passWorldPosition, 1);
 	fragPosition = vec4(passPosition,1);
 	fragUVCoord = vec4(passUVCoord,0,0);
 	fragNormal = vec4(normalView,0);

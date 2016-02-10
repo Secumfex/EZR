@@ -4,13 +4,14 @@
 #define BIAS 0.005
 #define PIXELTILESIZE 8 // an 8x8 pixel tile
 
-in vec4 startPosLightSpace;
 in vec2 passUV;
 
 uniform sampler2D worldPosMap;
 uniform sampler2D shadowMapSampler;
+uniform usampler2D noiseMap;
 uniform int numberOfSamples;
 uniform float phi;
+uniform mat4 lightView;
 uniform mat4 lightProjection;
 uniform vec4 lightColor;
 uniform vec4 cameraPosLightSpace;
@@ -51,7 +52,7 @@ float executeRaymarching(vec4 rayPositionLightSpace, float stepSize, float l) {
     float p = p();
 
     // calculate the final light contribution for the sample on the way
-    float radiantFluxAttenuation = phi * 0.25 * PI_RCP * dRcp * dRcp;
+    float radiantFluxAttenuation = phi;
     float Li = tau * albedo * radiantFluxAttenuation * v * exp(-tau * d) * p;
     float intens = Li * exp(-tau * l) * stepSize;
     return intens;
@@ -63,21 +64,24 @@ void main() {
     float pixelBlockSize = PIXELTILESIZE * PIXELTILESIZE;
 
     // get position of the fragment within the pixelblock
-    vec2 pixelPosition = vec2(gl_FragCoord);
+/*    vec2 pixelPosition = vec2(gl_FragCoord);
     pixelPosition.xy = mod(pixelPosition.xy,PIXELTILESIZE);
     float index = PIXELTILESIZE * pixelPosition.y + pixelPosition.x;
 
     // randomize order of pixels in a tile
     vec2 tilePos = round(pixelPosition / PIXELTILESIZE);
     float tileIndex = tilePos.y * dim.x + tilePos.x;
-    tileIndex *= 67;
-    index = mod(index + tileIndex,pixelBlockSize);
+    float randIndex1 = mod(sin(tileIndex + index)*pixelBlockSize, pixelBlockSize);
+    float randIndex2 = mod(cos(tileIndex)*pixelBlockSize, pixelBlockSize);
+    index = mod(index * randIndex1 * randIndex2,pixelBlockSize);*/
+    uint index = texture(noiseMap, passUV).x;
 
     // calculate number of samples
     float sampleNum = pow(2, numberOfSamples);
     float totalSampleNum = sampleNum * pixelBlockSize;
 
     // calculate complete raymarching distance
+    vec4 startPosLightSpace = lightView * texture(worldPosMap, passUV);
     float raymarchDistance = length(cameraPosLightSpace.xyz - startPosLightSpace.xyz);
     float stepSize = raymarchDistance / totalSampleNum;
 
@@ -102,4 +106,6 @@ void main() {
     vli /= sampleNum;
 
     gl_FragColor =  vec4(lightColor.xyz * vli, 1.0);
+
+    //gl_FragColor = vec4(index / pixelBlockSize, 0, 0, 1);
 }

@@ -15,12 +15,16 @@
       <sourceFolder url="file://$MODULE_DIR$/cmake/macros.cmake" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/assimp/CMakeLists.txt" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/assimp/main.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/executables/instancing/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/executables/instancing/main.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/misc/CMakeLists.txt" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/misc/main.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/npr/CMakeLists.txt" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/npr/main.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/ssr/CMakeLists.txt" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/ssr/main.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/executables/treeanim/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/executables/treeanim/main.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/vml/CMakeLists.txt" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/vml/Spotlight.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/vml/Spotlight.h" isTestSource="false" />
@@ -60,6 +64,13 @@
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/Rendering/Uniform.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/Rendering/VertexArrayObjects.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/Rendering/VertexArrayObjects.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/libraries/TreeAnimation/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/libraries/TreeAnimation/Tree.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/libraries/TreeAnimation/Tree.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/libraries/TreeAnimation/TreeRendering.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/libraries/TreeAnimation/TreeRendering.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/libraries/TreeAnimation/WindField.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/libraries/TreeAnimation/WindField.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/UI/CMakeLists.txt" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/UI/Turntable.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/UI/Turntable.h" isTestSource="false" />
@@ -82,6 +93,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/modelSpace/GBuffer.vert" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/modelSpace/dpGBuffer.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/modelSpace/geometry.vert" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/modelSpace/instancedModelViewProjection.vert" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/modelSpace/modelViewProjection.vert" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/modelSpace/phong.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/modelSpace/simpleColor.frag" isTestSource="false" />
@@ -93,9 +105,14 @@
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/finalCompositing.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/fullscreen.vert" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/npr1.frag" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/postProcessBloomMipMap.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/simpleAlphaTexture.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/ssr.frag" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/treeAnim/foliage.frag" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/treeAnim/foliage.geom" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/treeAnim/tree.vert" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/interleavedSamplingComposition.frag" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/noise.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/raymarching.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/raymarching.vert" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/raymarching_gbuffer.frag" isTestSource="false" />
@@ -130,32 +147,36 @@
         <excluded>
           <root url="file://$MODULE_DIR$/src/libraries/Importing/stb_image.h" />
           <root url="file://$MODULE_DIR$/src/libraries/Rendering/Uniform.cpp" />
-          <root url="file://$MODULE_DIR$/src/libraries/Rendering/CMakeLists.txt" />
+          <root url="file://$MODULE_DIR$/src/libraries/Core/CMakeLists.txt" />
           <root url="file://$MODULE_DIR$/src/libraries/Rendering/ShaderProgram.h" />
-          <root url="file://$MODULE_DIR$/src/libraries/Rendering/Shader.h" />
-          <root url="file://$MODULE_DIR$/src/libraries/Rendering/GLTools.h" />
-          <root url="file://$MODULE_DIR$/src/libraries/UI/imguiTools.h" />
-          <root url="file://$MODULE_DIR$/src/libraries/Rendering/RenderPass.h" />
+          <root url="file://$MODULE_DIR$/src/libraries/TreeAnimation/CMakeLists.txt" />
+          <root url="file://$MODULE_DIR$/src/libraries/TreeAnimation/Tree.cpp" />
+          <root url="file://$MODULE_DIR$/src/libraries/TreeAnimation/WindField.h" />
+          <root url="file://$MODULE_DIR$/src/libraries/TreeAnimation/WindField.cpp" />
+          <root url="file://$MODULE_DIR$/src/libraries/TreeAnimation/Tree.h" />
+          <root url="file://$MODULE_DIR$/src/libraries/TreeAnimation/TreeRendering.h" />
+          <root url="file://$MODULE_DIR$/src/libraries/TreeAnimation/TreeRendering.cpp" />
+          <root url="file://$MODULE_DIR$/src/libraries/Core/Singleton.h" />
+          <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/imconfig.h" />
           <root url="file://$MODULE_DIR$/src/libraries/Importing/AssimpTools.h" />
+          <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/stb_truetype.h" />
           <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/stb_textedit.h" />
           <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/imgui.h" />
           <root url="file://$MODULE_DIR$/src/libraries/UI/imgui_impl_glfw_gl3.h" />
           <root url="file://$MODULE_DIR$/src/libraries/Core/DebugLog.h" />
-          <root url="file://$MODULE_DIR$/src/libraries/Importing/TextureTools.h" />
           <root url="file://$MODULE_DIR$/src/libraries/UI/Turntable.h" />
           <root url="file://$MODULE_DIR$/src/libraries/Core/Updatable.h" />
           <root url="file://$MODULE_DIR$/src/libraries/Importing/Importer.h" />
           <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/CMakeLists.txt" />
-          <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/stb_truetype.h" />
-          <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/imconfig.h" />
+          <root url="file://$MODULE_DIR$/src/libraries/UI/CMakeLists.txt" />
+          <root url="file://$MODULE_DIR$/src/libraries/UI/Turntable.cpp" />
           <root url="file://$MODULE_DIR$/src/libraries/Rendering/VertexArrayObjects.h" />
-          <root url="file://$MODULE_DIR$/src/libraries/Core/CMakeLists.txt" />
           <root url="file://$MODULE_DIR$/src/libraries/Rendering/FrameBufferObject.h" />
           <root url="file://$MODULE_DIR$/src/libraries/Core/Timer.h" />
           <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/imgui_internal.h" />
           <root url="file://$MODULE_DIR$/src/libraries/UI/imgui_impl_glfw_gl3.cpp" />
           <root url="file://$MODULE_DIR$/src/libraries/UI/imguiTools.cpp" />
-          <root url="file://$MODULE_DIR$/src/libraries/UI/Turntable.cpp" />
+          <root url="file://$MODULE_DIR$/src/libraries/Rendering/CMakeLists.txt" />
           <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/imgui.cpp" />
           <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/imgui_draw.cpp" />
           <root url="file://$MODULE_DIR$/src/libraries/Rendering/RenderPass.cpp" />
@@ -169,13 +190,16 @@
           <root url="file://$MODULE_DIR$/src/libraries/Importing/Importer.cpp" />
           <root url="file://$MODULE_DIR$/src/libraries/Importing/TextureTools.cpp" />
           <root url="file://$MODULE_DIR$/src/libraries/Importing/AssimpTools.cpp" />
-          <root url="file://$MODULE_DIR$/src/libraries/UI/CMakeLists.txt" />
+          <root url="file://$MODULE_DIR$/src/libraries/Importing/TextureTools.h" />
           <root url="file://$MODULE_DIR$/src/libraries/Core/Updatable.cpp" />
           <root url="file://$MODULE_DIR$/src/libraries/Core/Singleton.cpp" />
           <root url="file://$MODULE_DIR$/src/libraries/Core/Timer.cpp" />
           <root url="file://$MODULE_DIR$/src/libraries/Core/DebugLog.cpp" />
+          <root url="file://$MODULE_DIR$/src/libraries/Rendering/RenderPass.h" />
           <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/stb_rect_pack.h" />
-          <root url="file://$MODULE_DIR$/src/libraries/Core/Singleton.h" />
+          <root url="file://$MODULE_DIR$/src/libraries/UI/imguiTools.h" />
+          <root url="file://$MODULE_DIR$/src/libraries/Rendering/GLTools.h" />
+          <root url="file://$MODULE_DIR$/src/libraries/Rendering/Shader.h" />
         </excluded>
       </library>
     </orderEntry>

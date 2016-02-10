@@ -339,6 +339,15 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::mat4& matrix)
 	return this;
 }
 
+ShaderProgram* ShaderProgram::update(std::string name, const std::vector<int>& vector)
+{
+	glUseProgram(m_shaderProgramHandle);
+	auto u = uniform(name);
+	if ( u != (GLuint) -1)
+		glUniform1iv(u, sizeof(vector), &vector[0]);
+	return this;
+}
+
 ShaderProgram* ShaderProgram::update(std::string name, const std::vector<glm::vec2>& vector) 
 {
 	glUseProgram(m_shaderProgramHandle);
