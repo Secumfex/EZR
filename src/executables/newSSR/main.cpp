@@ -50,7 +50,7 @@ int main()
 	DEBUGLOG->log("Setup: importing assets"); DEBUGLOG->indent();
 
 	// get file name
-	std::string input = "tscene.obj";
+	std::string input = "cube.obj";
 	std::string file = RESOURCES_PATH "/" + input;
 
 	// import using ASSIMP and check for errors
@@ -175,7 +175,7 @@ int main()
 
 	 //auto matInfo = AssimpTools::getMaterialInfo(scene, 2);
 
-	 gShader.update("matId",2); 			//woher bekommen?	//todo
+	 gShader.update("matId",1); 			//woher bekommen?	//todo
 	 gShader.update("useNormalMapping", useNM);
 	 gShader.update("lightColor", s_color);
 
@@ -241,9 +241,9 @@ int main()
 	 lightShader.update("Shininess",currShininess);
 	 lightShader.update("ambientColor",s_color); 	//woher bekommen?	//todo
 
-	 lightShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+	 lightShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 	 lightShader.bindTextureOnUse("vsNormalTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
-	 lightShader.bindTextureOnUse("ColorTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
+	 lightShader.bindTextureOnUse("ColorTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	 DEBUGLOG->outdent();
 
 	 //light fbo
@@ -255,12 +255,14 @@ int main()
 	 DEBUGLOG->outdent();
 
 	 DEBUGLOG->log("RenderPass Creation: light"); DEBUGLOG->indent();
+	 Quad quad;
 	 RenderPass lightPass(&lightShader, &lightFBO);
 	 lightPass.addEnable(GL_DEPTH_TEST);
 	 // renderPass.addEnable(GL_BLEND);
 	 lightPass.setClearColor(0.0,0.0,0.0,0.0);
 	 lightPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	 //for (auto r : objects){lightPass.addRenderable(r);}
+	 lightPass.addRenderable(&quad);
 	 DEBUGLOG->outdent();
 
 	 //screen space render pass
@@ -289,25 +291,31 @@ int main()
 	 //ssrShader.bindTextureOnUse();
 	 //uniform sampler2D wsPositionTex;
 	 // uniform sampler2D wsNormalTex;
-	 ssrShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+	 ssrShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 	 ssrShader.bindTextureOnUse("vsNormalTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
 	 ssrShader.bindTextureOnUse("ReflectanceTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT3)); //?
-	 ssrShader.bindTextureOnUse("DepthTex",gFBO.getDepthTextureHandle());
-	 ssrShader.bindTextureOnUse("DiffuseTex",lightFBO.getBuffer("fragColor"));
+	 ssrShader.bindTextureOnUse("DepthTex",gFBO.getDepthTextureHandle());	//todo
+	 ssrShader.bindTextureOnUse("DiffuseTex",lightFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	 //...
 
 	 //fbo
-	 DEBUGLOG->log("FrameBufferObject Creation: ssrFBO"); DEBUGLOG->indent();
+	 /*DEBUGLOG->log("FrameBufferObject Creation: ssrFBO"); DEBUGLOG->indent();
 	 FrameBufferObject ssrFBO(ssrShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
+	 DEBUGLOG->outdent();*/
+	 DEBUGLOG->log("FrameBufferObject Creation: SSR"); DEBUGLOG->indent();
+	 FrameBufferObject ssrFBO(getResolution(window).x, getResolution(window).y);
+	 ssrFBO.addColorAttachments(1);
 	 DEBUGLOG->outdent();
 
 	 //render pass
 	 DEBUGLOG->log("RenderPass Creation: ssrPass"); DEBUGLOG->indent();
 	 RenderPass ssrPass(&ssrShader, &ssrFBO);
-	 ssrPass.addEnable(GL_DEPTH_TEST);
+	// ssrPass.addEnable(GL_DEPTH_TEST);
 	 // renderPass.addEnable(GL_BLEND);
 	 ssrPass.setClearColor(0.0,0.0,0.0,0.0);
 	 ssrPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	 //add rendable?!
+	 ssrPass.addRenderable(&quad);
 	 DEBUGLOG->outdent();
 
 
@@ -330,13 +338,13 @@ int main()
 	// compoShader.update("kernelX", );	//woher bekommen?	//todo
 	// compoShader.update("kernelY", );	//woher bekommen?
 
-	 compoShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+	 compoShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 	 compoShader.bindTextureOnUse("vsNormalTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
-	 compoShader.bindTextureOnUse("ColorTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
+	 compoShader.bindTextureOnUse("ColorTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	 compoShader.bindTextureOnUse("ReflectanceTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT3));
-	 compoShader.bindTextureOnUse("DepthTex",gFBO.getDepthTextureHandle());
-	 compoShader.bindTextureOnUse("DiffuseTex",lightFBO.getBuffer("fragColor"));
-	 compoShader.bindTextureOnUse("SSRTex",ssrFBO.getBuffer("fragColor"));		//geht das so?!
+	 compoShader.bindTextureOnUse("DepthTex",gFBO.getDepthTextureHandle()); //todo
+	 compoShader.bindTextureOnUse("DiffuseTex",lightFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+	 compoShader.bindTextureOnUse("SSRTex",ssrFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 
 	 /*DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
 	 Quad quad;
@@ -348,7 +356,7 @@ int main()
 	 compositing.addRenderable(&quad);*/
 
 	 DEBUGLOG->log("RenderPass Creation: Compositing"); DEBUGLOG->indent();
-	 Quad quad;		//wofür istdas quad?
+	 //Quad quad;		//wofür istdas quad?
 	 RenderPass compoPass(&compoShader, 0);
 	 compoPass.addClearBit(GL_COLOR_BUFFER_BIT);
 	 compoPass.setClearColor(0.25,0.25,0.35,0.0);
@@ -457,6 +465,11 @@ int main()
          ImGuiIO& io = ImGui::GetIO();
 		 ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
 		 ImGui::SliderFloat3("strength", glm::value_ptr(s_scale), 0.0f, 10.0f);
+
+		 const char* listbox_items[] = { "Compositing", "gBuffer-Positions", "gBuffer-Normals", "gBuffer-Color", "gBuffer-MatIDs", "gBuffer-Depth", "gBuffer-Reflectance", "SSR", "Light" };
+		 static int listbox_item_current = 0;
+		 ImGui::ListBox("renderTex", &listbox_item_current, listbox_items, IM_ARRAYSIZE(listbox_items), 4);
+
 		// ImGui::PushItemWidth(-100);
 
 		// ImGui::ColorEdit4( "color", glm::value_ptr( s_color)); // color mixed at max distance
@@ -489,7 +502,8 @@ int main()
 		///compShader.update("vLightPos", view * s_lightPos);
 
 		//update compo uniforms
-
+		compoShader.update("textureID",listbox_item_current);
+		//std::cout << listbox_item_current << endl;
 
 		//////////////////////////////////////////////////////////////////////////////
 

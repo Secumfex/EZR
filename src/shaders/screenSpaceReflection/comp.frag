@@ -95,11 +95,11 @@ void main(void){
 	float Reflectance = texture(ReflectanceTex, vert_UV).a;
 
 	vec4 SSR          = vec4(texture(SSRTex, vert_UV).rgb, 1.0);
-	vec4 EnvMap       = Reflectance * texture(ReflectanceTex, vert_UV);
+	//vec4 EnvMap       = Reflectance * texture(ReflectanceTex, vert_UV);
 	//vec4 BB           = Reflectance * texture(BBTex, vert_UV);
 
 	// Compositing
-	if(textureID == -1){
+	if(textureID == 0){
 		if(blurSwitch){
 			FragColor = diffuse + SSR;	//+ BB + EnvMap
 		}
@@ -108,19 +108,19 @@ void main(void){
 		}
 	}
 	// View space positions
-	else if(textureID == 0){
+	else if(textureID == 1){
 		FragColor = texture(vsPositionTex, vert_UV);
 	}
 	// View space normals
-	else if(textureID == 1){
+	else if(textureID == 2){
 		FragColor = texture(vsNormalTex, vert_UV);
 	}
 	// Albedo (color)
-	else if(textureID == 2){
+	else if(textureID == 3){
 		FragColor = texture(ColorTex, vert_UV);
 	}
 	// Material IDs
-	else if(textureID == 3){
+	else if(textureID == 4){
 		float id = texture(ColorTex, vert_UV).a;
 		if(id == 0.00){
 			FragColor = vec4(1.0);
@@ -157,27 +157,31 @@ void main(void){
 		}
 	}
 	// Depth
-	else if(textureID == 4){
+	else if(textureID == 5){
 		float linearDepth = linearizeDepth(texture(DepthTex, vert_UV).z);
 		FragColor = vec4(vec3(linearDepth), 1.0);
 	}
 	// Reflectance
-	else if(textureID == 5){
+	else if(textureID == 6){
 		FragColor = vec4( texture(ReflectanceTex, vert_UV).a );
 	}
 	// Environment mapping
-	else if(textureID == 6){
-		vec3 color = texture(ReflectanceTex, vert_UV).rgb;
-		FragColor = Reflectance * vec4(color, 1.0);
-	}
+	//else if(textureID == 6){
+		//vec3 color = texture(ReflectanceTex, vert_UV).rgb;
+		//FragColor = Reflectance * vec4(color, 1.0);
+	//}
 	// Screen space reflections
 	else if(textureID == 7){
 		vec3 color = texture(SSRTex, vert_UV).rgb;
 		FragColor = vec4(color, 1.0);
 	}
-	// Screen space reflections, billboard
 	else if(textureID == 8){
+	vec3 color = texture(DiffuseTex, vert_UV).rgb;
+	FragColor = vec4(color, 1.0);
+	}
+	// Screen space reflections, billboard
+	//else if(textureID == 8){
 		//vec3 color = texture(BBTex, vert_UV).rgb;
 		//FragColor = vec4(color, 1.0);
-	}
+	//}
 }

@@ -12,13 +12,19 @@ in vec3 vert_wsEyePosition;
 in vec3 vert_wsEyeVector;
 
 //!< out-vars
-//layout (location = 0) out vec3 wsPosition;
-layout (location = 0) out vec3 vsPosition;
-layout (location = 1) out vec3 vsNormal;
-layout (location = 2) out vec4 Color;
-//layout (location = 3) out vec3 wsNormal;
-layout (location = 3) out vec4 Reflectance;
-// Location 8 is DepthBuffer
+//nach guido
+	//layout (location = 0) out vec3 wsPosition;
+//layout (location = 0) out vec3 vsPosition;
+//layout (location = 1) out vec3 vsNormal;
+//layout (location = 2) out vec4 Color;
+	//layout (location = 3) out vec3 wsNormal;
+//layout (location = 3) out vec4 Reflectance;
+	// Location 8 is DepthBuffer
+//nach arend
+layout(location = 0) out vec4 Color;
+layout(location = 1) out vec3 vsNormal;		//vec4
+layout(location = 2) out vec3 vsPosition;	//vec4
+layout(location = 3) out vec4 Reflectance;
 
 //!< uniforms
 // Material informations
@@ -29,9 +35,9 @@ uniform bool useNormalMapping;
 uniform vec3 lightColor;
 uniform mat4 wsNormalMatrix;
 uniform mat4 vsNormalMatrix;
-uniform mat4 ModelMatrix;
-uniform mat4 ViewMatrix;
-uniform mat4 ProjectionMatrix;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
 //uniform mat4 MVPMatrix;	//not used
 
 uniform sampler2D ColorTex;
