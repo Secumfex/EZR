@@ -299,10 +299,12 @@ GLuint PostProcessing::LensFlare::loadLensColorTexture()
 	return textureHandle;
 }
 
+#include <Importing/TextureTools.h>
+
 PostProcessing::LensFlare::LensFlare(int width, int height)
 	: m_downSampleShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessLFDownSampling.frag")
 	, m_ghostingShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessLFGhosting.frag")
-	//, m_lensFlareShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessLensFlareOverlay.frag")
+	, m_upscaleBlendShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessLFUpscaleBlend.frag")
 {
 	m_downSampleFBO = new FrameBufferObject(m_downSampleShader.getOutputInfoMap(),width,height);
 	m_featuresFBO = new FrameBufferObject(m_ghostingShader.getOutputInfoMap(),width,height);
@@ -315,6 +317,12 @@ PostProcessing::LensFlare::LensFlare(int width, int height)
 	
 	// 1D texture
 	m_lensColorTexture = loadLensColorTexture();
+	// 2D textures
+	m_lensDirtTexture = TextureTools::loadTextureFromResourceFolder("lensdirt.png");
+	m_lensStarTexture = TextureTools::loadTextureFromResourceFolder("lensstar.png");
+	
+	// box blur
+	m_boxBlur = new BoxBlur(width / 2, height / 2, &m_quad);
 
 	// default values
 	m_downSampleShader.update("uScale", glm::vec4(5.0f));
@@ -322,6 +330,14 @@ PostProcessing::LensFlare::LensFlare(int width, int height)
 	m_ghostingShader.update("uGhosts", 3);
 	m_ghostingShader.update("uGhostDispersal", 0.6);
 	m_ghostingShader.update("uHaloWidth", 0.44f);
+	m_upscaleBlendShader.update("strength", 0.7f);
+	m_upscaleBlendShader.update("uLensStarMatrix", glm::mat3(1.0f));
+
+	// default texture bindings
+	m_ghostingShader.bindTextureOnUse("uInputTex", m_downSampleFBO->getBuffer("fResult"));
+	m_upscaleBlendShader.bindTextureOnUse("uLensFlareTex", m_boxBlur->m_mipmapTextureHandle);
+	m_upscaleBlendShader.bindTextureOnUse("uLensDirtTex", m_lensDirtTexture);
+	m_upscaleBlendShader.bindTextureOnUse("uLensStarTex", m_lensStarTexture);
 }
 
 PostProcessing::LensFlare::~LensFlare()
@@ -332,6 +348,11 @@ PostProcessing::LensFlare::~LensFlare()
 
 void PostProcessing::LensFlare::renderLensFlare(GLuint sourceTexture, FrameBufferObject* target)
 {
+	GLint temp_viewport[4];
+	if ( target == 0)
+	{
+		glGetIntegerv( GL_VIEWPORT, temp_viewport );
+	}
 	// downsample
 	m_downSampleFBO->bind();
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -342,14 +363,32 @@ void PostProcessing::LensFlare::renderLensFlare(GLuint sourceTexture, FrameBuffe
 	// produce features
 	m_featuresFBO->bind();
 	glClear(GL_COLOR_BUFFER_BIT);
-	m_ghostingShader.updateAndBindTexture("uInputTex", 0, m_downSampleFBO->getBuffer("fResult"));
 	m_ghostingShader.updateAndBindTexture("uLensColor", 1, m_lensColorTexture, GL_TEXTURE_1D);
 	m_ghostingShader.use();
 	m_quad.draw();
 
-	// dont bind any fbo
-	if ( target != nullptr)
+	// copy content to box blur fbo
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_featuresFBO->getFramebufferHandle());
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_boxBlur->m_mipmapFBOHandles[0]);
+	glBlitFramebuffer(0,0,m_featuresFBO->getWidth(), m_featuresFBO->getHeight(), 0,0, m_boxBlur->m_width, m_boxBlur->m_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// blur
+	m_boxBlur->pull();
+	m_boxBlur->push(4);
+
+	// render to target fbo
+	if ( target != nullptr )
 	{
 		target->bind();
 	}
+	else{
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport( temp_viewport[0], temp_viewport[1], temp_viewport[2], temp_viewport[3]);
+	}
+	m_upscaleBlendShader.updateAndBindTexture("uInputTex", m_upscaleBlendShader.getTextureMap()->size(), sourceTexture);
+	m_upscaleBlendShader.use();
+	m_quad.draw();
 }
+	

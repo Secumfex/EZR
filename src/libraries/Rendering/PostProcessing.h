@@ -89,7 +89,7 @@ namespace PostProcessing
 	public:
 		ShaderProgram m_downSampleShader; // produces dark downsampled version of input
 		ShaderProgram m_ghostingShader; // produces "ghosts"
-		//ShaderProgram m_lensFlareShader; // produces lens flares
+		ShaderProgram m_upscaleBlendShader; // produces lens flares
 
 		LensFlare(int width, int height);
 		~LensFlare();
@@ -97,9 +97,13 @@ namespace PostProcessing
 		void renderLensFlare(GLuint sourceTexture, FrameBufferObject* target = nullptr);
 
 		GLuint m_lensColorTexture;
+		GLuint m_lensStarTexture;
+		GLuint m_lensDirtTexture;
 
 		FrameBufferObject* m_downSampleFBO;
 		FrameBufferObject* m_featuresFBO; // aka lens flares / ghosts
+
+		BoxBlur* m_boxBlur;
 
 	private:
 		Quad m_quad;

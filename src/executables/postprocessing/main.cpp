@@ -348,18 +348,40 @@ int main()
 
 		///////////////////////////// VARIABLE UPDATING ///////////////////////////////
 		view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0.0f, 1.0f, 0.0f));
-		//////////////////////////////////////////////////////////////////////////////
-				
-		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
-		// update view related uniforms
-		shaderProgram.update( "view", view);
-		shaderProgram.update( "color", s_color);
 
 		//update light data
 		glm::vec4 projectedLightPos = perspective * glm::mat4(glm::mat3(view)) * turntable.getRotationMatrix() * s_light_position;//multiply with the view-projection matrix
 		projectedLightPos = projectedLightPos / projectedLightPos.w;//perform perspective division
 		projectedLightPos.x = projectedLightPos.x*0.5+0.5;//the x/y screen coordinates come out between -1 and 1, so
 		projectedLightPos.y = projectedLightPos.y*0.5+0.5;//we need to rescale them to be 0 to 1 tex-coords
+
+		glm::vec3 camx = -glm::vec3((glm::mat4(glm::mat3(view)) * turntable.getRotationMatrix())[0]); // camera x (left) vector
+		glm::vec3 camz = -glm::vec3((glm::mat4(glm::mat3(view)) * turntable.getRotationMatrix())[2]); // camera z (forward) vector
+		float camrot = glm::dot(camx, glm::vec3(0,0,1)) + glm::dot(camz, glm::vec3(0,1,0));
+
+		glm::mat3 scaleBias1(
+			2.0f,   0.0f,  -1.0f,
+			0.0f,   2.0f,  -1.0f,
+			0.0f,   0.0f,   1.0f
+		);
+		glm::mat3 rotation(
+			cos(camrot), -sin(camrot), 0.0f,
+			sin(camrot), cos(camrot),  0.0f,
+			0.0f,        0.0f,         1.0f
+		);
+		glm::mat3 scaleBias2(
+			0.5f,   0.0f,   0.5f,
+			0.0f,   0.5f,   0.5f,
+			0.0f,   0.0f,   1.0f
+		);
+
+		glm::mat3 uLensStarMatrix = scaleBias2 * rotation * scaleBias1;
+		//////////////////////////////////////////////////////////////////////////////
+				
+		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
+		// update view related uniforms
+		shaderProgram.update( "view", view);
+		shaderProgram.update( "color", s_color);
 
 		// debug rendering of a quad where the sun is
 		sunShader.update("view", glm::mat4(glm::mat3(view))); // remove translation component
@@ -389,8 +411,8 @@ int main()
 		lensFlare.m_ghostingShader.update("uGhosts", s_lensflare_num_ghosts);
 		lensFlare.m_ghostingShader.update("uGhostDispersal", s_lensflare_ghost_dispersal);
 		lensFlare.m_ghostingShader.update("uHaloWidth",  s_lensflare_halo_width);
-
-		addTexShader.update("strength", s_lensflare_strength);
+		lensFlare.m_upscaleBlendShader.update("strength", s_lensflare_strength);
+		lensFlare.m_upscaleBlendShader.update("uLensStarMatrix", uLensStarMatrix);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
@@ -440,11 +462,12 @@ int main()
 		depthOfField.execute(gbufferFBO.getBuffer("fragPosition"), compFBO.getBuffer("fragmentColor"));
 
 		// do it
-		lensFlare.renderLensFlare(depthOfField.m_dofCompFBO->getBuffer("fragmentColor"));
+		lensFlare.renderLensFlare(depthOfField.m_dofCompFBO->getBuffer("fragmentColor"), 0);
 
-		addTexShader.updateAndBindTexture("tex", 0, depthOfField.m_dofCompFBO->getBuffer("fragmentColor"));
-		addTexShader.updateAndBindTexture("addTex", 1, lensFlare.m_featuresFBO->getBuffer("fResult"));
-		addTex.render();
+		//addTexShader.updateAndBindTexture("tex", 0, depthOfField.m_dofCompFBO->getBuffer("fragmentColor"));
+		////addTexShader.updateAndBindTexture("addTex", 1, lensFlare.m_featuresFBO->getBuffer("fResult"));
+		//addTexShader.updateAndBindTexture("addTex", 1, lensFlare.m_boxBlur->m_mipmapTextureHandle);
+		//addTex.render();
 		
 		// show result
 		// showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
