@@ -192,6 +192,175 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 	}
 }
 
+std::vector<AssimpTools::VertexData> AssimpTools::createVertexDataInstancesFromScene( const aiScene* scene, glm::mat4 vertexTransform, bool createTangentsAndBitangents)
+{
+	std::vector<VertexData >resultVector;
+	resultVector.resize(scene->mNumMeshes);
+
+	for (unsigned int i = 0; i < scene->mNumMeshes; i++)
+	{
+		aiMesh* m = scene->mMeshes[i];
+
+		// mesh has vertices
+		if(m->HasPositions())
+		{
+			// read info
+			std::vector<unsigned int> indices;
+			std::vector<float> vertices;
+			std::vector<float> uvs;
+			std::vector<float> normals;
+			std::vector<float> tangents;
+			//std::vector<float> bitangents;
+
+			glm::vec3 min( FLT_MAX);
+			glm::vec3 max(-FLT_MAX);
+
+			auto checkMax = [](glm::vec3& max, const glm::vec3& vert) 
+			{
+				max.x = std::max(max.x, vert.x);
+				max.y = std::max(max.y, vert.y);
+				max.z = std::max(max.z, vert.z);
+			};
+
+			auto checkMin = [](glm::vec3& min, const glm::vec3& vert) 
+			{
+				min.x = std::min(min.x, vert.x);
+				min.y = std::min(min.y, vert.y);
+				min.z = std::min(min.z, vert.z);
+			};
+			
+			if ( m->HasPositions()){
+			for ( unsigned int v = 0; v < m->mNumVertices; v++)
+			{
+				glm::vec3 vert = toVec3( m->mVertices[v] );
+				vert = glm::vec3( vertexTransform * glm::vec4(vert, 1.0f));
+
+				vertices.push_back(vert.x);
+				vertices.push_back(vert.y);
+				vertices.push_back(vert.z);
+				
+				checkMin(min,vert);
+				checkMax(max,vert);
+			}}
+
+			if ( m->HasNormals()){
+			for ( unsigned int n = 0; n < m->mNumVertices; n++)
+			{
+
+				glm::vec3 norm = toVec3( m->mNormals[n] );
+				norm = glm::normalize(glm::vec3( glm::transpose(glm::inverse(vertexTransform)) * glm::vec4(norm, 0.0f)));
+				//DEBUGLOG->log("normal  " + DebugLog::to_string(n) + ": ", norm); 
+				//DEBUGLOG->log("nrmlgth " + DebugLog::to_string(n) + ": ", glm::length(norm)); 
+				normals.push_back(norm.x);
+				normals.push_back(norm.y);
+				normals.push_back(norm.z);
+			}}
+
+			if ( m->HasTextureCoords(0)){
+			for (unsigned int u = 0; u < m->mNumVertices; u++)
+			{
+				aiVector3D uv = m->mTextureCoords[0][u];
+				uvs.push_back(uv.x);
+				uvs.push_back(uv.y);
+				
+				if(m->GetNumUVChannels() == 3)
+				{
+					uvs.push_back(uv.z);
+				}
+			}}
+
+
+			if ( m->HasTangentsAndBitangents() && createTangentsAndBitangents){
+			for (unsigned int t = 0; t < m->mNumVertices; t++)
+			{
+				glm::vec3 tangent = toVec3( m->mTangents[t]);
+				tangent = glm::normalize(glm::vec3( glm::transpose(glm::inverse(vertexTransform)) * glm::vec4(tangent, 0.0f)));
+				
+				tangents.push_back(tangent.x);
+				tangents.push_back(tangent.y);
+				tangents.push_back(tangent.z);
+
+				//glm::vec3 biTangent = toVec3( m->mBitangents[t]);
+				//biTangent = glm::vec3( glm::transpose(glm::inverse(vertexTransform)) * glm::vec4(biTangent, 0.0f));
+				//bitangents.push_back(biTangent.x);
+				//bitangents.push_back(biTangent.y);
+				//bitangents.push_back(biTangent.z);
+
+			}}
+
+			unsigned int maxIdx = 0;
+			if ( m->HasFaces()){
+			for ( unsigned int f = 0; f < m->mNumFaces; f++)
+			{
+				aiFace face = m->mFaces[f];
+				for ( unsigned int idx = 0; idx < face.mNumIndices; idx++) 
+				{
+					indices.push_back(face.mIndices[idx]);
+					maxIdx = std::max(face.mIndices[idx], maxIdx);
+				}
+			}}
+
+			//DEBUGLOG->log("max index", maxIdx);
+
+			resultVector[i].indices = indices;
+			resultVector[i].positions = vertices;
+			resultVector[i].uvs = uvs;
+			resultVector[i].normals = normals;
+			resultVector[i].tangents = tangents;
+		}
+	}
+	return resultVector;
+}
+
+std::vector<Renderable* > AssimpTools::createSimpleRenderablesFromVertexDataInstances(std::vector<AssimpTools::VertexData>& vertexDataInstances)
+{
+	std::vector<Renderable* > resultVector;
+	for ( int i = 0; i  < vertexDataInstances.size(); i++)
+	{
+		// generate VAO
+		GLuint vao;
+		glGenVertexArrays(1, &vao);
+		Renderable *renderable = new Renderable;
+		renderable->m_vao = vao;
+		glBindVertexArray(vao);
+
+		if (!vertexDataInstances[i].positions.empty()){
+		renderable->m_positions.m_vboHandle = Renderable::createVbo(vertexDataInstances[i].positions, 3, 0);
+		renderable->m_positions.m_size = vertexDataInstances[i].positions.size() / 3;
+		}
+
+		if(!vertexDataInstances[i].uvs.empty()){
+		renderable->m_uvs.m_vboHandle = Renderable::createVbo(vertexDataInstances[i].uvs, (vertexDataInstances[i].uvs.size() == vertexDataInstances[i].positions.size() ) ? 3 : 2, 1);
+		renderable->m_uvs.m_size = ((vertexDataInstances[i].uvs.size() == vertexDataInstances[i].positions.size() ) == 3) ? vertexDataInstances[i].uvs.size() / 3 : vertexDataInstances[i].uvs.size() / 2;
+		}
+
+		if(!vertexDataInstances[i].normals.empty()){
+		renderable->m_normals.m_vboHandle = Renderable::createVbo(vertexDataInstances[i].normals, 3, 2);
+		renderable->m_normals.m_size = vertexDataInstances[i].normals.size() / 3;
+		}
+
+		if (!vertexDataInstances[i].tangents.empty())
+		{
+			renderable->m_tangents.m_vboHandle = Renderable::createVbo(vertexDataInstances[i].tangents, 3, 3);
+			renderable->m_tangents.m_size = vertexDataInstances[i].tangents.size() / 3;
+		}
+
+		if (!vertexDataInstances[i].indices.empty())
+		{
+			renderable->m_indices.m_vboHandle = Renderable::createIndexVbo(vertexDataInstances[i].indices);
+			renderable->m_indices.m_size = vertexDataInstances[i].indices.size();
+		}
+
+		renderable->setDrawMode(GL_TRIANGLES);
+
+		glBindVertexArray(0);
+
+		// add to set of renderables
+		resultVector.push_back(renderable);
+	}
+	return resultVector;
+}
+
 AssimpTools::BoundingBox AssimpTools::computeBoundingBox(const aiMesh* mesh)
 {
 	glm::vec3 min( FLT_MAX);
@@ -214,6 +383,37 @@ AssimpTools::BoundingBox AssimpTools::computeBoundingBox(const aiMesh* mesh)
 	for ( unsigned int v = 0; v < mesh->mNumVertices; v++)
 	{
 		aiVector3D vert = mesh->mVertices[v];
+				
+		checkMin(min,vert);
+		checkMax(max,vert);
+	}
+
+	BoundingBox result = {min,max};
+	return result;
+}
+
+AssimpTools::BoundingBox AssimpTools::computeBoundingBox(VertexData& mesh)
+{
+	glm::vec3 min( FLT_MAX);
+	glm::vec3 max(-FLT_MAX);
+
+	auto checkMax = [](glm::vec3& max, glm::vec3& vert) 
+	{
+		max.x = std::max(max.x, vert.x);
+		max.y = std::max(max.y, vert.y);
+		max.z = std::max(max.z, vert.z);
+	};
+
+	auto checkMin = [](glm::vec3& min, glm::vec3&vert) 
+	{
+		min.x = std::min(min.x, vert.x);
+		min.y = std::min(min.y, vert.y);
+		min.z = std::min(min.z, vert.z);
+	};
+
+	for ( unsigned int v = 0; v < mesh.positions.size(); v = v+3)
+	{
+		glm::vec3 vert(mesh.positions[v], mesh.positions[v+1], mesh.positions[v+2]);
 				
 		checkMin(min,vert);
 		checkMax(max,vert);

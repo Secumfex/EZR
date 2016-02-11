@@ -17,12 +17,6 @@ out vec3 passNormal;
 out vec3 passWorldTangent;
 out vec3 passTangent;
 
-out VertexData {
-	vec2 texCoord;
-	vec3 position;
-	vec3 normal;
-} VertexOut;
-
 void main(){
     passUVCoord = uvCoordAttribute;
     vec4 worldPos = (model * positionAttribute);
@@ -39,8 +33,4 @@ void main(){
 
     passWorldTangent = normalize( (normalMatWorld * tangentAttribute).xyz);
 	passTangent = normalize( (normalMat * tangentAttribute ).xyz);
-
-	VertexOut.texCoord = passUVCoord;	
-	VertexOut.normal   = passNormal;
-	VertexOut.position = passPosition;
 }

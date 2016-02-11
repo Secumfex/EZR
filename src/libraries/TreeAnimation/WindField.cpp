@@ -17,8 +17,8 @@ TreeAnimation::WindField::WindField(int width, int height)
 	
 	// default evaluation function
 	m_evaluate = [](float t, float offsetX, float offsetY){
-		float x = sin(t + offsetX * 5.0f) * 0.5f + 0.5f;
-		float y = cos(t + offsetY * 5.0f) * 0.5f + 0.5f;
+		float x = sin(t + offsetX * 5.0f) * 0.49f + 0.51f;
+		float y = cos(t + offsetY * 5.0f) * 0.49f + 0.51f;
 		float z = 0.0f;
 		return glm::vec3(x,y,z);
 	};
@@ -49,8 +49,8 @@ void TreeAnimation::WindField::updateVectorTexture(double elapsedTime)
 		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 

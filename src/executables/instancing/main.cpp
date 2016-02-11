@@ -1,4 +1,4 @@
-/*******************************************
+﻿/*******************************************
  * **** DESCRIPTION ****
  ****************************************/
 
@@ -24,7 +24,7 @@
 ////////////////////// PARAMETERS /////////////////////////////
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 
-const int NUM_INSTANCES = 3000;
+const int NUM_INSTANCES = 10000;
 
 static glm::vec4 s_lightPos = glm::vec4(0.0,50.0f,0.0,1.0);
 
@@ -62,7 +62,6 @@ std::vector<glm::mat4 > generateModels(int numObjects, float xSize, float zSize)
 	}
 	return models;
 }
-
 
 int main()
 {
@@ -151,12 +150,28 @@ int main()
 	// simple shader
 	DEBUGLOG->log("Shader Compilation: instanced simple lighting"); DEBUGLOG->indent();
 	ShaderProgram shaderProgram("/modelSpace/instancedModelViewProjection.vert", "/modelSpace/simpleLighting.frag"); DEBUGLOG->outdent();
-	shaderProgram.update("view", view);
-	shaderProgram.update("projection", perspective);
+	shaderProgram.printUniformInfo();
+
+	auto uniformBlockInfos = ShaderProgram::getAllUniformBlockInfo(shaderProgram);
+	ShaderProgram::printUniformBlockInfo(uniformBlockInfos);
+	ShaderProgram::UniformBlockInfo uniformBlockInfo = uniformBlockInfos.at("MatrixBlock");
+
+	std::vector<float> matrixData = ShaderProgram::createUniformBlockDataVector(uniformBlockInfo);
+	
+	ShaderProgram::updateValuesInBufferData("projection", glm::value_ptr(perspective), sizeof(glm::mat4) / sizeof(float), uniformBlockInfo, matrixData);  
+	ShaderProgram::updateValuesInBufferData("view", glm::value_ptr(view), sizeof(glm::mat4) / sizeof(float), uniformBlockInfo, matrixData);  
+
+	GLuint bindingPoint = 1, buffer, blockIndex;
+ 
+	//blockIndex = glGetUniformBlockIndex(shaderProgram.getShaderProgramHandle(), "MatrixBlock");
+	blockIndex = uniformBlockInfo.index;
+	glUniformBlockBinding(shaderProgram.getShaderProgramHandle(), blockIndex, bindingPoint); // bind block 0 to binding point 1
+ 
+	buffer = ShaderProgram::createUniformBlockBuffer(matrixData, bindingPoint);
+
 	shaderProgram.update("color", glm::vec4(0.7,0.7,0.7,1.0));
 	DEBUGLOG->outdent();
 
-	
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
@@ -229,7 +244,11 @@ int main()
 		//////////////////////////////////////////////////////////////////////////////
 				
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
-		shaderProgram.update( "view",  view);
+		//updateValuesInBufferData("view", glm::value_ptr(view), sizeof(glm::mat4) / sizeof(float), uniformBlockInfo, matrixData); 
+		//glBindBuffer(GL_UNIFORM_BUFFER, buffer);
+		//glBufferData(GL_UNIFORM_BUFFER, matrixData.size() * sizeof(glm::mat4), &matrixData[0], GL_DYNAMIC_DRAW);
+
+		ShaderProgram::updateValueInBuffer("view", glm::value_ptr(view), sizeof(glm::mat4) / sizeof(float), uniformBlockInfo, buffer);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////

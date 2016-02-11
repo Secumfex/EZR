@@ -36,6 +36,14 @@ void RenderPass::setShaderProgram(ShaderProgram* shaderProgram)
 
 void RenderPass::setFrameBufferObject( FrameBufferObject* fbo)
 {
+	// set viewport if no viewport has been set before
+	if ( m_viewport == glm::ivec4(-1) && fbo != 0)
+	{
+		m_viewport.x = 0;
+		m_viewport.y = 0;
+		m_viewport.z = fbo->getWidth();
+		m_viewport.w = fbo->getHeight();
+	}
 	m_fbo = fbo;
 }
 
@@ -114,6 +122,35 @@ void RenderPass::render()
 	// {
 	// 	glViewport( (GLint) temp_viewport.x, (GLint) temp_viewport.y, (GLsizei) temp_viewport.z, (GLsizei) temp_viewport.w);
 	// }
+}
+
+// static glm::vec4 temp_viewport;
+void RenderPass::renderInstanced(int numInstances)
+{
+	if (m_fbo){glBindFramebuffer( GL_FRAMEBUFFER, m_fbo->getFramebufferHandle( ) );}
+	else{glBindFramebuffer( GL_FRAMEBUFFER, 0); }
+
+	m_shaderProgram->use();
+	if (m_viewport != glm::ivec4(-1)){ glViewport( (GLint) m_viewport.x, (GLint) m_viewport.y, (GLsizei) m_viewport.z, (GLsizei) m_viewport.w); }
+
+	clearBits();
+
+	enableStates();
+	disableStates();
+
+	preRender();
+	for(unsigned int i = 0; i < m_renderables.size(); i++)
+	{
+		uploadUniforms();
+		if (p_perRenderableFunction != nullptr)
+		{
+			(*p_perRenderableFunction)(m_renderables[i]);
+		}
+		m_renderables[i]->drawInstanced( numInstances );
+	}
+
+	postRender();
+	restoreStates();
 }
 
 void RenderPass::postRender()
