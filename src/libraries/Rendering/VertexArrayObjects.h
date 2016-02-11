@@ -52,6 +52,14 @@ public:
     GLenum m_mode; //!< the mode the Renderable will be drawn with (e.g. GL_TRIANGLES)
 };
 
+class Skybox : public Renderable {
+public:
+	Skybox();
+	~Skybox();
+
+	void draw() override;
+
+};
 
 class Volume : public Renderable {
 private: 

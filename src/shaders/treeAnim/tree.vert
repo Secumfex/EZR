@@ -33,7 +33,10 @@ uniform mat4 view;
 uniform mat4 projection;
 
 uniform float simTime; //!< used for noise function
-uniform vec4  worldWindDirection; // global wind direction, .a is equal to wind power
+//uniform vec4  worldWindDirection; // global wind direction, .a is equal to wind power
+uniform sampler2D windField;
+uniform vec4 windFieldArea; //!< x,y --> begin coords (XZ-plane) z,w --> end coords( XZ-plane )
+uniform float windPower;
 
 // Input parameters for simulation (for some reason array of vecs doesn't work)
 uniform Simulation{
@@ -236,6 +239,12 @@ void main(){
 	vec3 vertex_pos = branch_origin + applyQuat(branch_orientation, positionAttribute.xyz); // initial vertex position
 	vec3 vertex_normal = applyQuat(branch_orientation, normalAttribute.xyz);
 
+	vec2 windFieldSampleCoords =  ((instancedModel[3]).xz - windFieldArea.xy) / (windFieldArea.zw - windFieldArea.xy);
+	vec4 worldWindDirection = texture(windField, windFieldSampleCoords );
+	worldWindDirection.xyz = worldWindDirection.xzy;
+	worldWindDirection.a = length(worldWindDirection.xyz);
+	worldWindDirection.xyz = normalize(worldWindDirection.xyz);
+
 	vec3 wind_direction_model = (inverse(instancedModel) * vec4(worldWindDirection.xyz,0.0)).xyz; // wind direction in object space
 	vec3 wind_tangent_model = vec3(-wind_direction_model.z, wind_direction_model.y, wind_direction_model.x); 
 
@@ -278,8 +287,13 @@ void main(){
 		vertex_pos = mix(vertex_pos, new_pos, branch_weight);
 	}
 
-	float world_wind_power = sin(simTime) * (worldWindDirection.a / 2.0f) + worldWindDirection.a / 2.0f + (0.25f * sin(2.0f * worldWindDirection.a * simTime + 0.25f)); 
-	vec4 trunk_rotation_quat = quatAxisAngle(wind_tangent_model, world_wind_power);
+	//float world_wind_power = sin(simTime) * (worldWindDirection.a / 2.0f) + worldWindDirection.a / 2.0f + (0.25f * sin(2.0f * worldWindDirection.a * simTime + 0.25f)); 
+	float world_wind_power = worldWindDirection.a * windPower;
+	vec4 trunk_rotation_quat = vec4(0,0,0,1);
+	if ( world_wind_power > 0.0001)
+	{
+		trunk_rotation_quat = quatAxisAngle(wind_tangent_model, world_wind_power);
+	}
 
 	vec4 trunk_rotated_vertex_pos = vec4( applyQuat(trunk_rotation_quat, vertex_pos),1.0);
 	float windRotationWeight = clamp( length(vertex_pos)/4.0, 0.0, 1.0);
