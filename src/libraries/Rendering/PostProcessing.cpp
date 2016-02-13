@@ -417,11 +417,16 @@ glm::mat3 PostProcessing::LensFlare::updateLensStarMatrix(glm::mat3 view)
 		0.0f,   0.5f,   0.5f,
 		0.0f,   0.0f,   1.0f
 	);
-	
+
+		// because glm
+	scaleBias1 = glm::transpose(scaleBias1);
+	rotation = glm::transpose(rotation);
+	scaleBias2 = glm::transpose(scaleBias2);
+
 	//glm::mat3 rotation = glm::mat3(glm::rotate(camrot, glm::vec3(0.0f,0.0f,1.0f)));
 
-	//glm::mat3 uLensStarMatrix = scaleBias2 * rotation * scaleBias1;
-	glm::mat3 uLensStarMatrix = rotation;
+	glm::mat3 uLensStarMatrix = scaleBias2 * rotation * scaleBias1;
+	//glm::mat3 uLensStarMatrix = rotation;
 
 	m_upscaleBlendShader.update("uLensStarMatrix", uLensStarMatrix);
 		
