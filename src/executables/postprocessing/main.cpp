@@ -355,27 +355,7 @@ int main()
 		projectedLightPos.x = projectedLightPos.x*0.5+0.5;//the x/y screen coordinates come out between -1 and 1, so
 		projectedLightPos.y = projectedLightPos.y*0.5+0.5;//we need to rescale them to be 0 to 1 tex-coords
 
-		glm::vec3 camx = -glm::vec3((glm::mat4(glm::mat3(view)) * turntable.getRotationMatrix())[0]); // camera x (left) vector
-		glm::vec3 camz = -glm::vec3((glm::mat4(glm::mat3(view)) * turntable.getRotationMatrix())[2]); // camera z (forward) vector
-		float camrot = glm::dot(camx, glm::vec3(0,0,1)) + glm::dot(camz, glm::vec3(0,1,0));
-
-		glm::mat3 scaleBias1(
-			2.0f,   0.0f,  -1.0f,
-			0.0f,   2.0f,  -1.0f,
-			0.0f,   0.0f,   1.0f
-		);
-		glm::mat3 rotation(
-			cos(camrot), -sin(camrot), 0.0f,
-			sin(camrot), cos(camrot),  0.0f,
-			0.0f,        0.0f,         1.0f
-		);
-		glm::mat3 scaleBias2(
-			0.5f,   0.0f,   0.5f,
-			0.0f,   0.5f,   0.5f,
-			0.0f,   0.0f,   1.0f
-		);
-
-		glm::mat3 uLensStarMatrix = scaleBias2 * rotation * scaleBias1;
+		lensFlare.updateLensStarMatrix(view * turntable.getRotationMatrix());
 		//////////////////////////////////////////////////////////////////////////////
 				
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
@@ -412,7 +392,7 @@ int main()
 		lensFlare.m_ghostingShader.update("uGhostDispersal", s_lensflare_ghost_dispersal);
 		lensFlare.m_ghostingShader.update("uHaloWidth",  s_lensflare_halo_width);
 		lensFlare.m_upscaleBlendShader.update("strength", s_lensflare_strength);
-		lensFlare.m_upscaleBlendShader.update("uLensStarMatrix", uLensStarMatrix);
+		//lensFlare.m_upscaleBlendShader.update("uLensStarMatrix", uLensStarMatrix);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////

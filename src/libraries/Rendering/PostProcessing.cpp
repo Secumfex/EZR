@@ -391,4 +391,44 @@ void PostProcessing::LensFlare::renderLensFlare(GLuint sourceTexture, FrameBuffe
 	m_upscaleBlendShader.use();
 	m_quad.draw();
 }
+
+#include <glm/gtx/transform.hpp>
+glm::mat3 PostProcessing::LensFlare::updateLensStarMatrix(glm::mat3 view)
+{
+	glm::vec3 camx = - view[0]; // camera x (left) vector
+	glm::vec3 camz = - view[2]; // camera z (forward) vector
+	float camrot = glm::dot(camx, glm::vec3(0,0,1)) + glm::dot(camz, glm::vec3(0,1,0));
+	//DEBUGLOG->log("camX   : ", camx);
+	//DEBUGLOG->log("camZ   : ", camz);
+	//DEBUGLOG->log("camrot : ", camrot);
+
+	glm::mat3 scaleBias1(
+		2.0f,   0.0f,  -1.0f,
+		0.0f,   2.0f,  -1.0f,
+		0.0f,   0.0f,   1.0f
+	);
+	glm::mat3 rotation(
+		cos(camrot), -sin(camrot), 0.0f,
+		sin(camrot), cos(camrot),  0.0f,
+		0.0f,        0.0f,         1.0f
+	);
+	glm::mat3 scaleBias2(
+		0.5f,   0.0f,   0.5f,
+		0.0f,   0.5f,   0.5f,
+		0.0f,   0.0f,   1.0f
+	);
 	
+	//glm::mat3 rotation = glm::mat3(glm::rotate(camrot, glm::vec3(0.0f,0.0f,1.0f)));
+
+	//glm::mat3 uLensStarMatrix = scaleBias2 * rotation * scaleBias1;
+	glm::mat3 uLensStarMatrix = rotation;
+
+	m_upscaleBlendShader.update("uLensStarMatrix", uLensStarMatrix);
+		
+	return uLensStarMatrix;
+}
+
+glm::mat3 PostProcessing::LensFlare::updateLensStarMatrix(glm::mat4 view)
+{
+	return updateLensStarMatrix(glm::mat3(view));
+}
