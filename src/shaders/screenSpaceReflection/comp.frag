@@ -36,8 +36,8 @@ uniform sampler2D DiffuseTex;
 uniform sampler2D SSRTex;
 //uniform sampler2D BBTex;	//?
 
-uniform float kernelX;
-uniform float kernelY;
+//uniform float kernelX;	//not used!
+//uniform float kernelY;
 
 vec2 kernelSize = vec2(0.0, 0.0);
 
@@ -48,45 +48,45 @@ float linearizeDepth(float depth){
 }
 
 // Fast Gaussian blur in y-axis
-vec4 FastGaussianBlurY(in sampler2D texture){
-	float blurSize = kernelX * 1.0/(screenHeight);
-	vec4 sum = vec4(0.0);
- 	
- 	int lod = 2;
-
-   sum += textureLod(texture, vec2(vert_UV.x - 4.0 * blurSize, vert_UV.y), lod) * 0.05;
-   sum += textureLod(texture, vec2(vert_UV.x - 3.0 * blurSize, vert_UV.y), lod) * 0.09;
-   sum += textureLod(texture, vec2(vert_UV.x - 2.0 * blurSize, vert_UV.y), lod) * 0.12;
-   sum += textureLod(texture, vec2(vert_UV.x - blurSize, vert_UV.y), lod) * 0.15;
-   sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y), lod) * 0.16;
-   sum += textureLod(texture, vec2(vert_UV.x + blurSize, vert_UV.y), lod) * 0.15;
-   sum += textureLod(texture, vec2(vert_UV.x + 2.0 * blurSize, vert_UV.y), lod) * 0.12;
-   sum += textureLod(texture, vec2(vert_UV.x + 3.0 * blurSize, vert_UV.y), lod) * 0.09;
-   sum += textureLod(texture, vec2(vert_UV.x + 4.0 * blurSize, vert_UV.y), lod) * 0.05;
- 
-   return sum;
-}
+//vec4 FastGaussianBlurY(in sampler2D texture){
+//	float blurSize = kernelX * 1.0/(screenHeight);
+//	vec4 sum = vec4(0.0);
+// 	
+// 	int lod = 2;
+//
+//   sum += textureLod(texture, vec2(vert_UV.x - 4.0 * blurSize, vert_UV.y), lod) * 0.05;
+//   sum += textureLod(texture, vec2(vert_UV.x - 3.0 * blurSize, vert_UV.y), lod) * 0.09;
+//   sum += textureLod(texture, vec2(vert_UV.x - 2.0 * blurSize, vert_UV.y), lod) * 0.12;
+//   sum += textureLod(texture, vec2(vert_UV.x - blurSize, vert_UV.y), lod) * 0.15;
+//   sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y), lod) * 0.16;
+//   sum += textureLod(texture, vec2(vert_UV.x + blurSize, vert_UV.y), lod) * 0.15;
+//   sum += textureLod(texture, vec2(vert_UV.x + 2.0 * blurSize, vert_UV.y), lod) * 0.12;
+//   sum += textureLod(texture, vec2(vert_UV.x + 3.0 * blurSize, vert_UV.y), lod) * 0.09;
+//   sum += textureLod(texture, vec2(vert_UV.x + 4.0 * blurSize, vert_UV.y), lod) * 0.05;
+// 
+//  return sum;
+//}
 
 // Fast Gaussian blur in x-axis
-vec4 FastGaussianBlurX(in sampler2D texture){
-	float blurSize = kernelY * 1.0/(screenWidth);
-
-	vec4 sum = vec4(0.0);
-
- 	int lod = 2;
-
-	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y - 4.0 * blurSize), lod) * 0.05;
-	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y - 3.0 * blurSize), lod) * 0.09;
-	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y - 2.0 * blurSize), lod) * 0.12;
-	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y - blurSize), lod) * 0.15;
-	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y), lod) * 0.16;
-	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y + blurSize), lod) * 0.15;
-	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y + 2.0 * blurSize), lod) * 0.12;
-	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y + 3.0 * blurSize), lod) * 0.09;
-	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y + 4.0 * blurSize), lod) * 0.05;
- 
-   return sum;
-}
+//vec4 FastGaussianBlurX(in sampler2D texture){
+//	float blurSize = kernelY * 1.0/(screenWidth);
+//
+//	vec4 sum = vec4(0.0);
+//
+// 	int lod = 2;
+//
+//	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y - 4.0 * blurSize), lod) * 0.05;
+//	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y - 3.0 * blurSize), lod) * 0.09;
+//	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y - 2.0 * blurSize), lod) * 0.12;
+//	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y - blurSize), lod) * 0.15;
+//	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y), lod) * 0.16;
+//	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y + blurSize), lod) * 0.15;
+//	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y + 2.0 * blurSize), lod) * 0.12;
+//	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y + 3.0 * blurSize), lod) * 0.09;
+//	sum += textureLod(texture, vec2(vert_UV.x, vert_UV.y + 4.0 * blurSize), lod) * 0.05;
+// 
+//   return sum;
+//}
 
 //!< main
 void main(void){

@@ -19,7 +19,7 @@ uniform float camFarPlane;
 
 uniform int user_pixelStepSize; 
 //uniform float fadeYparameter; 
-uniform bool toggleSSR; 
+//uniform bool toggleSSR; 
 //uniform bool toggleGlossy; 
 //uniform bool optimizedSSR; 
 //uniform bool experimentalSSR; 
@@ -143,6 +143,7 @@ void main(void){
  vec3 vsEyeVector        = normalize(vsPosition); 
  vec3 vsReflectionVector = normalize(reflect(vsEyeVector, vsNormal));             
  
+ bool toggleSSR = true;
  //screen space reflections
  if(toggleSSR){ 
   vec4 color = ScreenSpaceReflections(vsPosition, vsNormal, vsReflectionVector); 

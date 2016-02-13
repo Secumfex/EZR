@@ -23,7 +23,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 ////////////////////// PARAMETERS /////////////////////////////
-const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
+const glm::vec2 WINDOW_RESOLUTION = glm::vec2(1024.0f, 768.0f);
 
 static glm::vec4 s_color = glm::vec4(0.45 * 0.3f, 0.44f * 0.3f, 0.87f * 0.3f, 1.0f); // far : blueish
 static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
@@ -31,7 +31,7 @@ static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
 static glm::vec3 s_scale = glm::vec3(1.0f,1.0f,1.0f);
 
 float cameraNear = 0.1f;
-float cameraFar = 200.0f;
+float cameraFar = 20.0f;	//200
 int rayStep = 0.0f;
 bool fadeEdges = true;
 //////////////////////////////////////////////////////////////////////////////
@@ -50,7 +50,7 @@ int main()
 	DEBUGLOG->log("Setup: importing assets"); DEBUGLOG->indent();
 
 	// get file name
-	std::string input = "cube.obj";
+	std::string input = "tscene3.obj";
 	std::string file = RESOURCES_PATH "/" + input;
 
 	// import using ASSIMP and check for errors
@@ -94,7 +94,7 @@ int main()
 	glm::vec4 center(0.0f,0.0f,0.0f,1.0f);
 	glm::mat4 view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0,1,0));
 
-	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 20.f);
+	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, cameraFar);
 
 	// object sizes
 	float object_size = 1.0f;
@@ -130,6 +130,8 @@ int main()
 			if (tex != -1){ textures[t.first] = tex; } // save if successfull
 		}
 	}
+
+	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/normal_water.jpg");	//test
 
 	DEBUGLOG->outdent();
 	// recenter view
@@ -171,11 +173,11 @@ int main()
 		 gShader.bindTextureOnUse("NormalTex", textures.at(aiTextureType_NORMALS));
 		 //gShader.update("hasNormalTex", true);
 	 }
-
+	 gShader.bindTextureOnUse("NormalTex", distortionTex);	//test
 
 	 //auto matInfo = AssimpTools::getMaterialInfo(scene, 2);
 
-	 gShader.update("matId",1); 			//woher bekommen?	//todo
+	 gShader.update("matId",0.99f); 			//woher bekommen?	//todo
 	 gShader.update("useNormalMapping", useNM);
 	 gShader.update("lightColor", s_color);
 
@@ -294,7 +296,7 @@ int main()
 	 ssrShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 	 ssrShader.bindTextureOnUse("vsNormalTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
 	 ssrShader.bindTextureOnUse("ReflectanceTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT3)); //?
-	 ssrShader.bindTextureOnUse("DepthTex",gFBO.getDepthTextureHandle());	//todo
+	 ssrShader.bindTextureOnUse("DepthTex",gFBO.getDepthTextureHandle());
 	 ssrShader.bindTextureOnUse("DiffuseTex",lightFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	 //...
 
@@ -492,9 +494,12 @@ int main()
 
 		gShader.update("view", view);
 		gShader.update("wsNormalMatrix", glm::transpose(glm::inverse(view * model)));
+		gShader.update( "lightColor", s_color);
+		gShader.update( "model", turntable.getRotationMatrix() * model * glm::scale(s_scale));
 		//gShader.update("MVPMatrix", perspective * view * model);	//not used!
 
 		lightShader.update("view", view);
+		lightShader.update("lightPosition",view * s_lightPos);
 
 		//update ssr uniforms
 		//ssrShader.update("view", view);	//not used!
@@ -511,6 +516,7 @@ int main()
 		gPass.render();
 		lightPass.render();
 		ssrPass.render();
+		//compoPass.setViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y);
 		compoPass.render();
 
 		//compositing.render();
