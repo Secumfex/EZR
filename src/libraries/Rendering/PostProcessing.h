@@ -105,6 +105,9 @@ namespace PostProcessing
 
 		BoxBlur* m_boxBlur;
 
+		glm::mat3 updateLensStarMatrix(glm::mat3 view);
+		glm::mat3 updateLensStarMatrix(glm::mat4 view);
+
 	private:
 		Quad m_quad;
 		GLuint loadLensColorTexture();
