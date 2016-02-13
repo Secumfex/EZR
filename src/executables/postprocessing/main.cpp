@@ -428,9 +428,11 @@ int main()
 		compositing.render();
 
 		// copy gbuffer depth buffer to compositing fbo
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, gbufferFBO.getFramebufferHandle());
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, compFBO.getFramebufferHandle());
-		glBlitFramebuffer(0,0,gbufferFBO.getWidth(), gbufferFBO.getHeight(), 0,0,compFBO.getWidth(), compFBO.getHeight(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+		//glBindFramebuffer(GL_READ_FRAMEBUFFER, gbufferFBO.getFramebufferHandle());
+		//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, compFBO.getFramebufferHandle());
+		//glBlitFramebuffer(0,0,gbufferFBO.getWidth(), gbufferFBO.getHeight(), 0,0,compFBO.getWidth(), compFBO.getHeight(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+	
+		copyFBOContent(&gbufferFBO, &compFBO, GL_DEPTH_BUFFER_BIT);
 
 		// render skybox
 		skyboxRendering.render(cubeMapTexture, &compFBO);
