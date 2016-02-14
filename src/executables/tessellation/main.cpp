@@ -85,7 +85,8 @@ int main()
 	// Billboard Texture
 	//GLuint bbTexture = TextureTools::loadTexture( RESOURCES_PATH "/neon_sign.png");
 	//GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/normal_water.jpg");
-	//GLuint height = TextureTools::loadTexture( RESOURCES_PATH "/height_terrain.png");
+	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/a.png");
+	//GLuint height = TextureTools::loadTexture( RESOURCES_PATH "/a.png");
 
 	DEBUGLOG->log("Setup: model matrices"); DEBUGLOG->indent();
 	std::vector<glm::mat4 > modelMatrices;

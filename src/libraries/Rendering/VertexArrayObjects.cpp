@@ -362,30 +362,30 @@ Terrain::Terrain()
 
 	for (int i=0; i<height; i++) {
 		for (int j=0; j<width; j++) {
-		std::cout<<"NEW QUAD"<< endl;
+		//std::cout<<"NEW QUAD"<< endl;
 
 		positio[i*16*8 + j * 8] = j / float(width);
-		std::cout << positio[i*16*8 + j*8]<<endl;
+		//std::cout << positio[i*16*8 + j*8]<<endl;
 		positio[i*16*8 + j*8 + 1] = i / float(height);
-		std::cout << positio[i*16*8 + j*8 +1]<<endl;
+		//std::cout << positio[i*16*8 + j*8 +1]<<endl;
 
 
 		positio[i*16*8 + j*8 + 2] = j/ float(width);
-		std::cout << positio[i*16*8 + j*8 +2]<<endl;
+		//std::cout << positio[i*16*8 + j*8 +2]<<endl;
 		positio[i*16*8 + j*8 + 3] = (i+1) / float(height);
-		std::cout << positio[i*16*8 + j*8 +3]<<endl;
+		//std::cout << positio[i*16*8 + j*8 +3]<<endl;
 
 
 		positio[i*16*8 + j*8 + 4] = (j+1)/ float(width);
-		std::cout << positio[i*16*8 + j*8 +4]<<endl;
+		//std::cout << positio[i*16*8 + j*8 +4]<<endl;
 		positio[i*16*8 + j*8 + 5] = (i+1) / float(height);
-		std::cout << positio[i*16*8 + j*8 +5]<<endl;
+		//std::cout << positio[i*16*8 + j*8 +5]<<endl;
 
 
 		positio[i*16*8 + j*8 + 6] = (j+1) / float(width);
-		std::cout << positio[i*16*8 + j*8 +6]<<endl;
+		//std::cout << positio[i*16*8 + j*8 +6]<<endl;
 		positio[i*16*8 + j*8 + 7] = i / float(height);
-		std::cout << positio[i*16*8 + j*8 +7]<<endl;
+		//std::cout << positio[i*16*8 + j*8 +7]<<endl;
 
 		}
 	}
