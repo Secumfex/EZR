@@ -5,6 +5,8 @@
 #include <iostream>
 #include <time.h>
 
+#include <Core/Camera.h>
+
 #include <Rendering/GLTools.h>
 #include <Rendering/VertexArrayObjects.h>
 #include <Rendering/RenderPass.h>
@@ -53,6 +55,7 @@ static float s_foliage_size = 0.25f;
 static bool  s_isRotating = false;
 
 static float s_simulationTime = 0.0f;
+static bool s_camera_mouse_control = false;
 
 static float s_eye_distance = 10.0f;
 static float s_strength = 1.0f;
@@ -144,21 +147,21 @@ int main()
 	//////////////////////////////////////////////////////////////////////////////
 	
 	/////////////////////     Scene / View Settings     //////////////////////////
-	glm::vec4 eye(0.0f, 0.0, s_eye_distance, 1.0f);
-	glm::vec4 center(0.0f,0.0f,0.0f,1.0f);
-	glm::mat4 view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0,1,0));
-
 	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.5f, 100.f);
+
+	// Camera object
+	Camera cam;
+	cam.setProjectionMatrix(perspective); // perspective projection
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
 	DEBUGLOG->log("Shader Compilation: BranchToGBuffer & FoliageToGBuffer"); DEBUGLOG->indent();
 	
 	treeRendering.createAndConfigureShaders("/modelSpace/GBuffer.frag", "/treeAnim/foliage.frag");
 
-	treeRendering.branchShader->update("view", view);
-	treeRendering.branchShader->update("projection", perspective);
-	treeRendering.foliageShader->update("view", view);
-	treeRendering.foliageShader->update("projection", perspective);
+	treeRendering.branchShader->update("view", cam.getViewMatrix());
+	treeRendering.branchShader->update("projection", cam.getProjectionMatrix());
+	treeRendering.foliageShader->update("view", cam.getViewMatrix());
+	treeRendering.foliageShader->update("projection", cam.getProjectionMatrix());
 	
 	treeRendering.createAndConfigureUniformBlocksAndBuffers(1);
 	DEBUGLOG->outdent();
@@ -219,8 +222,8 @@ int main()
 	gridShader.bindTextureOnUse("tex", windField.m_vectorTextureHandle);
 	gridShader.update("mixTexture", 1.0f);
 	gridShader.update("model", glm::rotate(glm::radians(90.0f), glm::vec3(1.0f,0.0f,0.0f)));
-	gridShader.update("projection", perspective);
-	gridShader.update("view", view);
+	gridShader.update("projection", cam.getProjectionMatrix());
+	gridShader.update("view", cam.getViewMatrix());
 
 	// regular GBuffer compositing
 	DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
@@ -275,11 +278,10 @@ int main()
 		double d_x = x - old_x;
 		double d_y = y - old_y;
 
-		if ( turntable.getDragActive() )
+		if ( s_camera_mouse_control )
 		{
-			turntable.dragBy(d_x, d_y, view);
+			cam.mouseControlCallback( - d_y / 400.0f, - d_x / 400.0f);
 		}
-
 		old_x = x;
 		old_y = y;
 	};
@@ -288,11 +290,11 @@ int main()
 	{
 		if (b == GLFW_MOUSE_BUTTON_LEFT && a == GLFW_PRESS)
 		{
-			turntable.setDragActive(true);
+			s_camera_mouse_control = true;
 		}
 		if (b == GLFW_MOUSE_BUTTON_LEFT && a == GLFW_RELEASE)
 		{
-			turntable.setDragActive(false);
+			s_camera_mouse_control = false;
 		}
 
 		ImGui_ImplGlfwGL3_MouseButtonCallback(window, b, a, m);
@@ -300,27 +302,7 @@ int main()
 
 	 auto keyboardCB = [&](int k, int s, int a, int m)
 	 {
-	 	if (a == GLFW_RELEASE) {return;} 
-		switch(k){
-	 	case GLFW_KEY_W:
-			s_eye_distance -= 0.5f;
-	 		eye = glm::vec4(eye.x, eye.y, s_eye_distance, 1.0f);
-	 		break;
-	 	//case GLFW_KEY_A:
-	 	//	eye += glm::vec4(-0.1f,0.0f,0.0f,0.0f);
-	 	//	center += glm::inverse(view) * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
-	 	//	break;
-	 	case GLFW_KEY_S:
-			s_eye_distance += 0.5f;
-	 		eye = glm::vec4(eye.x, eye.y, s_eye_distance, 1.0f);
-	 		break;
-	 	//case GLFW_KEY_D:
-	 	//	eye += glm::vec4(0.1f,0.0f,0.0f,0.0f);
-	 	//	center += glm::inverse(view) * glm::vec4(0.1f,0.0f,0.0f,0.0f);
-	 	//	break;
-	 	default:
-	 		break;
-		}
+		cam.keyboardControlCallback(k,s,a,m);
 		ImGui_ImplGlfwGL3_KeyCallback(window,k,s,a,m);
 	 };
 
@@ -359,15 +341,16 @@ int main()
         //////////////////////////////////////////////////////////////////////////////
 
 		///////////////////////////// MATRIX UPDATING ///////////////////////////////
-		view = glm::lookAt(glm::vec3(turntable.getRotationMatrix() * eye), glm::vec3(center), glm::vec3(0.0f, 1.0f, 0.0f));
+		//cam.setCenter(glm::vec3(center))); // TODO update position
+		cam.update(dt);
 		windField.updateVectorTexture(s_simulationTime);
 		//////////////////////////////////////////////////////////////////////////////
 				
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
 		//&&&&&&&&&&& CAMERA UNIFORMS &&&&&&&&&&&&&&//
-		treeRendering.branchShader->update( "view",  view);
-		treeRendering.foliageShader->update( "view", view);
-		gridShader.update("view", view);
+		treeRendering.branchShader->update( "view",  cam.getViewMatrix());
+		treeRendering.foliageShader->update( "view", cam.getViewMatrix());
+		gridShader.update("view", cam.getViewMatrix());
 
 		//&&&&&&&&&&& FOREST UNIFORMS &&&&&&&&&&&&&&//
 
@@ -383,7 +366,7 @@ int main()
 		treeRendering.updateActiveImguiInterfaces();
 
 		//&&&&&&&&&&& COMPOSITING UNIFORMS &&&&&&&&&&&&&&//
-		compShader.update("vLightPos", view * s_lightPos);
+		compShader.update("vLightPos", cam.getViewMatrix() * s_lightPos);
 		//bloomShader.update("depth", s_strength);
 		bloomShader.update("intensity", s_strength);
 		//////////////////////////////////////////////////////////////////////////////
