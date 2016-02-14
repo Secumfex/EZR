@@ -1,6 +1,7 @@
 #include "GLTools.h"
 
 static bool g_initialized = false;
+static glm::vec2 g_mainWindowSize = glm::vec2(0,0);
 
 GLFWwindow* generateWindow(int width, int height, int posX, int posY) {
 	if (g_initialized == false)
@@ -14,7 +15,6 @@ GLFWwindow* generateWindow(int width, int height, int posX, int posY) {
 
 		glewExperimental = GL_TRUE;
 		#endif
-
 	}
 	
 	GLFWwindow* window = glfwCreateWindow(width, height, "OpenGL Window", NULL, NULL);
@@ -30,6 +30,8 @@ GLFWwindow* generateWindow(int width, int height, int posX, int posY) {
 		glEnable(GL_TEXTURE_2D);
 		glEnable(GL_DEPTH_TEST);
 		
+		g_mainWindowSize = glm::vec2(width,height);
+
 		g_initialized = true;
 	}
 
@@ -37,6 +39,12 @@ GLFWwindow* generateWindow(int width, int height, int posX, int posY) {
 
 	return window;
 }
+
+glm::vec2 getMainWindowResolution()
+{
+	return g_mainWindowSize;
+}
+
 
 bool shouldClose(GLFWwindow* window)
 {
@@ -180,4 +188,55 @@ float getRatio(GLFWwindow* window) {
     int w, h;
     glfwGetFramebufferSize(window, &w, &h);
     return float(w)/float(h);
+}
+
+
+#include <Rendering/FrameBufferObject.h>
+void copyFBOContent(FrameBufferObject* source, FrameBufferObject* target, GLbitfield bitField, GLenum readBuffer, GLenum filter, glm::vec2 defaultFBOSize )
+{
+	// bind framebuffers
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, (source != nullptr) ? source->getFramebufferHandle() : 0);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, (target != nullptr) ? target->getFramebufferHandle() : 0);
+	
+	GLint defaultFBOWidth =  (GLint) (defaultFBOSize.x != -1.0f) ? defaultFBOSize.x : g_mainWindowSize.x;
+	GLint defaultFBOHeight = (GLint) (defaultFBOSize.x != -1.0f) ? defaultFBOSize.x : g_mainWindowSize.x;
+	
+	// color buffer is to be copied
+	if (bitField == GL_COLOR_BUFFER_BIT)
+	{
+		// default
+		if (readBuffer == GL_NONE)
+		{
+			glReadBuffer( (source == nullptr) ? GL_BACK : GL_COLOR_ATTACHMENT0);
+		}
+		else // set manually
+		{
+			glReadBuffer( readBuffer );
+		}
+		// copy content
+
+		glBlitFramebuffer(
+			0,0,(source != nullptr) ? source->getWidth() : defaultFBOWidth, (source!=nullptr)   ? source->getHeight() : defaultFBOHeight,
+			0,0,(target != nullptr) ? target->getWidth() : defaultFBOWidth, (target != nullptr) ? target->getHeight() : defaultFBOHeight,
+			bitField, (filter == GL_NONE) ? GL_NEAREST : filter);
+		
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		return;
+	}
+	if (bitField == GL_DEPTH_BUFFER_BIT)
+	{
+		glBlitFramebuffer(
+			0,0,(source != nullptr) ? source->getWidth() : defaultFBOWidth, (source!=nullptr)   ? source->getHeight() : defaultFBOHeight, 
+			0,0,(target != nullptr) ? target->getWidth() : defaultFBOWidth, (target != nullptr) ? target->getHeight() : defaultFBOHeight,
+			bitField, GL_NEAREST);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		return;
+	}
+
+	// custom
+	glBlitFramebuffer(
+		0,0,(source != nullptr) ? source->getWidth() : defaultFBOWidth, (source!=nullptr)   ? source->getHeight() : defaultFBOHeight, 
+		0,0,(target != nullptr) ? target->getWidth() : defaultFBOWidth, (target != nullptr) ? target->getHeight() : defaultFBOHeight,
+		bitField, filter);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
