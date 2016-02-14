@@ -61,7 +61,7 @@ int main()
 
 	 //glm::mat4 perspective = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, -1.0f, 6.0f);
 	/// perspective projection is experimental; yields weird warping effects due to vertex interpolation of uv-coordinates
-	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 10.f);
+	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 20.f);
 
 	// object sizes
 	float object_size = 0.25f;
@@ -69,7 +69,7 @@ int main()
 	//float bb_width = 1.0f;
 	float ground_size = 3.0f;
 
-	Grid grid(20,10,0.4f,0.1f,true);
+	//Grid grid(20,10,0.4f,0.1f,true);
 
 	std::vector<Renderable* > objects;
 	//objects.push_back(new Grid( 10, 10, 0.1, 0.1, true ));
@@ -85,13 +85,13 @@ int main()
 	// Billboard Texture
 	//GLuint bbTexture = TextureTools::loadTexture( RESOURCES_PATH "/neon_sign.png");
 	//GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/normal_water.jpg");
-	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/a.png");
+	//GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/a.png");
 	//GLuint height = TextureTools::loadTexture( RESOURCES_PATH "/a.png");
 
 	DEBUGLOG->log("Setup: model matrices"); DEBUGLOG->indent();
 	std::vector<glm::mat4 > modelMatrices;
 	modelMatrices.resize(1);
-	modelMatrices[0] = glm::translate( glm::mat4(1.0f), glm::vec3(0.0f,-0.5f,0.0f) ) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0) );
+	modelMatrices[0] = glm::translate( glm::mat4(1.0f), glm::vec3(0.0f,-0.5f,0.0f) ) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) * glm::scale(glm::mat4(1.0), glm::vec3(10.0f, 10.0f, 8.0f));
 	glm::mat4 model = modelMatrices[0];
 	DEBUGLOG->outdent();
 
@@ -105,12 +105,8 @@ int main()
 	/////////////////////// 	Renderpasses     ///////////////////////////
 	// regular GBuffer
 	DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
-	// TODO 
-	// in and outs fix
-	//ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag", "/tessellation/tc.tesc", "/tessellation/te.tese"); DEBUGLOG->outdent();
 	//ShaderProgram shaderProgram("/modelSpace/modelViewProjection.vert", "/tessellation/tess.frag", "/tessellation/tc.tesc", "/tessellation/te.tese", "/tessellation/tess_geom.geom"); DEBUGLOG->outdent();//
-	ShaderProgram shaderProgram("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag.frag", "/tessellation/test/test_tc.tc", "/tessellation/test/test_te.te"); DEBUGLOG->outdent();//
-	//ShaderProgram shaderProgram("/modelSpace/modelViewProjection.vert", "/tessellation/test.frag"); DEBUGLOG->outdent();
+	ShaderProgram shaderProgram("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag_lod.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te.te"); DEBUGLOG->outdent();//
 	shaderProgram.update("model", model);
 	shaderProgram.update("view", view);
 	shaderProgram.update("projection", perspective);

@@ -7,7 +7,7 @@ out vec3 tcPosition[];
 
 void main() {
 	//tcPosition[gl_InvocationID] = gl_in[gl_InvocationID].gl_Position;
-	float level = 4.0;
+	int level = 16;
 	if (gl_InvocationID == 0) {
 		gl_TessLevelInner[0] = level;
 		gl_TessLevelInner[1] = level;
