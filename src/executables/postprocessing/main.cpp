@@ -29,16 +29,6 @@ const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 static glm::vec4 s_color = glm::vec4(0.45 * 0.3f, 0.44f * 0.3f, 0.87f * 0.3f, 1.0f); // far : blueish
 static glm::vec4 s_light_position = glm::vec4(-2.16f, 2.6f, 10.0f,1.0);
 static glm::vec3 s_scale = glm::vec3(1.0f,1.0f,1.0f);
-static float s_lensflare_scale = 5.0f;
-static float s_lensflare_bias = -0.9f;
-static int s_lensflare_num_ghosts = 3;
-static float s_lensflare_ghost_dispersal = 0.6f;
-static float s_lensflare_halo_width = 0.44f;
-static float s_lensflare_strength = 0.7f;
-
-static glm::vec4 s_focusPlaneDepths = glm::vec4(2.0,4.0,7.0,10.0);
-static glm::vec2 s_focusPlaneRadi = glm::vec2(10.0f, -5.0f);
-static float s_farRadiusRescale = 2.0f;
 
 static float s_strength = 1.0f;
 //////////////////// MISC /////////////////////////////////////
@@ -201,15 +191,15 @@ int main()
 	addTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 
 	// misc display of sun
-	ShaderProgram sunShader("/modelSpace/billboardProjection.vert", "/modelSpace/simpleColor.frag");
-	sunShader.update("projection", perspective);
-	//sunShader.update("color", glm::vec4(1.0,1.0,0.9,1.0));
-	sunShader.bindTextureOnUse("tex", TextureTools::loadTextureFromResourceFolder("sun.png"));
-	sunShader.update("blendColor", 1.0f);
-	RenderPass sunPass(&sunShader, &compFBO);
-	sunPass.addRenderable(&quad);
-	sunPass.addEnable(GL_BLEND);
-	sunPass.addEnable(GL_DEPTH_TEST);
+	//ShaderProgram sunShader("/modelSpace/billboardProjection.vert", "/modelSpace/simpleColor.frag");
+	//sunShader.update("projection", perspective);
+	////sunShader.update("color", glm::vec4(1.0,1.0,0.9,1.0));
+	//sunShader.bindTextureOnUse("tex", TextureTools::loadTextureFromResourceFolder("sun.png"));
+	//sunShader.update("blendColor", 1.0f);
+	//RenderPass sunPass(&sunShader, &compFBO);
+	//sunPass.addRenderable(&quad);
+	//sunPass.addEnable(GL_BLEND);
+	//sunPass.addEnable(GL_DEPTH_TEST);
 
 	// Skybox
 	GLuint cubeMapTexture = TextureTools::loadDefaultCubemap();
@@ -319,31 +309,33 @@ int main()
 		////////////////////////////////     GUI      ////////////////////////////////
         ImGuiIO& io = ImGui::GetIO();
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
-		ImGui::SliderFloat3("scale", glm::value_ptr(s_scale), 0.0f, 10.0f);
+		
+		ImGui::PushItemWidth(-150);
+		
+		ImGui::SliderFloat4("light position", glm::value_ptr(s_light_position), -3.0f, 10.0f);
+		ImGui::SliderFloat3("object scale", glm::value_ptr(s_scale), 0.0f, 10.0f);
+		
+		// Depth of field parameters
+		static bool s_dynamicDoF = false;
+		bool dof_collapsing_header = ImGui::CollapsingHeader("depth of field");
+		if (dof_collapsing_header)
+		{
+			depthOfField.imguiInterfaceEditParameters();
+			ImGui::Checkbox("dynamic DoF", &s_dynamicDoF);
+		}
+		if (s_dynamicDoF || dof_collapsing_header)
+		{
+			depthOfField.updateUniforms();
+		}
 
-		ImGui::SliderFloat4("depths", glm::value_ptr(s_focusPlaneDepths), 0.0f, 10.0f);
-		ImGui::SliderFloat2("radi", glm::value_ptr(s_focusPlaneRadi), -10.0f, 10.0f);
-		ImGui::SliderFloat4("light", glm::value_ptr(s_light_position), -3.0f, 10.0f);
-		
-		ImGui::SliderFloat("far radius rescale", &s_farRadiusRescale, 0.0f, 5.0f);
-		
-	    ImGui::PushItemWidth(-150);
+		// Lens flare parameters
 		if (ImGui::CollapsingHeader("lens flare"))
 		{
-			ImGui::SliderFloat("lens flare bias", &s_lensflare_bias, -2.0f, 2.0f);
-			ImGui::SliderFloat("lens flare scale", &s_lensflare_scale, -5.0f, 5.0f);
-			ImGui::SliderFloat("lens flare halo width", &s_lensflare_halo_width, 0.0f, 5.0f);
-			ImGui::SliderInt("lens flare num ghosts", &s_lensflare_num_ghosts, 0, 10);
-			ImGui::SliderFloat("lens flare ghost dispersal", &s_lensflare_ghost_dispersal, 0.0f, 5.0f);
-			ImGui::SliderFloat("lens flare add strength", &s_lensflare_strength, 0.0f, 5.0f);
-			ImGui::PopItemWidth();
+			lensFlare.imguiInterfaceEditParameters();
+			lensFlare.updateUniforms();
 		}
-		//ImGui::SliderFloat("strength", &s_strength, 0.0f, 2.0f); // influence of color shift
-		// ImGui::ColorEdit4( "color", glm::value_ptr( s_color)); // color mixed at max distance
-       
-		static bool s_dynamicDoF = false;
-		ImGui::Checkbox("dynamic DoF", &s_dynamicDoF);
-		
+		ImGui::PopItemWidth();
+
         //////////////////////////////////////////////////////////////////////////////
 
 		///////////////////////////// VARIABLE UPDATING ///////////////////////////////
@@ -355,7 +347,6 @@ int main()
 		projectedLightPos.x = projectedLightPos.x*0.5+0.5;//the x/y screen coordinates come out between -1 and 1, so
 		projectedLightPos.y = projectedLightPos.y*0.5+0.5;//we need to rescale them to be 0 to 1 tex-coords
 
-		lensFlare.updateLensStarMatrix(view * turntable.getRotationMatrix());
 		//////////////////////////////////////////////////////////////////////////////
 				
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
@@ -363,36 +354,14 @@ int main()
 		shaderProgram.update( "view", view);
 		shaderProgram.update( "color", s_color);
 
-		// debug rendering of a quad where the sun is
-		sunShader.update("view", glm::mat4(glm::mat3(view))); // remove translation component
-		sunShader.update("position", turntable.getRotationMatrix() * s_light_position);
-		sunShader.update("scale", glm::vec3(0.1f, 0.1f * getRatio(window), 1.0f) );
-
 		// skybox
 		skyboxRendering.m_skyboxShader.update("view", glm::mat4(glm::mat3(view)) * turntable.getRotationMatrix());
 
-		//compShader.update( "strength", s_strength);
+		// light position
 		compShader.update("vLightPos", view * turntable.getRotationMatrix() * s_light_position);
 
-		// update blurrying parameters
-		depthOfField.m_calcCoCShader.update("focusPlaneDepths", s_focusPlaneDepths);
-		depthOfField.m_calcCoCShader.update("focusPlaneRadi",   s_focusPlaneRadi );
-
-		depthOfField.m_dofShader.update("maxCoCRadiusPixels", (int) s_focusPlaneRadi.x);
-		depthOfField.m_dofShader.update("nearBlurRadiusPixels", (int) s_focusPlaneRadi.x/* / 4.0*/);
-		depthOfField.m_dofShader.update("invNearBlurRadiusPixels", 1.0 / (s_focusPlaneRadi.x/* / 4.0*/));
-
-		depthOfField.m_dofCompShader.update("maxCoCRadiusPixels", s_focusPlaneRadi.x);
-		depthOfField.m_dofCompShader.update("farRadiusRescale" , s_farRadiusRescale);
-
 		// lens flare parameters
-		lensFlare.m_downSampleShader.update("uScale", glm::vec4(s_lensflare_scale));
-		lensFlare.m_downSampleShader.update("uBias",  glm::vec4(s_lensflare_bias));
-		lensFlare.m_ghostingShader.update("uGhosts", s_lensflare_num_ghosts);
-		lensFlare.m_ghostingShader.update("uGhostDispersal", s_lensflare_ghost_dispersal);
-		lensFlare.m_ghostingShader.update("uHaloWidth",  s_lensflare_halo_width);
-		lensFlare.m_upscaleBlendShader.update("strength", s_lensflare_strength);
-		//lensFlare.m_upscaleBlendShader.update("uLensStarMatrix", uLensStarMatrix);
+		lensFlare.updateLensStarMatrix(view * turntable.getRotationMatrix());
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
@@ -409,36 +378,30 @@ int main()
 			gbufferFBO.bind();
 			glm::vec4 value;
 			// checkGLError();
-			glReadBuffer(GL_COLOR_ATTACHMENT2);
+			glReadBuffer(GL_COLOR_ATTACHMENT2); // position buffer
 			glReadPixels(gbufferFBO.getWidth() / 2, gbufferFBO.getHeight() /2, 1, 1,
 			 GL_RGBA ,GL_FLOAT, glm::value_ptr(value) );
 			// checkGLError();
 			// DEBUGLOG->log("center depth:", value);
 			float depth = glm::length(glm::vec3(value));
 
-			float diffNear = (depth / 2.0f)-s_focusPlaneDepths.y;
-			float diffFar =(depth + depth/2.0f)- s_focusPlaneDepths.z;
-			s_focusPlaneDepths.x = s_focusPlaneDepths.x + diffNear * dt;
-			s_focusPlaneDepths.y = s_focusPlaneDepths.y + diffNear * dt;
-			s_focusPlaneDepths.z = s_focusPlaneDepths.z + diffFar * dt;
-			s_focusPlaneDepths.w = s_focusPlaneDepths.w + diffFar * dt;
+			float diffNear = (depth / 2.0f)-depthOfField.m_focusPlaneDepths.y;
+			float diffFar =(depth + depth/2.0f)- depthOfField.m_focusPlaneDepths.z;
+			depthOfField.m_focusPlaneDepths.x = depthOfField.m_focusPlaneDepths.x + diffNear * dt;
+			depthOfField.m_focusPlaneDepths.y = depthOfField.m_focusPlaneDepths.y + diffNear * dt;
+			depthOfField.m_focusPlaneDepths.z = depthOfField.m_focusPlaneDepths.z + diffFar * dt;
+			depthOfField.m_focusPlaneDepths.w = depthOfField.m_focusPlaneDepths.w + diffFar * dt;
 		}
 
 		// aka. light pass
 		compositing.render();
 
-		// copy gbuffer depth buffer to compositing fbo
-		//glBindFramebuffer(GL_READ_FRAMEBUFFER, gbufferFBO.getFramebufferHandle());
-		//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, compFBO.getFramebufferHandle());
-		//glBlitFramebuffer(0,0,gbufferFBO.getWidth(), gbufferFBO.getHeight(), 0,0,compFBO.getWidth(), compFBO.getHeight(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-	
+		// copy depth buffer content to compFBO to make sure Skybox is rendered correctly
 		copyFBOContent(&gbufferFBO, &compFBO, GL_DEPTH_BUFFER_BIT);
 
 		// render skybox
 		skyboxRendering.render(cubeMapTexture, &compFBO);
-
-		// render sun
-		sunPass.render();
+		skyboxRendering.render(cubeMapTexture, &gbufferFBO);
 
 		// execute on GBuffer position texture and compositing ( light pass ) image 
 		depthOfField.execute(gbufferFBO.getBuffer("fragPosition"), compFBO.getBuffer("fragmentColor"));
@@ -451,16 +414,10 @@ int main()
 		//addTexShader.updateAndBindTexture("addTex", 1, lensFlare.m_boxBlur->m_mipmapTextureHandle);
 		//addTex.render();
 		
-		// show result
-		// showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
-		// showTexShader.updateAndBindTexture("tex", 0, depthOfField.m_dofCompFBO->getBuffer("fragmentColor"));
-		// showTex.render();
-
-		// showTex.setViewport(0,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
-		// showTexShader.updateAndBindTexture("tex", 0, lensFlare.m_featuresFBO->getBuffer("fResult"));
-		// //showTexShader.updateAndBindTexture("tex", 0, sunOcclusionQuery.m_occlusionFBO->getBuffer("fragmentColor"));
-		// //showTexShader.updateAndBindTexture("tex", 0, sunOcclusionFBO.getBuffer("fragmentColor"));
-		// showTex.render();
+		// show / debug view of some texture
+		 showTex.setViewport(0,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
+		 showTexShader.updateAndBindTexture("tex", 0, gbufferFBO.getBuffer("fragNormal"));
+		 showTex.render();
 
 		glViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y);
 

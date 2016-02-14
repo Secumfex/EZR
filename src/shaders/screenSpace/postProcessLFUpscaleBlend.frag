@@ -18,11 +18,9 @@
 		vec4 lensMod = texture(uLensDirtTex, passUV);
 
 		vec2 lensStarTexcoord = (uLensStarMatrix * vec3(passUV, 1.0)).xy;	
-		// vec2 lensStarTexcoord = (uLensStarMatrix * vec3(passUV - vec2(0.5,0.5), 1.0)).xy + vec2(0.5,0.5);
 
-		// vec2 lensStarTexcoord = passUV;
 		lensMod += texture(uLensStarTex, lensStarTexcoord);
 
-		vec4 lensFlare = texture(uLensFlareTex, passUV) * lensMod;
+		vec4 lensFlare = texture(uLensFlareTex, passUV) * (lensMod);
 		fResult = texture(uInputTex, passUV) + lensFlare * strength;
 	}

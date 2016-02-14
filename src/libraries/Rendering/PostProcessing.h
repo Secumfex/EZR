@@ -45,6 +45,16 @@ namespace PostProcessing
 		
 		const int m_width;
 		const int m_height;
+
+		// variables / parameters
+		glm::vec4 m_focusPlaneDepths;
+		glm::vec2 m_focusPlaneRadi;
+		float m_farRadiusRescale;
+
+		// Imgui
+		void imguiInterfaceEditParameters();
+		void updateUniforms(); // update uniforms with current member variables values
+
 	private:
 		Quad* m_quad;
 		bool ownQuad;
@@ -107,6 +117,21 @@ namespace PostProcessing
 
 		glm::mat3 updateLensStarMatrix(glm::mat3 view);
 		glm::mat3 updateLensStarMatrix(glm::mat4 view);
+
+		// variables
+		int m_blurStrength;
+		float m_scale;
+		float m_bias;
+		int m_num_ghosts;
+		int m_blur_strength;
+		float m_ghost_dispersal;
+		float m_halo_width;
+		float m_distortion;
+		float m_strength;
+		
+		// Imgui
+		void imguiInterfaceEditParameters();
+		void updateUniforms(); // update uniforms with current member variables values
 
 	private:
 		Quad m_quad;

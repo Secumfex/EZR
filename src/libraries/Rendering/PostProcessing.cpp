@@ -3,6 +3,10 @@
 #include <Rendering/FrameBufferObject.h>
 #include <Rendering/VertexArrayObjects.h>
 
+#include <UI/imgui/imgui.h>
+
+#include <glm/gtc/type_ptr.hpp>
+
 namespace{float log_2( float n )  
 {  
     return log( n ) / log( 2 );      // log(n)/log(2) is log_2. 
@@ -82,6 +86,9 @@ PostProcessing::DepthOfField::DepthOfField(int width, int height, Quad* quad)
 	, m_dofCompShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessDOFCompositing.frag")
 	, m_width(width)
 	, m_height(height)
+	, m_focusPlaneDepths(2.0,4.0,7.0,10.0)
+	, m_focusPlaneRadi(10.0f, -5.0f)
+	, m_farRadiusRescale(2.0f)
 {
 	if (quad == nullptr){
 		m_quad = new Quad();
@@ -110,15 +117,15 @@ PostProcessing::DepthOfField::DepthOfField(int width, int height, Quad* quad)
 	m_dofCompShader.bindTextureOnUse("blurryFarField" , m_vDofFBO->getBuffer("blurResult"));
 
 	// default settings
-	m_calcCoCShader.update("focusPlaneDepths", glm::vec4(2.0,4.0,7.0,10.0));
-	m_calcCoCShader.update("focusPlaneRadi",   glm::vec2(10.0f, -5.0f) );
+	m_calcCoCShader.update("focusPlaneDepths", m_focusPlaneDepths);
+	m_calcCoCShader.update("focusPlaneRadi",   m_focusPlaneRadi);
 
-	m_dofShader.update("maxCoCRadiusPixels", 10);
-	m_dofShader.update("nearBlurRadiusPixels", 10);
-	m_dofShader.update("invNearBlurRadiusPixels", 0.1f);
+	m_dofShader.update("maxCoCRadiusPixels", (int) m_focusPlaneRadi.x);
+	m_dofShader.update("nearBlurRadiusPixels", (int) m_focusPlaneRadi.x);
+	m_dofShader.update("invNearBlurRadiusPixels", 1.0f / m_focusPlaneRadi.x);
 
-	m_dofCompShader.update("maxCoCRadiusPixels", 10.0f);
-	m_dofCompShader.update("farRadiusRescale" , 2.0f);
+	m_dofCompShader.update("maxCoCRadiusPixels", m_focusPlaneRadi.x);
+	m_dofCompShader.update("farRadiusRescale" , m_farRadiusRescale);
 }
 
 PostProcessing::DepthOfField::~DepthOfField()
@@ -162,6 +169,29 @@ void PostProcessing::DepthOfField::execute(GLuint positionMap, GLuint colorMap)
 	m_quad->draw();
 } 
 
+void PostProcessing::DepthOfField::imguiInterfaceEditParameters()
+{
+	// ImGui interface
+	ImGui::SliderFloat4("depths", glm::value_ptr(m_focusPlaneDepths), 0.0f, 10.0f);
+	ImGui::SliderFloat2("near/far radi", glm::value_ptr(m_focusPlaneRadi), -10.0f, 10.0f);
+
+	ImGui::SliderFloat("far radius rescale", &m_farRadiusRescale, 0.0f, 5.0f);
+}
+
+void PostProcessing::DepthOfField::updateUniforms()
+{
+	// update uniforms
+	m_calcCoCShader.update("focusPlaneDepths", m_focusPlaneDepths);
+	m_calcCoCShader.update("focusPlaneRadi",   m_focusPlaneRadi);
+
+	m_dofShader.update("maxCoCRadiusPixels", (int) m_focusPlaneRadi.x);
+	m_dofShader.update("nearBlurRadiusPixels", (int) m_focusPlaneRadi.x);
+	m_dofShader.update("invNearBlurRadiusPixels", 1.0f / m_focusPlaneRadi.x);
+
+	m_dofCompShader.update("maxCoCRadiusPixels", m_focusPlaneRadi.x);
+	m_dofCompShader.update("farRadiusRescale" , m_farRadiusRescale);
+}
+
 PostProcessing::SkyboxRendering::SkyboxRendering(std::string fShader, std::string vShader, Renderable* skybox)
 	: m_skyboxShader(vShader, fShader)
 {
@@ -189,7 +219,7 @@ void PostProcessing::SkyboxRendering::render(GLuint cubeMapTexture, FrameBufferO
 	glDepthFunc(GL_LEQUAL);
 	
 	if(target != nullptr) {target->bind();}
-	else{glBindFramebuffer(GL_FRAMEBUFFER, 0);}
+	else{ glBindFramebuffer(GL_FRAMEBUFFER, 0); }
 
 	m_skyboxShader.use();
 	m_skyboxShader.update("skybox", 0);
@@ -305,6 +335,14 @@ PostProcessing::LensFlare::LensFlare(int width, int height)
 	: m_downSampleShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessLFDownSampling.frag")
 	, m_ghostingShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessLFGhosting.frag")
 	, m_upscaleBlendShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessLFUpscaleBlend.frag")
+	,m_scale(5.0f)
+	,m_bias(-0.9f)
+	,m_num_ghosts(3)
+	,m_blur_strength(3)
+	,m_ghost_dispersal(0.6f)
+	,m_halo_width(0.44f)
+	,m_distortion(5.0f)
+	,m_strength(0.7f)
 {
 	m_downSampleFBO = new FrameBufferObject(m_downSampleShader.getOutputInfoMap(),width,height);
 	m_featuresFBO = new FrameBufferObject(m_ghostingShader.getOutputInfoMap(),width,height);
@@ -325,12 +363,13 @@ PostProcessing::LensFlare::LensFlare(int width, int height)
 	m_boxBlur = new BoxBlur(width / 2, height / 2, &m_quad);
 
 	// default values
-	m_downSampleShader.update("uScale", glm::vec4(5.0f));
-	m_downSampleShader.update("uBias",  glm::vec4(-0.9f));
-	m_ghostingShader.update("uGhosts", 3);
-	m_ghostingShader.update("uGhostDispersal", 0.6);
-	m_ghostingShader.update("uHaloWidth", 0.44f);
-	m_upscaleBlendShader.update("strength", 0.7f);
+	m_downSampleShader.update("uScale", glm::vec4(m_scale));
+	m_downSampleShader.update("uBias",  glm::vec4(m_bias));
+	m_ghostingShader.update("uGhosts", m_num_ghosts);
+	m_ghostingShader.update("uGhostDispersal",m_ghost_dispersal);
+	m_ghostingShader.update("uHaloWidth", m_halo_width);
+	m_ghostingShader.update("uDistortion", m_distortion);
+	m_upscaleBlendShader.update("strength", m_strength);
 	m_upscaleBlendShader.update("uLensStarMatrix", glm::mat3(1.0f));
 
 	// default texture bindings
@@ -376,7 +415,7 @@ void PostProcessing::LensFlare::renderLensFlare(GLuint sourceTexture, FrameBuffe
 
 	// blur
 	m_boxBlur->pull();
-	m_boxBlur->push(4);
+	m_boxBlur->push( m_blurStrength );
 
 	// render to target fbo
 	if ( target != nullptr )
@@ -398,35 +437,24 @@ glm::mat3 PostProcessing::LensFlare::updateLensStarMatrix(glm::mat3 view)
 	glm::vec3 camx = - view[0]; // camera x (left) vector
 	glm::vec3 camz = - view[2]; // camera z (forward) vector
 	float camrot = glm::dot(camx, glm::vec3(0,0,1)) + glm::dot(camz, glm::vec3(0,1,0));
-	//DEBUGLOG->log("camX   : ", camx);
-	//DEBUGLOG->log("camZ   : ", camz);
-	//DEBUGLOG->log("camrot : ", camrot);
 
 	glm::mat3 scaleBias1(
-		2.0f,   0.0f,  -1.0f,
-		0.0f,   2.0f,  -1.0f,
-		0.0f,   0.0f,   1.0f
+		2.0f,   0.0f, 0.0f,
+		0.0f,   2.0f,  -0.0f,
+		-1.0f,   -1.0f,   1.0f
 	);
 	glm::mat3 rotation(
-		cos(camrot), -sin(camrot), 0.0f,
-		sin(camrot), cos(camrot),  0.0f,
+		cos(camrot), sin(camrot), 0.0f,
+		-sin(camrot), cos(camrot),  0.0f,
 		0.0f,        0.0f,         1.0f
 	);
 	glm::mat3 scaleBias2(
-		0.5f,   0.0f,   0.5f,
-		0.0f,   0.5f,   0.5f,
-		0.0f,   0.0f,   1.0f
+		0.5f,   0.0f, 0.0f,
+		0.0f,   0.5f,  0.0f,
+		 0.5f,   0.5f ,   1.0f
 	);
 
-		// because glm
-	scaleBias1 = glm::transpose(scaleBias1);
-	rotation = glm::transpose(rotation);
-	scaleBias2 = glm::transpose(scaleBias2);
-
-	//glm::mat3 rotation = glm::mat3(glm::rotate(camrot, glm::vec3(0.0f,0.0f,1.0f)));
-
 	glm::mat3 uLensStarMatrix = scaleBias2 * rotation * scaleBias1;
-	//glm::mat3 uLensStarMatrix = rotation;
 
 	m_upscaleBlendShader.update("uLensStarMatrix", uLensStarMatrix);
 		
@@ -436,4 +464,27 @@ glm::mat3 PostProcessing::LensFlare::updateLensStarMatrix(glm::mat3 view)
 glm::mat3 PostProcessing::LensFlare::updateLensStarMatrix(glm::mat4 view)
 {
 	return updateLensStarMatrix(glm::mat3(view));
+}
+
+void PostProcessing::LensFlare::imguiInterfaceEditParameters()
+{
+	ImGui::SliderFloat("bias",			 &m_bias, -2.0f, 2.0f);
+	ImGui::SliderFloat("scaling factor", &m_scale, -5.0f, 5.0f);
+	ImGui::SliderFloat("halo width",	 &m_halo_width, 0.0f, 5.0f);
+	ImGui::SliderFloat("chrom. distort", &m_distortion, 0.0f, 10.0f);
+	ImGui::SliderInt("num ghosts",		 &m_num_ghosts, 0, 10);
+	ImGui::SliderInt("blur strength",	 &m_blurStrength, 0, 7);
+	ImGui::SliderFloat("ghost dispersal",&m_ghost_dispersal, 0.0f, 5.0f);
+	ImGui::SliderFloat("add strength",	 &m_strength, 0.0f, 5.0f);
+}
+
+void PostProcessing::LensFlare::updateUniforms()
+{
+	m_downSampleShader.update("uScale", glm::vec4(m_scale));
+	m_downSampleShader.update("uBias",  glm::vec4(m_bias));
+	m_ghostingShader.update("uGhosts", m_num_ghosts);
+	m_ghostingShader.update("uGhostDispersal", m_ghost_dispersal);
+	m_ghostingShader.update("uHaloWidth",  m_halo_width);
+	m_ghostingShader.update("uDistortion",  m_distortion);
+	m_upscaleBlendShader.update("strength", m_strength);
 }
