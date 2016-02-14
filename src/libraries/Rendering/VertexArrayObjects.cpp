@@ -352,6 +352,44 @@ Terrain::Terrain()
     m_mode = GL_PATCHES;
 
 	float shift = 0.5;
+	 //float width = 32; 
+	 float width = 16; 
+	 //float height = 32; 
+	 float height = 16; 
+	 float position[256][128];
+
+	 float positio[3000];
+
+	for (int i=0; i<height; i++) {
+		for (int j=0; j<width; j++) {
+		std::cout<<"NEW QUAD"<< endl;
+
+		positio[i*16*8 + j * 8] = j / float(width);
+		std::cout << positio[i*16*8 + j*8]<<endl;
+		positio[i*16*8 + j*8 + 1] = i / float(height);
+		std::cout << positio[i*16*8 + j*8 +1]<<endl;
+
+
+		positio[i*16*8 + j*8 + 2] = j/ float(width);
+		std::cout << positio[i*16*8 + j*8 +2]<<endl;
+		positio[i*16*8 + j*8 + 3] = (i+1) / float(height);
+		std::cout << positio[i*16*8 + j*8 +3]<<endl;
+
+
+		positio[i*16*8 + j*8 + 4] = (j+1)/ float(width);
+		std::cout << positio[i*16*8 + j*8 +4]<<endl;
+		positio[i*16*8 + j*8 + 5] = (i+1) / float(height);
+		std::cout << positio[i*16*8 + j*8 +5]<<endl;
+
+
+		positio[i*16*8 + j*8 + 6] = (j+1) / float(width);
+		std::cout << positio[i*16*8 + j*8 +6]<<endl;
+		positio[i*16*8 + j*8 + 7] = i / float(height);
+		std::cout << positio[i*16*8 + j*8 +7]<<endl;
+
+		}
+	}
+
 	  float positions[] = 
     {
      //   -1.0f, -1.0f, 1.0f, //1
@@ -367,7 +405,9 @@ Terrain::Terrain()
       //1.5f, -1.0f, 2.0f,	//3
       //-1.0f, 1.0f, -2.0f,	//2
 	//	0.5f, 1.0f, 1.0f	//4
-    
+  
+
+
 		// erste reihe
 	  0.000f,  0.000f,  0.000f,
       0.33f,  0.000f,  0.0f,
@@ -381,10 +421,10 @@ Terrain::Terrain()
      1.0f,  0.33f,  0.25f,
 
 	 //dritte reihe
-     0.0f,  0.66f,  0.250f,
-     0.33f,  0.660f,  0.250f,
-     0.66f,  0.660f,  0.250f,
-     1.0f,  0.660f,  0.250f,
+     0.0f,  0.66f,  -0.250f,
+     0.33f,  0.660f,  -0.250f,
+     0.66f,  0.660f,  -0.250f,
+     1.0f,  0.660f,  -0.250f,
 
 	 // vierte reihe
 	 0.0f, 1.0f, 0.0f,
@@ -406,20 +446,6 @@ Terrain::Terrain()
 //     1.0f,  2.000f,  0.0f,
 //     1.5f,  2.000f,  0.0f,
 //     2.0f,  2.000f,  0.0f,
-
-     // 0.276f,  0.851f,  0.447f,
-	 //-0.724f,  0.526f,  0.447f,
-
-   //  -0.724f, -0.526f,  0.447f,
-   //   0.276f, -0.851f,  0.447f,
-	//  
-	//  0.724f,  0.526f, -0.447f,
-   //   -0.276f,  0.851f, -0.447f,
-   //   -0.894f,  0.000f, -0.447f,
-   //
-   //   -0.276f, -0.851f, -0.447f,
-   //    0.724f, -0.526f, -0.447f,
-   //    0.000f,  0.000f, -1.000f
 	  };
 
     float uv[] = 
@@ -430,14 +456,15 @@ Terrain::Terrain()
         1.0f, 1.0f
     };
     
-	glBufferData(GL_ARRAY_BUFFER, sizeof(positions),  &positions[0], GL_STATIC_DRAW);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(positio),  &positio[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(positio),  &positio[0], GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
    // glBufferData(GL_ARRAY_BUFFER, sizeof(float)*8, uv, GL_STATIC_DRAW);
    // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
    // glEnableVertexAttribArray(1);
-	glPatchParameteri(GL_PATCH_VERTICES, 16);
+	glPatchParameteri(GL_PATCH_VERTICES, 4);
 }
 
 Terrain::~Terrain()
@@ -449,7 +476,7 @@ Terrain::~Terrain()
 void Terrain::draw()
 {
     glBindVertexArray(m_vao);
-    glDrawArrays(GL_PATCHES, 0, 16);
+    glDrawArrays(GL_PATCHES, 0, 1500);
 }
 
 
@@ -756,7 +783,7 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
     m_indices.m_size = indices.size();
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*indices.size(), &indices[0], GL_STATIC_DRAW);
-	glPatchParameteri(GL_PATCH_VERTICES, 3);
+	//glPatchParameteri(GL_PATCH_VERTICES, 3);
 }
 
 Grid::~Grid()
@@ -771,6 +798,6 @@ void Grid::draw()
     glBindVertexArray(m_vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indices.m_vboHandle);
    // glDrawElements(GL_TRIANGLE_STRIP, m_indices.m_size, GL_UNSIGNED_INT, 0);
-    // glDrawArrays(GL_POINTS,  0, m_positions.m_size);
-	glDrawArrays(GL_PATCHES, 0, m_indices.m_size);
+     glDrawArrays(GL_POINTS,  0, m_positions.m_size);
+	//glDrawArrays(GL_PATCHES, 0, m_indices.m_size);
 }

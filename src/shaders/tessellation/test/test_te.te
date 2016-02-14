@@ -19,10 +19,13 @@ void main() {
 	float u = gl_TessCoord.x;
 	float v = gl_TessCoord.y;
 	
-	//vec3 a = mix(tcPosition[0], tcPosition[3], gl_TessCoord.x);
-	//vec3 b = mix(tcPosition[1], tcPosition[2], gl_TessCoord.x);
-	vec3 a = mix(tcPosition[0], tcPosition[2], gl_TessCoord.x);
-	vec3 b = mix(tcPosition[6], tcPosition[8], gl_TessCoord.x);
+	// Quad w 4 points
+	vec3 a = mix(tcPosition[0], tcPosition[3], gl_TessCoord.x);
+	vec3 b = mix(tcPosition[1], tcPosition[2], gl_TessCoord.x);
+	
+	// Quad w 9 points
+	//vec3 a = mix(tcPosition[0], tcPosition[2], gl_TessCoord.x);
+	//vec3 b = mix(tcPosition[6], tcPosition[8], gl_TessCoord.x);
 	tePosition = mix(a, b, gl_TessCoord.y);
 	
 	//tePosition = (p0 + p1 + p2 + p3) / 4.0;

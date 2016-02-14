@@ -85,6 +85,7 @@ int main()
 	// Billboard Texture
 	//GLuint bbTexture = TextureTools::loadTexture( RESOURCES_PATH "/neon_sign.png");
 	//GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/normal_water.jpg");
+	//GLuint height = TextureTools::loadTexture( RESOURCES_PATH "/height_terrain.png");
 
 	DEBUGLOG->log("Setup: model matrices"); DEBUGLOG->indent();
 	std::vector<glm::mat4 > modelMatrices;
@@ -107,13 +108,14 @@ int main()
 	// in and outs fix
 	//ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag", "/tessellation/tc.tesc", "/tessellation/te.tese"); DEBUGLOG->outdent();
 	//ShaderProgram shaderProgram("/modelSpace/modelViewProjection.vert", "/tessellation/tess.frag", "/tessellation/tc.tesc", "/tessellation/te.tese", "/tessellation/tess_geom.geom"); DEBUGLOG->outdent();//
-	ShaderProgram shaderProgram("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag.frag", "/tessellation/test/test_tc.tc", "/tessellation/test/test_te_bezier.te"); DEBUGLOG->outdent();//
+	ShaderProgram shaderProgram("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag.frag", "/tessellation/test/test_tc.tc", "/tessellation/test/test_te.te"); DEBUGLOG->outdent();//
 	//ShaderProgram shaderProgram("/modelSpace/modelViewProjection.vert", "/tessellation/test.frag"); DEBUGLOG->outdent();
 	shaderProgram.update("model", model);
 	shaderProgram.update("view", view);
 	shaderProgram.update("projection", perspective);
-	shaderProgram.update("b", bezier);
-	shaderProgram.update("bt", bezier_transposed);
+	//shaderProgram.update("b", bezier);
+	//shaderProgram.update("bt", bezier_transposed);
+	//shaderProgram.bindTextureOnUse("terrain", height);
 	//shaderProgram.update("tessLevelInner", 4.0f );
 	//shaderProgram.update("tessLevelOuter", 4.0f );
 
