@@ -32,7 +32,7 @@ PostProcessing::BoxBlur::BoxBlur(int width, int height, Quad* quad)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT); 
 
 	glGenerateMipmap(GL_TEXTURE_2D);
-	int mipmapNumber = (int) log_2( max(width,height) );
+	int mipmapNumber = (int) log_2( (float) max(width,height) );
 
 	m_mipmapFBOHandles.resize(mipmapNumber);
 	glGenFramebuffers(mipmapNumber, &m_mipmapFBOHandles[0]);
@@ -93,8 +93,8 @@ PostProcessing::DepthOfField::DepthOfField(int width, int height, Quad* quad)
 
 	FrameBufferObject::s_internalFormat = GL_RGBA32F;
 	m_cocFBO 	 = new FrameBufferObject(m_calcCoCShader.getOutputInfoMap(), width, height);
-	m_hDofFBO 	 = new FrameBufferObject(m_dofShader.getOutputInfoMap(), width / 4.0, height );
-	m_vDofFBO 	 = new FrameBufferObject(m_dofShader.getOutputInfoMap(), width / 4.0, height / 4.0);
+	m_hDofFBO 	 = new FrameBufferObject(m_dofShader.getOutputInfoMap(), width / 4, height );
+	m_vDofFBO 	 = new FrameBufferObject(m_dofShader.getOutputInfoMap(), width / 4, height / 4);
 	FrameBufferObject::s_internalFormat = GL_RGBA;
 	m_dofCompFBO = new FrameBufferObject(m_dofCompShader.getOutputInfoMap(), width, height );
 	
