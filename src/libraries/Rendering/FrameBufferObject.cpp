@@ -211,7 +211,17 @@ FrameBufferObject::FrameBufferObject(std::map<std::string, ShaderProgram::Info>*
 
     //Generate color textures
     int size = outputMap->size();
-    std::vector<GLuint> drawBufferHandles(size);
+
+	// find the biggest user defined output location
+	for (auto e : *outputMap)
+	{
+		if (e.second.location+1 > size)
+		{
+			size = e.second.location+1;
+		}
+	}
+
+    std::vector<GLuint> drawBufferHandles(size, GL_NONE);
 
 	glActiveTexture(GL_TEXTURE0);
 	int i = 0;
@@ -220,17 +230,34 @@ FrameBufferObject::FrameBufferObject(std::map<std::string, ShaderProgram::Info>*
 		GLuint handle = createFramebufferTexture();
 
 		GLuint currentAttachment = GL_COLOR_ATTACHMENT0 + static_cast<unsigned int>(e.second.location); //e.second;
-		// DEBUGLOG->log("buffer    : " + e.first);
-		// DEBUGLOG->log("tex handle: ", handle);
-		// DEBUGLOG->log("attachment: ", currentAttachment - GL_COLOR_ATTACHMENT0);
-		// DEBUGLOG->log("output loc: ", e.second.location);
-		// DEBUGLOG->log("------------------------");
+		//GLuint currentAttachment = GL_COLOR_ATTACHMENT0 + i; //e.second;
+		//DEBUGLOG->log("buffer    : " + e.first);
+		//DEBUGLOG->log("tex handle: ", handle);
+		//DEBUGLOG->log("attachment: ", currentAttachment - GL_COLOR_ATTACHMENT0);
+		//DEBUGLOG->log("output loc: ", e.second.location);
+		//DEBUGLOG->log("------------------------");
 
 	    glFramebufferTexture2D(GL_FRAMEBUFFER, currentAttachment, GL_TEXTURE_2D, handle, 0);
 
     	m_textureMap[e.first] = handle;
-	    //drawBufferHandles[e.second] = currentAttachment;
-	    drawBufferHandles[i] = currentAttachment;
+
+		/** according to OpenGL glDrawBuffers specification:
+		* If a fragment shader writes a value to one or more user defined output variables, 
+		* then the value of each variable will be written into the buffer specified at a location 
+		* within bufs corresponding to the location assigned to that user defined output. 
+		* The draw buffer used for user defined outputs assigned to locations greater than 
+		* or equal to n is implicitly set to GL_NONE and any data written to such an output is discarded
+		*/
+		if ( e.second.location < drawBufferHandles.size() )
+		{
+			drawBufferHandles[ e.second.location ] = currentAttachment;
+		}
+		else
+		{
+			DEBUGLOG->log("ERROR: output location was larger than allocated amount of draw buffers!?");
+		}
+
+	    //drawBufferHandles[i] = currentAttachment;
 	    m_colorAttachments[currentAttachment] = handle;
 	    i++;
     }

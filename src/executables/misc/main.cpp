@@ -7,6 +7,7 @@
 #include <Rendering/GLTools.h>
 #include <Rendering/VertexArrayObjects.h>
 #include <Rendering/RenderPass.h>
+#include <Rendering/PostProcessing.h>
 
 #include "UI/imgui/imgui.h"
 #include <UI/imguiTools.h>
@@ -24,6 +25,8 @@ static glm::vec4 s_color = glm::vec4(35.0f/255.0f, 65.0f/255.0f, 14.0f/255.0f, 1
 static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
 
 static float s_strength = 0.05f;
+static int s_show_level = 0;
+static int s_num_levels = 10000;
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -78,6 +81,7 @@ void updateVectorTexture(double elapsedTime)
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 }
+
 
 int main()
 {
@@ -139,6 +143,9 @@ int main()
 
 	geomShader.update("projection", perspective);
 
+	// PostProcessing
+	PostProcessing::BoxBlur boxBlur(getResolution(window).x, getResolution(window).y);
+	s_num_levels = boxBlur.m_mipmapFBOHandles.size();
 
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
@@ -233,8 +240,12 @@ int main()
 		ImGui::PushItemWidth(-100);
 		if (ImGui::CollapsingHeader("Geometry Shader Settings"))
     	{
-    		ImGui::ColorEdit4( "color", glm::value_ptr( s_color)); // color mixed at max distance
-	        ImGui::SliderFloat("strength", &s_strength, 0.0f, 2.0f); // influence of color shift
+    		ImGui::ColorEdit4( "color", glm::value_ptr( s_color));
+	        ImGui::SliderFloat("strength", &s_strength, 0.0f, 2.0f);
+
+			ImGui::SliderInt("show level", &s_show_level, 0, boxBlur.m_mipmapFBOHandles.size()-1);
+			ImGui::SliderInt("num levels", &s_num_levels, 0, boxBlur.m_mipmapFBOHandles.size()-1);
+
         }
         
 		ImGui::Checkbox("auto-rotate", &s_isRotating); // enable/disable rotating volume
@@ -284,14 +295,30 @@ int main()
 		// glBindTexture(GL_TEXTURE_2D, fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2)); // position
 		// glActiveTexture(GL_TEXTURE0);
 
-		// compShader.update("colorMap",    0);
-		// compShader.update("normalMap",   1);
-		// compShader.update("positionMap", 2);
+		//compShader.update("colorMap",    0);
+		//compShader.update("normalMap",   1);
+		//compShader.update("positionMap", 2);
 
 		renderPass.render();
-		// compositing.render();
+		//compositing.render();
 
 		geom.render();
+
+		// copy window content to mipmap fbo for level 0
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		glReadBuffer(GL_BACK);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, boxBlur.m_mipmapFBOHandles[0]);
+		glBlitFramebuffer(0,0,getResolution(window).x,getResolution(window).y,0,0,getResolution(window).x,getResolution(window).y, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		boxBlur.pull();
+
+		// perform box blur
+		boxBlur.push(s_num_levels, s_show_level);
+		
+		// copy mipmap fbo content of level 0 to window
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glReadBuffer(GL_BACK);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, boxBlur.m_mipmapFBOHandles[min((int)boxBlur.m_mipmapFBOHandles.size()-1, max(s_show_level, 0))]);
+		glBlitFramebuffer(0,0,getResolution(window).x / pow (2.0, min((int)boxBlur.m_mipmapFBOHandles.size()-1, max(s_show_level, 0))), getResolution(window).y / pow(2.0,min((int)boxBlur.m_mipmapFBOHandles.size()-1, max(s_show_level, 0))),0,0,getResolution(window).x,getResolution(window).y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
 		ImGui::Render();
 		glDisable(GL_BLEND);
