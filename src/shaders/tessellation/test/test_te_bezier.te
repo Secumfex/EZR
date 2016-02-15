@@ -5,7 +5,7 @@ layout(quads) in;
 in vec3 tcPosition[];
 
 out vec3 tePosition;
-out vec4 tePatchDistance;
+//out vec4 tePatchDistance;
 
 uniform mat4 projection;
 uniform mat4 model;
@@ -52,6 +52,6 @@ void main()
     float z = dot(cz * V, U);
     tePosition =  vec3(x, y, z);
 
-    tePatchDistance = vec4(u, v, 1-u, 1-v);
+   // tePatchDistance = vec4(u, v, 1-u, 1-v);
     gl_Position = projection * view * model * vec4(tePosition, 1);
 }

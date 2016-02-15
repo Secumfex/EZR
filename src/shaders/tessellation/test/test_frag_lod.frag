@@ -16,9 +16,9 @@ vec3 incident = normalize(vec3(1.0, 0.2, 0.5));
 vec4 light = vec4(1.0, 0.95, 0.9, 1.0) * 1.1;
 
 void main(){
-	//vec3 normal = normalize(texture(terrain, texcoord).xyz);
-	//vec3 normal = vec3(0.0, 1.0, 0.0);
-	vec3 normal = tePosition;
+	//vec3 normal = normalize(texture(terrain, tePosition.xy).xyz);
+	vec3 normal = vec3(0.0, 1.0, 0.0);
+	//vec3 normal = tePosition;
 	//vec4 color = texture(diffuse, texcoord);
 	vec4 color = vec4(vec3(34.0f/255, 139.0f/255, 34.0f/255), 1.0);
 	//float noise_factor = texture(noise_tile, texcoord*32).r+0.1;
