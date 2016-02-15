@@ -23,6 +23,9 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <Core/Camera.h>
+#include <Rendering/CullingTools.h>
+
 ////////////////////// PARAMETERS /////////////////////////////
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 
@@ -62,46 +65,66 @@ int main()
 	//////////////////////////////////////////////////////////////////////////////
 	
 	/////////////////////     Scene / View Settings     //////////////////////////
-	glm::vec4 eye(0.0f, 0.0f, 5.0f, 1.0f);
-	glm::vec4 center(0.0f,0.0f,0.0f,1.0f);
-	glm::mat4 view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0,1,0));
-
 	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 30.f);
 
+	// camera
+	Camera camera;
+	camera.setProjectionMatrix(perspective);
+	Culling::CullingHelper cullingHelper(&camera);
+
 	//objects
-	std::vector<Renderable* > objects;
-
-	//positions
-	DEBUGLOG->log("Setup: model matrices"); DEBUGLOG->indent();
-	std::vector<glm::mat4> modelMatrices(6);
-	modelMatrices[0] = glm::translate(glm::vec3(randFloat(-3.0f,-2.0f), 0.0f, randFloat(-3,-2.0f)));
-	modelMatrices[1] = glm::translate(glm::vec3(randFloat(0.0f,1.0f),randFloat(2.0f,3.0f),randFloat(-5.0f,5.0f)));
-	modelMatrices[2] = glm::translate(glm::vec3(randFloat(-1.0f,1.0f),randFloat(-1.0f,0.0f),randFloat(0.0f,5.0f)));
-	modelMatrices[3] = glm::translate(glm::vec3(randFloat(0.5f,1.0f), randFloat(-5.0,-1.0),randFloat(0.0,5.0f)));
-	modelMatrices[4] = glm::translate(glm::vec3(randFloat(1.0f,5.0f), randFloat(0.0,2.0),randFloat(0.0,5.0f)));
-	modelMatrices[5] = glm::translate(glm::vec3(0.0f,-2.0f,0.0f)) * glm::rotate(glm::radians(90.0f), glm::vec3(1.0f,0.0,0.0));
-	DEBUGLOG->outdent();
-
-	srand(time(NULL));
-	std::vector<glm::vec4> colors(6);
-	colors[0] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
-	colors[1] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
-	colors[2] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
-	colors[3] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
-	colors[4] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
-	colors[5] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
+	std::vector<AssimpTools::RenderableInfo > objects;
 
 	/////////////////////     Upload assets (create Renderables / VAOs from data)    //////////////////////////
 	DEBUGLOG->log("Setup: creating VAOs from mesh data"); DEBUGLOG->indent();
-//	std::vector<AssimpTools::RenderableInfo> renderableInfoVector = AssimpTools::createSimpleRenderablesFromScene( scene );
 	auto vertexData = AssimpTools::createVertexDataInstancesFromScene(scene);
-	auto renderables = AssimpTools::createSimpleRenderablesFromVertexDataInstances(vertexData);
 	for (int i = 0; i < 5; i++)
 	{
-		objects.push_back(renderables[0]);
+		auto renderables = AssimpTools::createSimpleRenderablesFromVertexDataInstances(vertexData);
+		AssimpTools::RenderableInfo info;
+		info.renderable = renderables[0];
+		info.boundingBox = AssimpTools::computeBoundingBox(vertexData[0]);
+		info.meshIdx = 0;
+		info.name = "box_" + DebugLog::to_string(i);
+		objects.push_back(info);
 	}
-	objects.push_back(new Grid(10,10,1.0,1.0,true));
+	AssimpTools::RenderableInfo gridInfo;
+	AssimpTools::BoundingBox gridBBox = {glm::vec3(5.0f,5.0,0.0f), glm::vec3(-5.0f,-5.0,0.0f)}; //max, min
+	gridInfo.boundingBox = gridBBox;
+	gridInfo.renderable = new Grid(10,10,1.0,1.0,true);
+	gridInfo.name = "floor";
+	gridInfo.meshIdx = -1;
+	objects.push_back(gridInfo);
 	
+	//positions
+	DEBUGLOG->log("Setup: model matrices"); DEBUGLOG->indent();
+	std::map<Renderable*, glm::mat4> modelMatrices;
+	modelMatrices[objects[0].renderable] = glm::translate(glm::vec3(randFloat(-3.0f,-2.0f), 0.0f, randFloat(-3,-2.0f)));
+	modelMatrices[objects[1].renderable] = glm::translate(glm::vec3(randFloat(0.0f,1.0f),randFloat(2.0f,3.0f),randFloat(-5.0f,5.0f)));
+	modelMatrices[objects[2].renderable] = glm::translate(glm::vec3(randFloat(-1.0f,1.0f),randFloat(-1.0f,0.0f),randFloat(0.0f,5.0f)));
+	modelMatrices[objects[3].renderable] = glm::translate(glm::vec3(randFloat(0.5f,1.0f), randFloat(-5.0,-1.0),randFloat(0.0,5.0f)));
+	modelMatrices[objects[4].renderable] = glm::translate(glm::vec3(randFloat(1.0f,5.0f), randFloat(0.0,2.0),randFloat(0.0,5.0f)));
+	modelMatrices[objects[5].renderable] = glm::translate(glm::vec3(0.0f,-2.0f,0.0f)) * glm::rotate(glm::radians(90.0f), glm::vec3(1.0f,0.0,0.0));
+	DEBUGLOG->outdent();
+
+	//colors
+	srand(time(NULL));
+	std::map<Renderable*, glm::vec4> colors;
+	colors[objects[0].renderable] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
+	colors[objects[1].renderable] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
+	colors[objects[2].renderable] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
+	colors[objects[3].renderable] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
+	colors[objects[4].renderable] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
+	colors[objects[5].renderable] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
+
+	// cull info
+	std::vector< std::pair< Renderable*, Culling::CullingInfo> >cullInfo;
+	for( auto r : objects )
+	{
+		auto infoPair = Culling::getCullingInfo(r, modelMatrices[r.renderable] );
+		cullInfo.push_back( infoPair );
+	}
+
 	// upload textures used by mesh
 	std::map<aiTextureType, GLuint> textures;
 	for (int i = 0; i < scene->mNumMaterials; i++)
@@ -123,8 +146,8 @@ int main()
 	// regular GBuffer
 	DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
 	ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
-	shaderProgram.update("view", view);
-	shaderProgram.update("projection", perspective);
+	shaderProgram.update("view", camera.getViewMatrix());
+	shaderProgram.update("projection", camera.getProjectionMatrix());
 
 	// check for displayable textures 
 	if (textures.find(aiTextureType_DIFFUSE) != textures.end())
@@ -145,7 +168,7 @@ int main()
 	renderGBuffer.addEnable(GL_DEPTH_TEST);	
 	renderGBuffer.setClearColor(0.0,0.0,0.0,0.0);
 	renderGBuffer.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	for (auto r : objects){renderGBuffer.addRenderable(r);}  
+	for (auto r : objects){renderGBuffer.addRenderable(r.renderable);}  
 	DEBUGLOG->outdent();
 
 	// regular GBuffer compositing
@@ -190,23 +213,23 @@ int main()
 	addTex.addDisable(GL_BLEND);
 	addTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 
-	// misc display of sun
-	//ShaderProgram sunShader("/modelSpace/billboardProjection.vert", "/modelSpace/simpleColor.frag");
-	//sunShader.update("projection", perspective);
-	////sunShader.update("color", glm::vec4(1.0,1.0,0.9,1.0));
-	//sunShader.bindTextureOnUse("tex", TextureTools::loadTextureFromResourceFolder("sun.png"));
-	//sunShader.update("blendColor", 1.0f);
-	//RenderPass sunPass(&sunShader, &compFBO);
-	//sunPass.addRenderable(&quad);
-	//sunPass.addEnable(GL_BLEND);
-	//sunPass.addEnable(GL_DEPTH_TEST);
+	// view from top
+	ShaderProgram topViewShader("/modelSpace/modelViewProjection.vert", "/modelSpace/simpleColor.frag");
+	topViewShader.printUniformInfo();
+	topViewShader.update("projection", camera.getProjectionMatrix());
+	topViewShader.update("view", glm::lookAt( glm::vec3(0,15.0f,0.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f, 0.0f, -1.0f) ));
+	FrameBufferObject topViewFBO(topViewShader.getOutputInfoMap(), WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
+	RenderPass renderTopView(&topViewShader, &topViewFBO);
+	for (auto r : objects){renderTopView.addRenderable(r.renderable);}  
+	renderTopView.addEnable(GL_DEPTH_TEST);
+	renderTopView.addClearBit(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Skybox
 	GLuint cubeMapTexture = TextureTools::loadDefaultCubemap();
 
 	// skybox rendering
 	PostProcessing::SkyboxRendering skyboxRendering;
-	skyboxRendering.m_skyboxShader.update("projection", perspective);
+	skyboxRendering.m_skyboxShader.update("projection", camera.getProjectionMatrix());
 
 	// Blur stuff
 	//PostProcessing::BoxBlur boxBlur(gbufferFBO.getWidth(), gbufferFBO.getHeight(),&quad);
@@ -214,7 +237,7 @@ int main()
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
-
+	
 	// Setup ImGui binding
      ImGui_ImplGlfwGL3_Init(window, true);
 
@@ -223,6 +246,7 @@ int main()
     double old_y;
 	glfwGetCursorPos(window, &old_x, &old_y);
 	
+	static bool active_mouse_control = false;
 	auto cursorPosCB = [&](double x, double y)
 	{
 	 	ImGuiIO& io = ImGui::GetIO();
@@ -232,9 +256,13 @@ int main()
 		double d_x = x - old_x;
 		double d_y = y - old_y;
 
+		if ( active_mouse_control )
+		{
+			camera.mouseControlCallback(- d_y / 300.0f, - d_x/ 300.0f);
+		}
 		if ( turntable.getDragActive() )
 		{
-			turntable.dragBy(d_x, d_y, view);
+			turntable.dragBy(d_x, d_y, camera.getViewMatrix());
 		}
 
 		old_x = x;
@@ -245,41 +273,27 @@ int main()
 	{
 		if (b == GLFW_MOUSE_BUTTON_LEFT && a == GLFW_PRESS)
 		{
-			turntable.setDragActive(true);
+			active_mouse_control = true;
 		}
 		if (b == GLFW_MOUSE_BUTTON_LEFT && a == GLFW_RELEASE)
 		{
+			active_mouse_control = false;
+		}
+		if (b == GLFW_MOUSE_BUTTON_RIGHT && a == GLFW_PRESS)
+		{
+			turntable.setDragActive(true);
+		}
+		if (b == GLFW_MOUSE_BUTTON_RIGHT && a == GLFW_RELEASE)
+		{
 			turntable.setDragActive(false);
 		}
-
 	// 	ImGui_ImplGlfwGL3_MouseButtonCallback(window, b, a, m);
 	};
 
 	 auto keyboardCB = [&](int k, int s, int a, int m)
 	 {
-	 	if (a == GLFW_RELEASE) {return;} 
-	 	switch (k)
-	 	{
-	 		case GLFW_KEY_W:
-	 			eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
-	 			center += glm::inverse(view) * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
-	 			break;
-	 		case GLFW_KEY_A:
-	 			eye += glm::inverse(view)	 * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
-	 			center += glm::inverse(view) * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
-	 			break;
-	 		case GLFW_KEY_S:
-	 			eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,0.1f,0.0f);
-	 			center += glm::inverse(view) * glm::vec4(0.0f,0.0f,0.1f,0.0f);
-	 			break;
-	 		case GLFW_KEY_D:
-	 			eye += glm::inverse(view)    * glm::vec4(0.1f,0.0f,0.0f,0.0f);
-	 			center += glm::inverse(view) * glm::vec4(0.1f,0.0f,0.0f,0.0f);
-	 			break;
-	 		default:
-	 			break;
-	 	}
-	 	ImGui_ImplGlfwGL3_KeyCallback(window,k,s,a,m);
+		 camera.keyboardControlCallback(k,s,a,m);
+		 ImGui_ImplGlfwGL3_KeyCallback(window,k,s,a,m);
 	 };
 
 	setCursorPosCallback(window, cursorPosCB);
@@ -287,13 +301,26 @@ int main()
 	setKeyCallback(window, keyboardCB);
 
 	 //model matrices / texture update function
-	 std::function<void(Renderable*)> perRenderableFunction = [&](Renderable* r){ 
-	 	static int i = 0;
-	 	shaderProgram.update("model", turntable.getRotationMatrix() * modelMatrices[i] * glm::scale(s_scale));
-	 	shaderProgram.update("color", colors[i]);
-	 	i = (i+1)%modelMatrices.size();
-	 	};
-	 renderGBuffer.setPerRenderableFunction( &perRenderableFunction );
+	std::function<void(Renderable*)> perRenderableFunction = [&](Renderable* r){ 
+		shaderProgram.update("model", turntable.getRotationMatrix() * modelMatrices[r] * glm::scale(s_scale));
+		shaderProgram.update("color", colors[r]);
+	};
+	renderGBuffer.setPerRenderableFunction( &perRenderableFunction );
+	
+	std::vector<Renderable* > visibleRenderables;
+	std::function<void(Renderable*)> topViewPerRenderableFunction = [&](Renderable* r){ 
+		topViewShader.update("model", turntable.getRotationMatrix() * modelMatrices[r] * glm::scale(s_scale));
+		for ( auto vR : visibleRenderables)
+		{
+			if ( vR == r )
+			{
+				topViewShader.update("color", colors[r]);
+				return;
+			}
+			topViewShader.update("color", colors[r] * 0.25f);
+		}
+	};
+	renderTopView.setPerRenderableFunction( &topViewPerRenderableFunction );
 
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////// RENDER LOOP /////////////////////////////////
@@ -339,29 +366,35 @@ int main()
         //////////////////////////////////////////////////////////////////////////////
 
 		///////////////////////////// VARIABLE UPDATING ///////////////////////////////
-		view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0.0f, 1.0f, 0.0f));
-
+		//view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0.0f, 1.0f, 0.0f));
+		camera.update(dt);
 		//update light data
-		glm::vec4 projectedLightPos = perspective * glm::mat4(glm::mat3(view)) * turntable.getRotationMatrix() * s_light_position;//multiply with the view-projection matrix
+		glm::vec4 projectedLightPos = camera.getProjectionMatrix() * glm::mat4(glm::mat3(camera.getViewMatrix())) * s_light_position;//multiply with the view-projection matrix
 		projectedLightPos = projectedLightPos / projectedLightPos.w;//perform perspective division
 		projectedLightPos.x = projectedLightPos.x*0.5+0.5;//the x/y screen coordinates come out between -1 and 1, so
 		projectedLightPos.y = projectedLightPos.y*0.5+0.5;//we need to rescale them to be 0 to 1 tex-coords
-
 		//////////////////////////////////////////////////////////////////////////////
-				
+		
+		/////////////////////////////   FRUSTUM CULLING    ///////////////////////////
+		visibleRenderables = cullingHelper.cullAgainstFrustum(cullInfo);
+		renderGBuffer.clearRenderables();
+		for (auto r : visibleRenderables) { renderGBuffer.addRenderable(r); };
+		ImGui::Value("visible objects: ", visibleRenderables.size());
+		//////////////////////////////////////////////////////////////////////////////
+
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
 		// update view related uniforms
-		shaderProgram.update( "view", view);
+		shaderProgram.update( "view", camera.getViewMatrix());
 		shaderProgram.update( "color", s_color);
 
 		// skybox
-		skyboxRendering.m_skyboxShader.update("view", glm::mat4(glm::mat3(view)) * turntable.getRotationMatrix());
+		skyboxRendering.m_skyboxShader.update("view", glm::mat4(glm::mat3(camera.getViewMatrix())));
 
 		// light position
-		compShader.update("vLightPos", view * turntable.getRotationMatrix() * s_light_position);
+		compShader.update("vLightPos", camera.getViewMatrix() * s_light_position);
 
 		// lens flare parameters
-		lensFlare.updateLensStarMatrix(view * turntable.getRotationMatrix());
+		lensFlare.updateLensStarMatrix(camera.getViewMatrix());
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
@@ -414,10 +447,17 @@ int main()
 		//addTexShader.updateAndBindTexture("addTex", 1, lensFlare.m_boxBlur->m_mipmapTextureHandle);
 		//addTex.render();
 		
+		// render top view
+		renderTopView.render();
+
 		// show / debug view of some texture
-		 showTex.setViewport(0,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
-		 showTexShader.updateAndBindTexture("tex", 0, gbufferFBO.getBuffer("fragNormal"));
-		 showTex.render();
+		showTex.setViewport(0,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
+		showTexShader.updateAndBindTexture("tex", 0, gbufferFBO.getBuffer("fragNormal"));
+		showTex.render();
+
+		showTex.setViewport(WINDOW_RESOLUTION.x / 4,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
+		showTexShader.updateAndBindTexture("tex", 0, topViewFBO.getBuffer("fragColor"));
+		showTex.render();
 
 		glViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y);
 
