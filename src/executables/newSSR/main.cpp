@@ -131,7 +131,7 @@ int main()
 		}
 	}
 
-	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/normal_water.jpg");	//test
+	//GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/normal_water.jpg");	//test
 
 	DEBUGLOG->outdent();
 	// recenter view
@@ -173,13 +173,19 @@ int main()
 		 gShader.bindTextureOnUse("NormalTex", textures.at(aiTextureType_NORMALS));
 		 //gShader.update("hasNormalTex", true);
 	 }
-	 gShader.bindTextureOnUse("NormalTex", distortionTex);	//test
+	 //gShader.bindTextureOnUse("NormalTex", distortionTex);	//test
 
 	 //auto matInfo = AssimpTools::getMaterialInfo(scene, 2);
 
-	 gShader.update("matId",0.99f); 			//woher bekommen?	//todo
+	 gShader.update("matId",0.0f); 			//woher bekommen?	//todo
 	 gShader.update("useNormalMapping", useNM);
 	 gShader.update("lightColor", s_color);
+
+/*
+	for(unsigned int n=0; n < objects.size(); n++){
+	//model = objects[n]->
+}
+*/
 
 	 // check for displayable textures
 	 /*if (textures.find(aiTextureType_DIFFUSE) != textures.end())
@@ -442,15 +448,15 @@ int main()
 	setMouseButtonCallback(window, mouseButtonCB);
 	setKeyCallback(window, keyboardCB);
 
-	// model matrices / texture update function
-	// std::function<void(Renderable*)> perRenderableFunction = [&](Renderable* r){
-	// 	static int i = 0;
-	// 	shaderProgram.update("model", turntable.getRotationMatrix() * modelMatrices[i]);
-	// 	shaderProgram.update("mixTexture", 0.0);
+	 //model matrices / texture update function
+	 std::function<void(Renderable*)> perRenderableFunction = [&](Renderable* r){
+	 	static int i = 0;
+	 	//gShader.update("model", turntable.getRotationMatrix() * modelMatrices[i]);
+	 	gShader.update("mixTexture", 0.0);
 
-	// 	i = (i+1)%modelMatrices.size();
-	// 	};
-	// renderPass.setPerRenderableFunction( &perRenderableFunction );
+	 	i = (i+1)%modelMatrices.size();
+	 	};
+	 gPass.setPerRenderableFunction( &perRenderableFunction );
 
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////// RENDER LOOP /////////////////////////////////
@@ -514,7 +520,7 @@ int main()
 
 		////////////////////////////////  RENDERING //// /////////////////////////////
 		gPass.render();
-		lightPass.render();
+		//lightPass.render();
 		ssrPass.render();
 		//compoPass.setViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y);
 		compoPass.render();
