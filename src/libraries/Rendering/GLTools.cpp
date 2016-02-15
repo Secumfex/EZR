@@ -199,7 +199,7 @@ void copyFBOContent(FrameBufferObject* source, FrameBufferObject* target, GLbitf
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, (target != nullptr) ? target->getFramebufferHandle() : 0);
 	
 	GLint defaultFBOWidth =  (GLint) (defaultFBOSize.x != -1.0f) ? defaultFBOSize.x : g_mainWindowSize.x;
-	GLint defaultFBOHeight = (GLint) (defaultFBOSize.x != -1.0f) ? defaultFBOSize.x : g_mainWindowSize.x;
+	GLint defaultFBOHeight = (GLint) (defaultFBOSize.y != -1.0f) ? defaultFBOSize.y : g_mainWindowSize.y;
 	
 	// color buffer is to be copied
 	if (bitField == GL_COLOR_BUFFER_BIT)
@@ -237,6 +237,51 @@ void copyFBOContent(FrameBufferObject* source, FrameBufferObject* target, GLbitf
 	glBlitFramebuffer(
 		0,0,(source != nullptr) ? source->getWidth() : defaultFBOWidth, (source!=nullptr)   ? source->getHeight() : defaultFBOHeight, 
 		0,0,(target != nullptr) ? target->getWidth() : defaultFBOWidth, (target != nullptr) ? target->getHeight() : defaultFBOHeight,
+		bitField, filter);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+void copyFBOContent(GLuint source, GLuint target, glm::vec2 sourceResolution, glm::vec2 targetResolution, GLenum bitField, GLenum readBuffer, GLenum filter)
+{
+		// bind framebuffers
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, source);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target);
+		
+	// color buffer is to be copied
+	if (bitField == GL_COLOR_BUFFER_BIT)
+	{
+		// default
+		if (readBuffer == GL_NONE)
+		{
+			glReadBuffer( (source == 0) ? GL_BACK : GL_COLOR_ATTACHMENT0);
+		}
+		else // set manually
+		{
+			glReadBuffer( readBuffer );
+		}
+		// copy content
+
+		glBlitFramebuffer(
+			0,0, (GLint) sourceResolution.x, (GLint) sourceResolution.y,
+			0,0, (GLint) targetResolution.x, (GLint) targetResolution.y,
+			bitField, (filter == GL_NONE) ? GL_NEAREST : filter);
+		
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		return;
+	}
+	if (bitField == GL_DEPTH_BUFFER_BIT)
+	{
+		glBlitFramebuffer(
+			0,0, (GLint) sourceResolution.x, (GLint) sourceResolution.y,
+			0,0, (GLint) targetResolution.x, (GLint) targetResolution.y,
+			bitField, GL_NEAREST);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		return;
+	}
+
+	// custom
+	glBlitFramebuffer(
+		0,0, (GLint) sourceResolution.x, (GLint) sourceResolution.y,
+		0,0, (GLint) targetResolution.x, (GLint) targetResolution.y,
 		bitField, filter);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

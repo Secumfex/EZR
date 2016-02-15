@@ -384,10 +384,7 @@ int main()
 		compositing.render();
 
 		// copy depth buffer to default fbo
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, scene_gbuffer.getFramebufferHandle());
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		glBlitFramebuffer(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y,0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		copyFBOContent(&scene_gbuffer, 0, GL_DEPTH_BUFFER_BIT);
 
 		// render foliage to screen
 		for(int i = 0; i < treeRendering.foliageRenderpasses.size(); i++)
@@ -397,12 +394,7 @@ int main()
 			treeRendering.foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
 
-		// copy composited image from screen to box blur fbo
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-		glReadBuffer(GL_BACK);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, boxBlur.m_mipmapFBOHandles[0]);
-		glBlitFramebuffer(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y,0,0, boxBlur.m_width, boxBlur.m_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		copyFBOContent(0, boxBlur.m_mipmapFBOHandles[0], WINDOW_RESOLUTION, glm::vec2(boxBlur.m_width, boxBlur.m_height), GL_COLOR_BUFFER_BIT, GL_NONE, GL_LINEAR);
 
 		boxBlur.pull(); // generate mipmaps
 		boxBlur.push(s_num_levels); // blur levels
@@ -410,7 +402,7 @@ int main()
 		glBlendFunc(GL_ONE, GL_ONE); // add blurred image to screen
 		bloom.render();
 
-		if ( showWindField) gridRenderPass.render();
+		if (showWindField) gridRenderPass.render();
 
 		ImGui::Render();
 		glDisable(GL_BLEND);

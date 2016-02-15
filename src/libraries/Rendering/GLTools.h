@@ -37,8 +37,11 @@ float getRatio(GLFWwindow* window); //!< returns (width / height) of the window
 * @param bitField defines the content to copy, e.g. GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT
 * @param readBuffer (optional) can be set if bitField is GL_COLOR_BUFFER_BIT, if GL_NONE is provided, the default is used (GL_COLOR_ATTACHMENT0) or (GL_BACK), if source is 0 (window)
 * @param filter (optional) can be set if bitField is GL_COLOR_BUFFER_BIT, if GL_NONE is provided, GL_NEAREST is used
+* @param defaultFBOSize (optional) size of 0 framebuffer object, will be read from mainWindowResolution if omitted
 */
 void copyFBOContent(FrameBufferObject* source, FrameBufferObject* target, GLbitfield bitField, GLenum readBuffer = GL_NONE, GLenum filter = GL_NONE , glm::vec2 defaultFBOSize = glm::vec2(-1.0f, -1.0f));
+void copyFBOContent(GLuint source, GLuint target, glm::vec2 sourceResolution, glm::vec2 targetResolution, GLenum bitField, GLenum readBuffer = GL_NONE, GLenum filter = GL_NONE); //!< like above, but without FBO class
+
 
 template <class T>
 GLuint bufferData(const std::vector<T>& content, GLenum drawType = GL_STATIC_DRAW)
