@@ -340,9 +340,9 @@ PostProcessing::LensFlare::LensFlare(int width, int height)
 	,m_num_ghosts(3)
 	,m_blur_strength(3)
 	,m_ghost_dispersal(0.6f)
-	,m_halo_width(0.44f)
+	,m_halo_width(0.25f)
 	,m_distortion(5.0f)
-	,m_strength(0.7f)
+	,m_strength(1.5f)
 {
 	m_downSampleFBO = new FrameBufferObject(m_downSampleShader.getOutputInfoMap(),width,height);
 	m_featuresFBO = new FrameBufferObject(m_ghostingShader.getOutputInfoMap(),width,height);
@@ -415,7 +415,7 @@ void PostProcessing::LensFlare::renderLensFlare(GLuint sourceTexture, FrameBuffe
 
 	// blur
 	m_boxBlur->pull();
-	m_boxBlur->push( m_blurStrength );
+	m_boxBlur->push( m_blur_strength );
 
 	// render to target fbo
 	if ( target != nullptr )
@@ -473,7 +473,7 @@ void PostProcessing::LensFlare::imguiInterfaceEditParameters()
 	ImGui::SliderFloat("halo width",	 &m_halo_width, 0.0f, 5.0f);
 	ImGui::SliderFloat("chrom. distort", &m_distortion, 0.0f, 10.0f);
 	ImGui::SliderInt("num ghosts",		 &m_num_ghosts, 0, 10);
-	ImGui::SliderInt("blur strength",	 &m_blurStrength, 0, 7);
+	ImGui::SliderInt("blur strength",	 &m_blur_strength, 0, 7);
 	ImGui::SliderFloat("ghost dispersal",&m_ghost_dispersal, 0.0f, 5.0f);
 	ImGui::SliderFloat("add strength",	 &m_strength, 0.0f, 5.0f);
 }

@@ -119,11 +119,10 @@ namespace PostProcessing
 		glm::mat3 updateLensStarMatrix(glm::mat4 view);
 
 		// variables
-		int m_blurStrength;
+		int m_blur_strength;
 		float m_scale;
 		float m_bias;
 		int m_num_ghosts;
-		int m_blur_strength;
 		float m_ghost_dispersal;
 		float m_halo_width;
 		float m_distortion;
