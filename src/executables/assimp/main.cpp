@@ -170,9 +170,14 @@ int main()
 	 // regular GBuffer
 	 DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
 	 ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
-	 shaderProgram.update("model", model);
+	 //shaderProgram.update("model", model);
 	 shaderProgram.update("view", view);
 	 shaderProgram.update("projection", perspective);
+
+/**/for(unsigned int n=0; n < objects.size(); n++){
+	model = objects.
+	shaderProgram.update("model", model);
+}
 
 	 // check for displayable textures 
 	 if (textures.find(aiTextureType_DIFFUSE) != textures.end())
