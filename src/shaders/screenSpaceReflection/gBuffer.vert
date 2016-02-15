@@ -3,14 +3,14 @@
 
 //!< in-vars
 //nach guido
-layout (location=0) in vec3 vertex;
-layout (location=1) in vec3 normal;
-layout (location=2) in vec2 uv;
+//layout (location=0) in vec3 vertex;
+//layout (location=1) in vec3 normal;
+//layout (location=2) in vec2 uv;
 //nach arend
-//layout(location = 0) in vec3 vertex;	//pos	//vec4
-//layout(location = 1) in vec2 uv;		//coord
-//layout(location = 2) in vec3 normal;			//vec4
-//layout(location = 3) in vec4 tangent;
+layout(location = 0) in vec3 vertex;	//pos	//vec4
+layout(location = 1) in vec2 uv;		//coord
+layout(location = 2) in vec3 normal;			//vec4
+layout(location = 3) in vec4 tangent;
 
 //!< out-vars
 out vec3 vert_wsPosition;
