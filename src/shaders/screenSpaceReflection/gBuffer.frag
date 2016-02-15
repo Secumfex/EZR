@@ -34,7 +34,7 @@ uniform float matId;
 uniform bool useNormalMapping;
 uniform vec3 lightColor;
 uniform mat4 wsNormalMatrix;
-uniform mat4 vsNormalMatrix;
+//uniform mat4 vsNormalMatrix;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;

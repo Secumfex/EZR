@@ -31,9 +31,13 @@ static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
 static glm::vec3 s_scale = glm::vec3(1.0f,1.0f,1.0f);
 
 float cameraNear = 0.1f;
-float cameraFar = 20.0f;	//200
+float cameraFar = 200.0f;	//200
 int rayStep = 0.0f;
 bool fadeEdges = true;
+
+static std::map<Renderable*, int> rendMatMap; 						//!< mapping a renderable to a material index
+static std::vector<std::map<aiTextureType, GLuint>> matTexHandles; 	//!< mapping material texture types to texture handles
+
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -50,7 +54,7 @@ int main()
 	DEBUGLOG->log("Setup: importing assets"); DEBUGLOG->indent();
 
 	// get file name
-	std::string input = "tscene3.obj";
+	std::string input = "street/street.dae";
 	std::string file = RESOURCES_PATH "/" + input;
 
 	// import using ASSIMP and check for errors
@@ -59,6 +63,9 @@ int main()
 
 	const aiScene* temp = importer.ReadFile( file, aiProcessPreset_TargetRealtime_MaxQuality);
 	const aiScene* scene = importer.GetScene();
+	//const aiScene* scene = AssimpTools::importAssetFromResourceFolder(input, importer);
+
+	if (scene != NULL) matTexHandles.resize(scene->mNumMaterials);
 
 	DEBUGLOG->log("Asset has been loaded successfully");
 	DEBUGLOG->outdent();
@@ -111,39 +118,44 @@ int main()
 //	std::vector<AssimpTools::RenderableInfo> renderableInfoVector = AssimpTools::createSimpleRenderablesFromScene( scene );
 	auto vertexData = AssimpTools::createVertexDataInstancesFromScene(scene);
 	auto renderables = AssimpTools::createSimpleRenderablesFromVertexDataInstances(vertexData);
+	int n = 0;
 	for (auto r : renderables)
 	{
 		objects.push_back(r);
+		//fill rendable material map
+		int mi = scene->mMeshes[n]->mMaterialIndex;
+		rendMatMap.insert ( std::pair<Renderable*,int>(r,mi) );
+		n=n+1;
 	}
+	std::cout << "sizeOBJ: " << objects.size() << endl;
+	std::cout << "sizeREN: " << renderables.size() << endl;
+	std::cout << "sizeRMM: " << rendMatMap.size() << endl;
 
-	// upload textures used by mesh
-	std::map<aiTextureType, GLuint> textures;
-	for (int i = 0; i < scene->mNumMaterials; i++)
-	{
-		auto matInfo = AssimpTools::getMaterialInfo(scene, i);
+	//pro mesh
+	for(int j = 0; j < scene->mNumMeshes; j++){
+
+		std::map<aiTextureType, GLuint> textures;
+		auto matInfo = AssimpTools::getMaterialInfo(scene, j);
 		DEBUGLOG->indent();
 			AssimpTools::printMaterialInfo(matInfo);
 		DEBUGLOG->outdent();
-		for (auto t : matInfo.texture) // load all textures used with this material
-		{
+		for (auto t : matInfo.texture){		// load all textures used with this material
 			GLuint tex = TextureTools::loadTextureFromResourceFolder(t.second.relativePath);
 			if (tex != -1){ textures[t.first] = tex; } // save if successfull
 		}
-	}
+		matTexHandles.push_back(textures);
 
-	//GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/normal_water.jpg");	//test
+	std::cout << textures.size() << endl;
+	}
+	std::cout << "sizeMTH: " << matTexHandles.size() << endl;
+
+	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/normal_water.jpg");	//test
 
 	DEBUGLOG->outdent();
 	// recenter view
 	//center = glm::vec4(glm::vec3(center) + 0.5f * (bbox_max - bbox_min) + bbox_min, center.w);
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
-	 // regular GBuffer
-	 /*DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
-	 ShaderProgram shaderProgram("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag"); DEBUGLOG->outdent();
-	 shaderProgram.update("model", model);
-	 shaderProgram.update("view", view);
-	 shaderProgram.update("projection", perspective);*/
 
 	 //gbuffer pass
 	 DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
@@ -165,7 +177,7 @@ int main()
 	 //gShader.bindTextureOnUse("ColorTex",);
 	 //gShader.bindTextureOnUse("NormalTex",);
 	 // check for displayable textures
-	 if (textures.find(aiTextureType_DIFFUSE) != textures.end()){
+/*	 if (textures.find(aiTextureType_DIFFUSE) != textures.end()){
 		 gShader.bindTextureOnUse("ColorTex", textures.at(aiTextureType_DIFFUSE));
 		 //gShader.update("mixTexture", 1.0);
 	 }
@@ -173,33 +185,15 @@ int main()
 		 gShader.bindTextureOnUse("NormalTex", textures.at(aiTextureType_NORMALS));
 		 //gShader.update("hasNormalTex", true);
 	 }
-	 //gShader.bindTextureOnUse("NormalTex", distortionTex);	//test
+*/
+	 //gShader.bindTextureOnUse("ColorTex", distortionTex);	//test
+	 gShader.bindTextureOnUse("NormalTex", distortionTex);	//test
 
-	 //auto matInfo = AssimpTools::getMaterialInfo(scene, 2);
-
-	 gShader.update("matId",0.0f); 			//woher bekommen?	//todo
+//	 gShader.update("matId",0.0f); 			//woher bekommen?	//todo
 	 gShader.update("useNormalMapping", useNM);
 	 gShader.update("lightColor", s_color);
 
-/*
-	for(unsigned int n=0; n < objects.size(); n++){
-	//model = objects[n]->
-}
-*/
-
-	 // check for displayable textures
-	 /*if (textures.find(aiTextureType_DIFFUSE) != textures.end())
-	 { shaderProgram.bindTextureOnUse("tex", textures.at(aiTextureType_DIFFUSE)); shaderProgram.update("mixTexture", 1.0);}
-	 if (textures.find(aiTextureType_NORMALS) != textures.end() && shaderProgram.getUniformInfoMap()->find("normalTex") != shaderProgram.getUniformInfoMap()->end())
-	 { shaderProgram.bindTextureOnUse("normalTex", textures.at(aiTextureType_NORMALS));shaderProgram.update("hasNormalTex", true);}*/
-
 	 DEBUGLOG->outdent();
-
-	 /*DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
-	 FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
-	 FrameBufferObject fbo(shaderProgram.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
-	 FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
-	 DEBUGLOG->outdent();*/
 
 	 //gbuffer fbo
 	 DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
@@ -208,15 +202,6 @@ int main()
 	 FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
 	 //damit fertig? alle texturen/colorattachm erstellt??
 	 DEBUGLOG->outdent();
-
-	 /*DEBUGLOG->log("RenderPass Creation: GBuffer"); DEBUGLOG->indent();
-	 RenderPass renderPass(&shaderProgram, &fbo);
-	 renderPass.addEnable(GL_DEPTH_TEST);
-	 // renderPass.addEnable(GL_BLEND);
-	 renderPass.setClearColor(0.0,0.0,0.0,0.0);
-	 renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	 for (auto r : objects){renderPass.addRenderable(r);}
-	 DEBUGLOG->outdent();*/
 
 	 DEBUGLOG->log("RenderPass Creation: GBuffer"); DEBUGLOG->indent();
 	 RenderPass gPass(&gShader, &gFBO);
@@ -326,15 +311,6 @@ int main()
 	 ssrPass.addRenderable(&quad);
 	 DEBUGLOG->outdent();
 
-
-	 // regular GBuffer compositing
-	 /*DEBUGLOG->log("Shader Compilation: GBuffer compositing"); DEBUGLOG->indent();
-	 ShaderProgram compShader("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing.frag"); DEBUGLOG->outdent();
-	 // set texture references
-	 compShader.bindTextureOnUse("colorMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
-	 compShader.bindTextureOnUse("normalMap", 	 fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
-	 compShader.bindTextureOnUse("positionMap",  fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));*/
-
 	 DEBUGLOG->log("Shader Compilation: compositing"); DEBUGLOG->indent();
 	 ShaderProgram compoShader("/screenSpaceReflection/comp.vert", "/screenSpaceReflection/comp.frag"); DEBUGLOG->outdent();
 	 compoShader.update("textureID",0);	//durchflitsch. was gerendert werden soll
@@ -354,14 +330,6 @@ int main()
 	 compoShader.bindTextureOnUse("DiffuseTex",lightFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	 compoShader.bindTextureOnUse("SSRTex",ssrFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 
-	 /*DEBUGLOG->log("RenderPass Creation: GBuffer Compositing"); DEBUGLOG->indent();
-	 Quad quad;
-	 RenderPass compositing(&compShader, 0);
-	 compositing.addClearBit(GL_COLOR_BUFFER_BIT);
-	 compositing.setClearColor(0.25,0.25,0.35,0.0);
-	 // compositing.addEnable(GL_BLEND);
-	 compositing.addDisable(GL_DEPTH_TEST);
-	 compositing.addRenderable(&quad);*/
 
 	 DEBUGLOG->log("RenderPass Creation: Compositing"); DEBUGLOG->indent();
 	 //Quad quad;		//wofür istdas quad?
@@ -452,9 +420,40 @@ int main()
 	 std::function<void(Renderable*)> perRenderableFunction = [&](Renderable* r){
 	 	static int i = 0;
 	 	//gShader.update("model", turntable.getRotationMatrix() * modelMatrices[i]);
-	 	gShader.update("mixTexture", 0.0);
+	 	//gShader.update("mixTexture", 0.0);
 
-	 	i = (i+1)%modelMatrices.size();
+	 	int k = rendMatMap.find(r)->second;
+	 	std::cout << "k: " << k << endl;
+
+	 	if (! matTexHandles.empty()){
+	 	auto difftex = matTexHandles[k].find(aiTextureType_DIFFUSE);
+	 	if ( difftex != matTexHandles[k].end())
+	 	{
+	 		gShader.bindTextureOnUse("ColorTex", difftex->second);
+	 		//gShader.update("mixTexture", 1.0f);
+	 	}
+	 	auto normaltex = matTexHandles[k].find(aiTextureType_HEIGHT);
+	 	if (normaltex != matTexHandles[k].end())
+	 	{
+	 		gShader.bindTextureOnUse("NormalTex", normaltex->second);
+	 		//gShader.update("hasNormalTex", true);
+	 	}}
+
+	 	//pro mesh uniforms
+/*		 if (texArray[i].find(aiTextureType_DIFFUSE) != texArray[i].end()){
+			 gShader.bindTextureOnUse("ColorTex", texArray[i].at(aiTextureType_DIFFUSE));
+			 //gShader.update("mixTexture", 1.0);
+		 }
+		 if (texArray[i].find(aiTextureType_NORMALS) != texArray[i].end() && gShader.getUniformInfoMap()->find("NormalTex") != gShader.getUniformInfoMap()->end()){
+			 gShader.bindTextureOnUse("NormalTex", texArray[i].at(aiTextureType_NORMALS));
+			 //gShader.update("hasNormalTex", true);
+		 }
+*/
+		 float mId = scene->mMeshes[k]->mMaterialIndex / 100.0f;
+		 std::cout << "matid: " << mId <<endl;
+		 gShader.update("matId",mId);
+	 	//i = (i+1)%modelMatrices.size();
+	 	i = 1+1;
 	 	};
 	 gPass.setPerRenderableFunction( &perRenderableFunction );
 
@@ -494,9 +493,6 @@ int main()
 
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
 		// update view related uniforms
-		/*shaderProgram.update( "view", view);
-		shaderProgram.update( "color", s_color);
-		shaderProgram.update( "model", turntable.getRotationMatrix() * model * glm::scale(s_scale));*/
 
 		gShader.update("view", view);
 		gShader.update("wsNormalMatrix", glm::transpose(glm::inverse(view * model)));
@@ -520,11 +516,13 @@ int main()
 
 		////////////////////////////////  RENDERING //// /////////////////////////////
 		gPass.render();
-		//lightPass.render();
+		std::cout << "gpass" << endl;
+		lightPass.render();
+		std::cout << "lightpass" << endl;
 		ssrPass.render();
-		//compoPass.setViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y);
+		std::cout << "ssrpass" << endl;
 		compoPass.render();
-
+		std::cout << "comppass" << endl;
 		//compositing.render();
 
 		ImGui::Render();
