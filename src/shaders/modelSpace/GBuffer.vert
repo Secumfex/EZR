@@ -9,6 +9,7 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
+
 out vec3 passWorldPosition;
 out vec3 passPosition;
 out vec2 passUVCoord;

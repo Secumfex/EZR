@@ -419,7 +419,7 @@ Quad::Quad()
     m_positions.m_vboHandle = positionBuffer;
 
     m_mode = GL_TRIANGLE_STRIP;
-    
+        
     float positions[] = 
     {
         -1.0f, -1.0f,
@@ -436,9 +436,10 @@ Quad::Quad()
         1.0f, 1.0f
     };
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*8, positions, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(0);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float), positions, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+
     glBufferData(GL_ARRAY_BUFFER, sizeof(float)*8, uv, GL_STATIC_DRAW);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(1);
@@ -455,6 +456,106 @@ void Quad::draw()
     glBindVertexArray(m_vao);
     glDrawArrays(m_mode, 0, 4);
 }
+
+
+Terrain::Terrain()
+{
+    glGenVertexArrays(1, &m_vao);
+    glBindVertexArray(m_vao);
+
+    GLuint positionBuffer;
+    glGenBuffers(1, &positionBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
+
+    m_positions.m_vboHandle = positionBuffer;
+    m_mode = GL_PATCHES;
+ 
+	 float width = 16;  
+	 float height = 16; 
+	 float positio[132224];
+
+	for (int i=0; i<height; i++) {
+		for (int j=0; j<width; j++) {
+
+			// i * width * value_num + j * value_num + {0..value_num-1}
+			//std::cout << positio[i*16*8 + j*8]<<endl;
+
+		// erste Reihe
+		//first corner === links unten
+		positio[i*16*32 + j * 32] = j / float(width);
+		positio[i*16*32 + j * 32 + 1] = i / float(height);
+
+		positio[i*16*32 + j * 32 + 2] = (j + 0.33f) / float(width);
+		positio[i*16*32 + j * 32 + 3] = (i + 0.0f) / float(width);
+
+		positio[i*16*32 + j * 32 + 4] = (j + 0.66f) / float(width);
+		positio[i*16*32 + j * 32 + 5] = (i + 0.0f)/ float(width);
+
+		positio[i*16*32 + j * 32 + 6] = (j + 1.0f) / float(width);
+		positio[i*16*32 + j * 32 + 7] = (i + 0.0f) / float(width);
+
+		//zweite Reihe
+		positio[i*16*32 + j * 32 + 8] = (j + 0.0f) / float(width);
+		positio[i*16*32 + j * 32 + 9] = (i + 0.33f) / float(width);
+
+		positio[i*16*32 + j * 32 + 10] = (j + 0.33f) / float(width);
+		positio[i*16*32 + j * 32 + 11] = (i + 0.33f) / float(width);
+
+		positio[i*16*32 + j * 32 + 12] = (j + 0.66f) / float(width);
+		positio[i*16*32 + j * 32 + 13] = (i + 0.33f) / float(width);
+
+		positio[i*16*32 + j * 32 + 14] = (j + 1.0f) / float(width);
+		positio[i*16*32 + j * 32 + 15] = (i + 0.33f) / float(width);
+
+		//dritte Reihe
+		positio[i*16*32 + j * 32 + 16] = (j + 0.0f) / float(width);
+		positio[i*16*32 + j * 32 + 17] = (i + 0.66f) / float(width);
+
+		positio[i*16*32 + j * 32 + 18] = (j + 0.33f) / float(width);
+		positio[i*16*32 + j * 32 + 19] = (i + 0.66f) / float(width);
+
+		positio[i*16*32 + j * 32 + 20] = (j + 0.66f) / float(width);
+		positio[i*16*32 + j * 32 + 21] = (i + 0.66f) / float(width);
+
+		positio[i*16*32 + j * 32 + 22] = (j + 1.0f) / float(width);
+		positio[i*16*32 + j * 32 + 23] = (i + 0.66f) / float(width);
+
+		//vierte Reihe
+		//sescond corner === links oben
+		positio[i*16*32 + j * 32 + 24] = j/ float(width);
+		positio[i*16*32 + j * 32 + 25] = (i+1) / float(height);
+
+		positio[i*16*32 + j * 32 + 26] = (j + 0.33f) / float(width);
+		positio[i*16*32 + j * 32 + 27] = (i + 1.0f) / float(width);
+
+		positio[i*16*32 + j * 32 + 28] = (j + 0.66f) / float(width);
+		positio[i*16*32 + j * 32 + 29] = (i + 1.0f) / float(width);
+
+		//third corner === oben rechts
+		positio[i*16*32 + j * 32 + 30] = (j+1)/ float(width);
+		positio[i*16*32 + j * 32 + 31] = (i+1) / float(height);
+		}
+	}
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(positio),  &positio[0], GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glPatchParameteri(GL_PATCH_VERTICES, 16);
+}
+
+Terrain::~Terrain()
+{
+    glDeleteBuffersARB(1, &(m_positions.m_vboHandle));
+    glDeleteBuffersARB(1, &(m_uvs.m_vboHandle));
+}
+
+void Terrain::draw()
+{
+    glBindVertexArray(m_vao);
+    glDrawArrays(GL_PATCHES, 0, 300000);
+}
+
+
 
 #include <glm/gtc/constants.hpp>
 
@@ -712,15 +813,36 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
 
     int top = 0;
     int bottom = fieldsX+1;
+
+	indices[1] = 0;
+	indices[2] = fieldsY+1;
+	indices[3] = fieldsX+1;
+	indices[4] = fieldsX+1;
+	indices[5] = fieldsY+1;
+	indices[6] = fieldsX+2;
+	indices[7] = fieldsX+2;
+	indices[8] = fieldsY+1;
+	indices[9] = fieldsX+3;
+	indices[10] = fieldsX+3;
+	indices[11] = fieldsY+1;
+	indices[11] = fieldsX+4;
+
+
     for (int i = 0; i < indices.size(); i++)
     {
-        if (i%2 == 0) // even index: top vertex
+		//indices[i] = top;
+		//indices[i+1] = top-1;
+		//indices[i+2] = top-2;
+		
+		
+		
+		if (i%2 == 0) // even index: top vertex
         {
-            indices[i] = top;
+           // indices[i] = top;
             top++;
         } 
         else{   //odd index: bottom vertex
-            indices[i] = bottom;
+           // indices[i] = bottom;
             bottom++;
         }
 
@@ -975,5 +1097,3 @@ void TruncatedCone::draw()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indices.m_vboHandle);
 	glDrawElements(m_mode, m_indices.m_size, GL_UNSIGNED_INT, 0);
 }
-
-

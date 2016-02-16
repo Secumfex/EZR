@@ -82,6 +82,15 @@ public:
 	void draw() override; //!< draws the quad
 };
 
+class Terrain : public Renderable {
+public:
+	Terrain();
+	
+	~Terrain();
+
+	void draw() override; //!< draws the terrain
+};
+
 class Sphere : public Renderable {
 public:
     /**
