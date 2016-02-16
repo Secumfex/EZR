@@ -13,7 +13,7 @@ uniform mat4 projection;
 out vec3 tcPosition[];
 
 vec2 screen_size = vec2(800.0, 600.0);
-float lod_factor = 4;
+float lod_factor = 0.25f;
 
 vec4 project(vec4 vertex){
     //vec4 result = mvp * vertex;
@@ -81,6 +81,11 @@ void main(){
              gl_TessLevelOuter[1] = e1;
              gl_TessLevelOuter[2] = e2;
              gl_TessLevelOuter[3] = e3;
+			 
+			//gl_TessLevelOuter[0] = 8;
+            //gl_TessLevelOuter[1] = 8;
+            //gl_TessLevelOuter[2] = 8;
+            //gl_TessLevelOuter[3] = 8;
          }
      }
  }

@@ -350,14 +350,9 @@ Terrain::Terrain()
 
     m_positions.m_vboHandle = positionBuffer;
     m_mode = GL_PATCHES;
-
-	float shift = 0.5;
-	 //float width = 32; 
-	 float width = 16; 
-	 //float height = 32; 
+ 
+	 float width = 16;  
 	 float height = 16; 
-	 float position[256][128];
-
 	 float positio[132224];
 
 	for (int i=0; i<height; i++) {
@@ -420,55 +415,12 @@ Terrain::Terrain()
 		//third corner === oben rechts
 		positio[i*16*32 + j * 32 + 30] = (j+1)/ float(width);
 		positio[i*16*32 + j * 32 + 31] = (i+1) / float(height);
-
-			//fourth corner === unten rechts
 		}
 	}
 
-	  float positions[] = 
-    {
-		// erste reihe
-	  0.000f,  0.000f,  0.000f,
-      0.33f,  0.000f,  0.0f,
-      0.66f,  0.000f,  0.0f,
-      1.0f,  0.000f,  0.0f,
-
-	  //zweite reihe
-     0.0f,  0.33f,  0.25f,
-     0.33f,  0.33f,  0.25f,
-     0.66f,  0.33f,  0.25f,
-     1.0f,  0.33f,  0.25f,
-
-	 //dritte reihe
-     0.0f,  0.66f,  -0.250f,
-     0.33f,  0.660f,  -0.250f,
-     0.66f,  0.660f,  -0.250f,
-     1.0f,  0.660f,  -0.250f,
-
-	 // vierte reihe
-	 0.0f, 1.0f, 0.0f,
-	 0.33f, 1.0f, 0.0f,
-	 0.66f, 1.0f, 0.0f,
-	 1.0f, 1.0f, 0.0f,
-
-	  };
-
-    float uv[] = 
-    {
-        0.0f, 0.0f,
-        0.0f, 1.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f
-    };
-    
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(positio),  &positio[0], GL_STATIC_DRAW);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(positio),  &positio[0], GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-
-   // glBufferData(GL_ARRAY_BUFFER, sizeof(float)*8, uv, GL_STATIC_DRAW);
-   // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
-   // glEnableVertexAttribArray(1);
 	glPatchParameteri(GL_PATCH_VERTICES, 16);
 }
 
@@ -658,8 +610,7 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
     m_uvs.m_vboHandle = uvBuffer;
     m_indices.m_vboHandle = indexBuffer;
 
-    //m_mode = GL_TRIANGLE_STRIP;
-    m_mode = GL_PATCHES;
+    m_mode = GL_TRIANGLE_STRIP;
     
 
     std::vector<float> positions( ((fieldsX+1) * (fieldsY+1))*3, 0.0f );
@@ -788,7 +739,6 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
     m_indices.m_size = indices.size();
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*indices.size(), &indices[0], GL_STATIC_DRAW);
-	//glPatchParameteri(GL_PATCH_VERTICES, 3);
 }
 
 Grid::~Grid()
@@ -804,5 +754,4 @@ void Grid::draw()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indices.m_vboHandle);
    // glDrawElements(GL_TRIANGLE_STRIP, m_indices.m_size, GL_UNSIGNED_INT, 0);
      glDrawArrays(GL_POINTS,  0, m_positions.m_size);
-	//glDrawArrays(GL_PATCHES, 0, m_indices.m_size);
 }

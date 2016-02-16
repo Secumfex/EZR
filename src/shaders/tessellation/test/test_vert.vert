@@ -18,5 +18,5 @@ void main () {
 	//float height = abs(rand(position)) / 12.0f;
 	//passPosition = vec3(position.xy, height);
 
-	gl_Position = vec4(position.xy, height, 1);
+	gl_Position = vec4(position.x, height,position.y, 1);
 }
