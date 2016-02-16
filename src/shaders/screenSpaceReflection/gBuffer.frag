@@ -29,7 +29,7 @@ layout(location = 3) out vec4 Reflectance;
 //!< uniforms
 // Material informations
 uniform float matId;
-//uniform float matReflectance;
+uniform float matReflectance;
 
 uniform bool useNormalMapping;
 uniform vec3 lightColor;
@@ -148,7 +148,8 @@ void main(void){
 	Color.rgb = OutputColor;
 	//reflectance
 	Reflectance.a = 0.0;
-	Reflectance.a = texture(NormalTex, vert_UV).a;
+	//Reflectance.a = texture(NormalTex, vert_UV).a;
+	Reflectance.a = matReflectance;
 	//materials
 	Color.a = matId;
 	if(matId == 0.99){

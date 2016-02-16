@@ -42,8 +42,8 @@ static std::vector<std::map<aiTextureType, GLuint>> matTexHandles; 	//!< mapping
 ///////////////////////////////// MAIN ///////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
-int main()
-{
+int main(){
+	std::cout<<"new main"<<endl;
 	DEBUGLOG->setAutoPrint(true);
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -54,7 +54,7 @@ int main()
 	DEBUGLOG->log("Setup: importing assets"); DEBUGLOG->indent();
 
 	// get file name
-	std::string input = "street/street.dae";
+	std::string input = "tscene3.obj";
 	std::string file = RESOURCES_PATH "/" + input;
 
 	// import using ASSIMP and check for errors
@@ -149,59 +149,32 @@ int main()
 	}
 	std::cout << "sizeMTH: " << matTexHandles.size() << endl;
 
-	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/normal_water.jpg");	//test
+	//GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/normal_water.jpg");	//test
 
 	DEBUGLOG->outdent();
-	// recenter view
-	//center = glm::vec4(glm::vec3(center) + 0.5f * (bbox_max - bbox_min) + bbox_min, center.w);
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
 
 	 //gbuffer pass
-	 DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
-	 ShaderProgram gShader("/screenSpaceReflection/gBuffer.vert", "/screenSpaceReflection/gBuffer.frag"); DEBUGLOG->outdent();
-	 gShader.update("model", model);
-	 gShader.update("view", view);
-	 gShader.update("projection", perspective);
+	DEBUGLOG->log("Shader Compilation: GBuffer"); DEBUGLOG->indent();
+	ShaderProgram gShader("/screenSpaceReflection/gBuffer2.vert", "/screenSpaceReflection/gBuffer2.frag"); DEBUGLOG->outdent();
+	//gShader.update
+	gShader.update("model",model);
+	gShader.update("view",view);
+	gShader.update("projection",perspective);
+//	gShader.update("lightColor",s_color);
+	gShader.update("color",s_color);
+	//gShader.bindTextureOnUse
 
-	 glm::mat4 wsNormalMat = glm::transpose(glm::inverse(model));
-	 glm::mat4 vsNormalMat = glm::transpose(glm::inverse(view * model));
-	 //glm::mat4 mvp = perspective * view * model;	//not used
-	 bool useNM = true;
+	DEBUGLOG->outdent();
 
-	 gShader.update("camPosition",eye);
-	 gShader.update("wsNormalMatrix",wsNormalMat);
-	 gShader.update("vsNormalMatrix",vsNormalMat);
-	 //gShader.update("MVPMatrix", mvp);	//not used
-
-	 //gShader.bindTextureOnUse("ColorTex",);
-	 //gShader.bindTextureOnUse("NormalTex",);
-	 // check for displayable textures
-/*	 if (textures.find(aiTextureType_DIFFUSE) != textures.end()){
-		 gShader.bindTextureOnUse("ColorTex", textures.at(aiTextureType_DIFFUSE));
-		 //gShader.update("mixTexture", 1.0);
-	 }
-	 if (textures.find(aiTextureType_NORMALS) != textures.end() && gShader.getUniformInfoMap()->find("NormalTex") != gShader.getUniformInfoMap()->end()){
-		 gShader.bindTextureOnUse("NormalTex", textures.at(aiTextureType_NORMALS));
-		 //gShader.update("hasNormalTex", true);
-	 }
-*/
-	 //gShader.bindTextureOnUse("ColorTex", distortionTex);	//test
-	 gShader.bindTextureOnUse("NormalTex", distortionTex);	//test
-
-//	 gShader.update("matId",0.0f); 			//woher bekommen?	//todo
-	 gShader.update("useNormalMapping", useNM);
-	 gShader.update("lightColor", s_color);
-
-	 DEBUGLOG->outdent();
-
-	 //gbuffer fbo
-	 DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
-	 FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
-	 FrameBufferObject gFBO(gShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
-	 FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
-	 //damit fertig? alle texturen/colorattachm erstellt??
-	 DEBUGLOG->outdent();
+	//gbuffer fbo
+	DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
+	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
+	FrameBufferObject gFBO(gShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
+	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
+	//damit fertig? alle texturen/colorattachm erstellt??
+	DEBUGLOG->outdent();
 
 	 DEBUGLOG->log("RenderPass Creation: GBuffer"); DEBUGLOG->indent();
 	 RenderPass gPass(&gShader, &gFBO);
@@ -212,92 +185,42 @@ int main()
 	 for (auto r : objects){gPass.addRenderable(r);}
 	 DEBUGLOG->outdent();
 
+//!!beleucht erst mal raus lassen!!
 	 //light pass
-	 DEBUGLOG->log("Shader Compilation: light"); DEBUGLOG->indent();
+/*	 DEBUGLOG->log("Shader Compilation: light"); DEBUGLOG->indent();
 	 ShaderProgram lightShader("/screenSpaceReflection/light.vert", "/screenSpaceReflection/light.frag"); DEBUGLOG->outdent();
-	 lightShader.update("view", view);
-	 //lightShader.update("projection", perspective);	//not used!
-
-	 glm::vec3 ldiff = glm::vec3(0.95f, 0.85f, 0.75f);
-	 glm::vec3 lspec = glm::vec3(1.0f,1.0f,1.0f);
-	 int lc = 1;
-
-	 lightShader.update("lightPosition",s_lightPos);
-	 lightShader.update("lightDiffuse",ldiff);	//woher lichtinfos?!
-	 lightShader.update("lightSpecular",lspec);
-	 lightShader.update("lightCount",lc);
-
-	 int currShadingModel = 1;
-	 float currShininess = 12.0f;
-
-	 lightShader.update("shadingModelID",currShadingModel);
-	 lightShader.update("Shininess",currShininess);
-	 lightShader.update("ambientColor",s_color); 	//woher bekommen?	//todo
-
-	 lightShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
-	 lightShader.bindTextureOnUse("vsNormalTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
-	 lightShader.bindTextureOnUse("ColorTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
-	 DEBUGLOG->outdent();
+*/
+	 //lightShader.update
+	 //lightShader.bindTextureOnUse
 
 	 //light fbo
-	 DEBUGLOG->log("FrameBufferObject Creation: light"); DEBUGLOG->indent();
-	 FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
-	 FrameBufferObject lightFBO(lightShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
-	 FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
-	 //damit fertig? alle texturen/colorattachm erstellt??
-	 DEBUGLOG->outdent();
 
-	 DEBUGLOG->log("RenderPass Creation: light"); DEBUGLOG->indent();
+//	 DEBUGLOG->log("RenderPass Creation: light"); DEBUGLOG->indent();
 	 Quad quad;
-	 RenderPass lightPass(&lightShader, &lightFBO);
-	 lightPass.addEnable(GL_DEPTH_TEST);
-	 // renderPass.addEnable(GL_BLEND);
-	 lightPass.setClearColor(0.0,0.0,0.0,0.0);
-	 lightPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	 //for (auto r : objects){lightPass.addRenderable(r);}
-	 lightPass.addRenderable(&quad);
-	 DEBUGLOG->outdent();
+//	 RenderPass lightPass(&lightShader, &lightFBO);
 
 	 //screen space render pass
 	 DEBUGLOG->log("Shader Compilation: ssrShader"); DEBUGLOG->indent();
-	 ShaderProgram ssrShader("/screenSpaceReflection/screenSpaceReflection.vert", "/screenSpaceReflection/screenSpaceReflection.frag"); DEBUGLOG->outdent();
-	 //update uniforms
-	 ssrShader.update("screenWidth", WINDOW_RESOLUTION);
-	 ssrShader.update("screenHeight", WINDOW_RESOLUTION);
-
-	 //ssrShader.update("cameraFOV", );
-	 ssrShader.update("camNearPlane",cameraNear); //= 0.1f
-	 ssrShader.update("camFarPlane",cameraFar);  //= 200.0f
-	 //ssrShader.update("cameraLookAt", );
-	 //ssrShader.update("cameraPosition", );
-	 //...
-	 ssrShader.update("user_pixelStepSize",rayStep);//rayStepSize = 0.0f
-	 /*uniform float fadeYparameter;
-	 uniform bool toggleSSR;
-	 uniform bool toggleGlossy;
-	 uniform bool optimizedSSR;
-	 uniform bool experimentalSSR;*/
-	 ssrShader.update("fadeToEdges",fadeEdges);//fadeEdges = true
-	 //ssrShader.update("view", view);	//not used!
+	 ShaderProgram ssrShader("/screenSpaceReflection/screenSpaceReflection.vert", "/screenSpaceReflection/screenSpaceReflection2.frag"); DEBUGLOG->outdent();
+	 //ssrShader.update
+	 ssrShader.update("screenWidth",getResolution(window).x);
+	 ssrShader.update("screenHeight",getResolution(window).y);
+	 ssrShader.update("camNearPlane",cameraNear);
+	 ssrShader.update("camFarPlane",cameraFar);
+	 ssrShader.update("user_pixelStepSize",rayStep);
+	 ssrShader.update("fadeToEdges",fadeEdges);
 	 ssrShader.update("projection",perspective);
-	 //...
-	 //ssrShader.bindTextureOnUse();
-	 //uniform sampler2D wsPositionTex;
-	 // uniform sampler2D wsNormalTex;
+	 //ssrShader.bindTextureOnUse
 	 ssrShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 	 ssrShader.bindTextureOnUse("vsNormalTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
-	 ssrShader.bindTextureOnUse("ReflectanceTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT3)); //?
+	 ssrShader.bindTextureOnUse("ReflectanceTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT4));
 	 ssrShader.bindTextureOnUse("DepthTex",gFBO.getDepthTextureHandle());
-	 ssrShader.bindTextureOnUse("DiffuseTex",lightFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
-	 //...
+//	 ssrShader.bindTextureOnUse("DiffuseTex",lightFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+	 ssrShader.bindTextureOnUse("DiffuseTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 
 	 //fbo
-	 /*DEBUGLOG->log("FrameBufferObject Creation: ssrFBO"); DEBUGLOG->indent();
+	 DEBUGLOG->log("FrameBufferObject Creation: ssrFBO"); DEBUGLOG->indent();
 	 FrameBufferObject ssrFBO(ssrShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
-	 DEBUGLOG->outdent();*/
-	 DEBUGLOG->log("FrameBufferObject Creation: SSR"); DEBUGLOG->indent();
-	 FrameBufferObject ssrFBO(getResolution(window).x, getResolution(window).y);
-	 ssrFBO.addColorAttachments(1);
 	 DEBUGLOG->outdent();
 
 	 //render pass
@@ -307,29 +230,25 @@ int main()
 	 // renderPass.addEnable(GL_BLEND);
 	 ssrPass.setClearColor(0.0,0.0,0.0,0.0);
 	 ssrPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	 //add rendable?!
 	 ssrPass.addRenderable(&quad);
 	 DEBUGLOG->outdent();
 
+	 //composition
 	 DEBUGLOG->log("Shader Compilation: compositing"); DEBUGLOG->indent();
-	 ShaderProgram compoShader("/screenSpaceReflection/comp.vert", "/screenSpaceReflection/comp.frag"); DEBUGLOG->outdent();
-	 compoShader.update("textureID",0);	//durchflitsch. was gerendert werden soll
-	 bool doBlur =false;
-	 //bool doSSR = true;	//notused!
-
-	 compoShader.update("blurSwitch", doBlur);
-	 //compoShader.update("SSR", doSSR);	//notused!
-	// compoShader.update("kernelX", );	//woher bekommen?	//todo
-	// compoShader.update("kernelY", );	//woher bekommen?
-
+	 ShaderProgram compoShader("/screenSpaceReflection/comp.vert", "/screenSpaceReflection/comp2.frag"); DEBUGLOG->outdent();
+	 //compoShader.update
+	 compoShader.update("NearPlane",cameraNear);
+	 compoShader.update("camFarPlane",cameraFar);
+	 compoShader.update("textureID;",0);
+	 //compoShader.bindTextureOnUse
 	 compoShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 	 compoShader.bindTextureOnUse("vsNormalTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
 	 compoShader.bindTextureOnUse("ColorTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
-	 compoShader.bindTextureOnUse("ReflectanceTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT3));
-	 compoShader.bindTextureOnUse("DepthTex",gFBO.getDepthTextureHandle()); //todo
-	 compoShader.bindTextureOnUse("DiffuseTex",lightFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+	 compoShader.bindTextureOnUse("ReflectanceTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT4));
+	 compoShader.bindTextureOnUse("MaterialTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT5));
+	 compoShader.bindTextureOnUse("DepthTex",gFBO.getDepthTextureHandle());
+//	 compoShader.bindTextureOnUse("DiffuseTex",lightFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	 compoShader.bindTextureOnUse("SSRTex",ssrFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
-
 
 	 DEBUGLOG->log("RenderPass Creation: Compositing"); DEBUGLOG->indent();
 	 //Quad quad;		//wofür istdas quad?
@@ -345,19 +264,19 @@ int main()
 	//////////////////////////////////////////////////////////////////////////////
 
 	// Setup ImGui binding
-     ImGui_ImplGlfwGL3_Init(window, true);
+	ImGui_ImplGlfwGL3_Init(window, true);
 
 	Turntable turntable;
 	double old_x;
-    double old_y;
+	double old_y;
 	glfwGetCursorPos(window, &old_x, &old_y);
 
 
 	auto cursorPosCB = [&](double x, double y)
 	{
-	 	ImGuiIO& io = ImGui::GetIO();
-	 	if ( io.WantCaptureMouse )
-	 	{ return; } // ImGUI is handling this
+		ImGuiIO& io = ImGui::GetIO();
+		if ( io.WantCaptureMouse )
+		 { return; } // ImGUI is handling this
 
 		double d_x = x - old_x;
 		double d_y = y - old_y;
@@ -385,77 +304,69 @@ int main()
 	// 	ImGui_ImplGlfwGL3_MouseButtonCallback(window, b, a, m);
 	};
 
-	 auto keyboardCB = [&](int k, int s, int a, int m)
-	 {
-	 	if (a == GLFW_RELEASE) {return;}
-	 	switch (k)
-	 	{
-	 		case GLFW_KEY_W:
-	 			eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
-	 			center += glm::inverse(view) * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
-	 			break;
-	 		case GLFW_KEY_A:
-	 			eye += glm::inverse(view)	 * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
-	 			center += glm::inverse(view) * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
-	 			break;
-	 		case GLFW_KEY_S:
-	 			eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,0.1f,0.0f);
-	 			center += glm::inverse(view) * glm::vec4(0.0f,0.0f,0.1f,0.0f);
-	 			break;
-	 		case GLFW_KEY_D:
-	 			eye += glm::inverse(view)    * glm::vec4(0.1f,0.0f,0.0f,0.0f);
-	 			center += glm::inverse(view) * glm::vec4(0.1f,0.0f,0.0f,0.0f);
-	 			break;
-	 		default:
-	 			break;
-	 	}
-	 	ImGui_ImplGlfwGL3_KeyCallback(window,k,s,a,m);
+	auto keyboardCB = [&](int k, int s, int a, int m)
+	{
+		 if (a == GLFW_RELEASE) {return;}
+		 switch (k)
+		 {
+		 	case GLFW_KEY_W:
+		 		eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
+		 		center += glm::inverse(view) * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
+		 		break;
+		 	case GLFW_KEY_A:
+		 		eye += glm::inverse(view)	 * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
+		 		center += glm::inverse(view) * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
+		 		break;
+		 	case GLFW_KEY_S:
+		 		eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,0.1f,0.0f);
+		 		center += glm::inverse(view) * glm::vec4(0.0f,0.0f,0.1f,0.0f);
+		 		break;
+		 	case GLFW_KEY_D:
+		 		eye += glm::inverse(view)    * glm::vec4(0.1f,0.0f,0.0f,0.0f);
+		 		center += glm::inverse(view) * glm::vec4(0.1f,0.0f,0.0f,0.0f);
+		 		break;
+		 	default:
+		 		break;
+		 }
+		 ImGui_ImplGlfwGL3_KeyCallback(window,k,s,a,m);
 	 };
 
 	setCursorPosCallback(window, cursorPosCB);
 	setMouseButtonCallback(window, mouseButtonCB);
 	setKeyCallback(window, keyboardCB);
 
-	 //model matrices / texture update function
-	 std::function<void(Renderable*)> perRenderableFunction = [&](Renderable* r){
-	 	static int i = 0;
+	//pro obj uniform update
+	std::function<void(Renderable*)> perRenderableFunction = [&](Renderable* r){
+		//static int i = 0;
 	 	//gShader.update("model", turntable.getRotationMatrix() * modelMatrices[i]);
-	 	//gShader.update("mixTexture", 0.0);
+//		vec4 col = ;
+//		gShader.update("color",col);	//gesamte scene nichr farbe pro obj/mesh?!
 
 	 	int k = rendMatMap.find(r)->second;
-	 	std::cout << "k: " << k << endl;
-
+	 	//std::cout << "k: " << k << endl;
 	 	if (! matTexHandles.empty()){
 	 	auto difftex = matTexHandles[k].find(aiTextureType_DIFFUSE);
 	 	if ( difftex != matTexHandles[k].end())
 	 	{
 	 		gShader.bindTextureOnUse("ColorTex", difftex->second);
-	 		//gShader.update("mixTexture", 1.0f);
+	 		gShader.update("mixTexture", 1.0f);
 	 	}
-	 	auto normaltex = matTexHandles[k].find(aiTextureType_HEIGHT);
+	 	auto normaltex = matTexHandles[k].find(aiTextureType_NORMALS);
 	 	if (normaltex != matTexHandles[k].end())
 	 	{
 	 		gShader.bindTextureOnUse("NormalTex", normaltex->second);
-	 		//gShader.update("hasNormalTex", true);
-	 	}}
-
-	 	//pro mesh uniforms
-/*		 if (texArray[i].find(aiTextureType_DIFFUSE) != texArray[i].end()){
-			 gShader.bindTextureOnUse("ColorTex", texArray[i].at(aiTextureType_DIFFUSE));
-			 //gShader.update("mixTexture", 1.0);
-		 }
-		 if (texArray[i].find(aiTextureType_NORMALS) != texArray[i].end() && gShader.getUniformInfoMap()->find("NormalTex") != gShader.getUniformInfoMap()->end()){
-			 gShader.bindTextureOnUse("NormalTex", texArray[i].at(aiTextureType_NORMALS));
-			 //gShader.update("hasNormalTex", true);
-		 }
-*/
+	 		gShader.update("hasNormalTex", true);
+	 	}
+	 	}
 		 float mId = scene->mMeshes[k]->mMaterialIndex / 100.0f;
-		 std::cout << "matid: " << mId <<endl;
+		 float matRefl = 0.5f;
+		 //std::cout << "matid: " << mId <<endl;
 		 gShader.update("matId",mId);
-	 	//i = (i+1)%modelMatrices.size();
-	 	i = 1+1;
+		 gShader.update("matReflectance",matRefl);
+
+	 	//i = i+1;
 	 	};
-	 gPass.setPerRenderableFunction( &perRenderableFunction );
+	gPass.setPerRenderableFunction( &perRenderableFunction );
 
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////// RENDER LOOP /////////////////////////////////
@@ -477,62 +388,48 @@ int main()
 		 static int listbox_item_current = 0;
 		 ImGui::ListBox("renderTex", &listbox_item_current, listbox_items, IM_ARRAYSIZE(listbox_items), 4);
 
-		// ImGui::PushItemWidth(-100);
+			///////////////////////////// MATRIX UPDATING ///////////////////////////////
+			view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0.0f, 1.0f, 0.0f));
+			//////////////////////////////////////////////////////////////////////////////
 
-		// ImGui::ColorEdit4( "color", glm::value_ptr( s_color)); // color mixed at max distance
-  //       ImGui::SliderFloat("strength", &s_strength, 0.0f, 2.0f); // influence of color shift
+			////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
+			// update view related uniforms
 
-		 //ImGui::Checkbox("auto-rotate", &s_isRotating); // enable/disable rotating volume
-		 //ImGui::PopItemWidth();
+			gShader.update("view", view);
+//			gShader.update("lightColor", s_color);
+			gShader.update("color", s_color);
+			gShader.update("model", turntable.getRotationMatrix() * model * glm::scale(s_scale));
 
-        //////////////////////////////////////////////////////////////////////////////
+//			lightShader.update("view", view);
+//			lightShader.update("lightPosition",view * s_lightPos);
 
-		///////////////////////////// MATRIX UPDATING ///////////////////////////////
-		view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0.0f, 1.0f, 0.0f));
-		//////////////////////////////////////////////////////////////////////////////
+			//update ssr uniforms
 
-		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
-		// update view related uniforms
+			//update compo uniforms
+			compoShader.update("textureID",listbox_item_current);
+			//std::cout << listbox_item_current << endl;
 
-		gShader.update("view", view);
-		gShader.update("wsNormalMatrix", glm::transpose(glm::inverse(view * model)));
-		gShader.update( "lightColor", s_color);
-		gShader.update( "model", turntable.getRotationMatrix() * model * glm::scale(s_scale));
-		//gShader.update("MVPMatrix", perspective * view * model);	//not used!
+			//////////////////////////////////////////////////////////////////////////////
 
-		lightShader.update("view", view);
-		lightShader.update("lightPosition",view * s_lightPos);
+			////////////////////////////////  RENDERING //// /////////////////////////////
+			gPass.render();
+			//std::cout << "gpass" << endl;
+//			lightPass.render();
+			//std::cout << "lightpass" << endl;
+			ssrPass.render();
+			//std::cout << "ssrpass" << endl;
+			compoPass.render();
+			//std::cout << "comppass" << endl;
+			//compositing.render();
 
-		//update ssr uniforms
-		//ssrShader.update("view", view);	//not used!
+			ImGui::Render();
+			glDisable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
+			//////////////////////////////////////////////////////////////////////////////
 
-		///compShader.update("vLightPos", view * s_lightPos);
+		});
 
-		//update compo uniforms
-		compoShader.update("textureID",listbox_item_current);
-		//std::cout << listbox_item_current << endl;
+		destroyWindow(window);
 
-		//////////////////////////////////////////////////////////////////////////////
-
-		////////////////////////////////  RENDERING //// /////////////////////////////
-		gPass.render();
-		std::cout << "gpass" << endl;
-		lightPass.render();
-		std::cout << "lightpass" << endl;
-		ssrPass.render();
-		std::cout << "ssrpass" << endl;
-		compoPass.render();
-		std::cout << "comppass" << endl;
-		//compositing.render();
-
-		ImGui::Render();
-		glDisable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
-		//////////////////////////////////////////////////////////////////////////////
-
-	});
-
-	destroyWindow(window);
-
-	return 0;
-}
+		return 0;
+	}
