@@ -436,9 +436,9 @@ Quad::Quad()
         1.0f, 1.0f
     };
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float), positions, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*8, positions, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(0);
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(float)*8, uv, GL_STATIC_DRAW);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
@@ -814,18 +814,18 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
     int top = 0;
     int bottom = fieldsX+1;
 
-	indices[1] = 0;
-	indices[2] = fieldsY+1;
-	indices[3] = fieldsX+1;
-	indices[4] = fieldsX+1;
-	indices[5] = fieldsY+1;
-	indices[6] = fieldsX+2;
-	indices[7] = fieldsX+2;
-	indices[8] = fieldsY+1;
-	indices[9] = fieldsX+3;
-	indices[10] = fieldsX+3;
-	indices[11] = fieldsY+1;
-	indices[11] = fieldsX+4;
+	//indices[1] = 0;
+	//indices[2] = fieldsY+1;
+	//indices[3] = fieldsX+1;
+	//indices[4] = fieldsX+1;
+	//indices[5] = fieldsY+1;
+	//indices[6] = fieldsX+2;
+	//indices[7] = fieldsX+2;
+	//indices[8] = fieldsY+1;
+	//indices[9] = fieldsX+3;
+	//indices[10] = fieldsX+3;
+	//indices[11] = fieldsY+1;
+	//indices[11] = fieldsX+4;
 
 
     for (int i = 0; i < indices.size(); i++)
@@ -838,11 +838,11 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
 		
 		if (i%2 == 0) // even index: top vertex
         {
-           // indices[i] = top;
+            indices[i] = top;
             top++;
         } 
         else{   //odd index: bottom vertex
-           // indices[i] = bottom;
+            indices[i] = bottom;
             bottom++;
         }
 

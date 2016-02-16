@@ -44,5 +44,5 @@ void main()
     fragUVCoord = vec4(passUVCoord,0,0);
     fragNormal = vec4(passNormal,0);
 	// fragColor = vec4(passNormal,1);
-	fragColor = vec4(0.0, 1.0, 0.0, 1.0);
+	//fragColor = vec4(0.0, 1.0, 0.0, 1.0);
 }
