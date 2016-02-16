@@ -101,7 +101,7 @@ int main()
 	DEBUGLOG->log("Rendering Setup: 'Geometry' Rendering");
 
 	// regular GBuffer
-	ShaderProgram sh_gbuffer("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer.frag");
+	ShaderProgram sh_gbuffer("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer_mat.frag");
 	sh_gbuffer.update("view",       mainCamera.getViewMatrix());
 	sh_gbuffer.update("projection", mainCamera.getProjectionMatrix());
 	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
