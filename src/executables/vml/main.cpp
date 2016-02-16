@@ -16,6 +16,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <Rendering/PostProcessing.h>
 
 #include "VolumetricLighting.h"
 
@@ -25,7 +26,8 @@ static bool s_switchCanvas = false;
 
 
 const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
-const glm::vec2 SHADOWMAP_RESOLUTION = glm::vec2(1024.0f, 768.0f);
+const glm::vec2 SHADOWMAP_RESOLUTION = glm::vec2(800.0f, 600.0f);
+//const glm::vec2 SHADOWMAP_RESOLUTION = glm::vec2(1024.0f, 768.0f);
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -62,7 +64,7 @@ int main()
     glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 100.0f);
 
     // setup light
-    float lightIntensity = 70000000.0;
+    float lightIntensity = 10000.0;
     glm::vec4 lightColor(1.0f, 1.0f, 1.0f, 1.0f);
     glm::vec3 lightPos(0.0f, 0.0f, 3.0f);
     glm::vec3 lightTarget(0,0,0);
@@ -74,17 +76,17 @@ int main()
     glm::mat4 lightMVP = lightProjection * lightView * model;
 
     // setup variables for raymarching
-    int numberOfSamples = 7;
-    float mediumDensity = 0.027;       // tau
     float scatterProbability = 0.02f;    // albedo
-    int blockSide = 8;
-    int blockSize = blockSide * blockSide;
 
     // create objects
     float object_size = 0.5f;
     std::vector<Renderable* > objects;
     objects.push_back(new Volume(object_size));
-    objects.push_back(new Sphere(20, 40, 50));
+    objects.push_back(new Sphere(20, 40, 80));
+
+    // mip mapping
+    int maxLevel = 4;
+
     //</editor-fold>
 
 
@@ -95,109 +97,7 @@ int main()
     checkGLError(true);
     FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
     FrameBufferObject shadowMap(SHADOWMAP_RESOLUTION.x, SHADOWMAP_RESOLUTION.y);
-    FrameBufferObject::s_internalFormat  = GL_R8UI;
-    FrameBufferObject::s_useTexStorage2D = true;
-    FrameBufferObject noiseMap(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
-    checkGLError(true);
-    noiseMap.addColorAttachments(1);
-    checkGLError(true);
     FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
-    FrameBufferObject::s_useTexStorage2D = false;
-    //</editor-fold>
-
-    //<editor-fold desc="setup noise">
-    ///////////////////////    Shadowmapping   ///////////////////////////
-    std::vector<int> indices;
-    for (int i = 0; i < blockSize; i++) {
-        indices.push_back(i);
-    }
-
-    // calculate number of blocks
-    int numberOfBlocks = (int) ceil((float)(WINDOW_RESOLUTION.x * WINDOW_RESOLUTION.y) / blockSize);
-    int numberOfBlocksInX = (int) ceil((float)WINDOW_RESOLUTION.x / blockSide);
-    int numberOfBlocksInY = (int) ceil((float)WINDOW_RESOLUTION.y / blockSide);
-
-    // create all permutations
-    std::vector<int> indexPermutations;
-    for (int i = 0; i < numberOfBlocks; i++) {
-        std::random_shuffle(indices.begin(), indices.end());
-        if (i < 100) {
-            for (int j = 0; j < indices.size(); j++) {
-                std::cout << "[" << j << "] = " << indices[j];
-            }
-            std::cout << std::endl;
-            std::cout << "-----------------" << std::endl;
-        }
-
-        indexPermutations.insert(indexPermutations.end(), indices.begin(), indices.end());
-    }
-
-    // fill permutations into unsigned char array in the right order
-    int windowSize = WINDOW_RESOLUTION.x * WINDOW_RESOLUTION.y;
-    unsigned char* noiseData = new unsigned char[windowSize]();
-    for (int y = 0; y < WINDOW_RESOLUTION.y; y++) {
-        for (int x = 0; x < WINDOW_RESOLUTION.x; x++) {
-            // calculate block number
-            int blockX = floor(x / blockSide);
-            int blockY = floor(y / blockSide);
-            int blockIndex1D = blockY * numberOfBlocksInX + blockX;
-
-            // calculate block start
-            int blockPosX = blockX * blockSide;
-            int blockPosY = blockY * blockSide;
-
-            // get pixel position within block
-            int pixelIndexX = x - blockPosX;
-            int pixelIndexY = y - blockPosY;
-            int pixelIndex1D = pixelIndexY * blockSide + pixelIndexX;
-
-            // get the 1D position within the permutations array
-            int indexInPermutationsVector = blockIndex1D * blockSize + pixelIndex1D;
-
-            // calculate position within noise data array
-            int dataIndex = y * WINDOW_RESOLUTION.x + x;
-
-            // write permutation index in noise data array at position dataIndex
-            noiseData[dataIndex] = indexPermutations[indexInPermutationsVector];
-        }
-    }
-
-    int comparisionSum = 0;
-    for (int i = 0; i < blockSize; i++) {
-        comparisionSum += i;
-    }
-
-    // check if array is filled properly
-/*    for (int blockY = 0; blockY < numberOfBlocksInY; blockY++) {
-        for (int blockX = 0; blockX < numberOfBlocksInX; blockX++) {
-            int blockStartX = blockX * blockSide;
-            int blockStartY = blockY * blockSide;
-
-            int sum = 0;
-
-            for (int y = 0; y < blockSide; y++) {
-                for (int x = 0; x < blockSide; x++) {
-                    int pixelPosX = x + blockStartX;
-                    int pixelPosY = y + blockStartY;
-                    if (pixelPosX < WINDOW_RESOLUTION.x && pixelPosY < WINDOW_RESOLUTION.y) {
-                        int dataIndex = pixelPosY * WINDOW_RESOLUTION.x + pixelPosX;
-                        sum += noiseData[dataIndex];
-                    }
-                }
-            }
-
-            int blockIndex1D = blockY * numberOfBlocksInX + blockX;
-            std::cout << "[" << blockIndex1D << "] = " << sum << " | " << comparisionSum << std::endl;
-        }
-    }*/
-
-    // create a texture to render to
-    checkGLError(true);
-    glBindTexture(GL_TEXTURE_2D, noiseMap.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y, GL_RED_INTEGER, GL_UNSIGNED_BYTE, (GLvoid*)noiseData);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    checkGLError(true);
-
     //</editor-fold>
 
     //<editor-fold desc="setup gbuffer">
@@ -218,7 +118,6 @@ int main()
     DEBUGLOG->log("RenderPass Creation: GBuffer"); DEBUGLOG->indent();
     RenderPass renderPass(&shaderProgram, &fbo);
     renderPass.addEnable(GL_DEPTH_TEST);
-    // renderPass.addEnable(GL_BLEND);
     renderPass.setClearColor(0.0,0.0,0.0,0.0);
     renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     for (auto r : objects){renderPass.addRenderable(r);}
@@ -254,12 +153,7 @@ int main()
     VolumetricLighting volumetricLighting(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
     volumetricLighting._raymarchingShader->bindTextureOnUse("shadowMapSampler", shadowMap.getDepthTextureHandle());
     volumetricLighting._raymarchingShader->bindTextureOnUse("worldPosMap", fbo.getBuffer("fragWorldPos"));
-    volumetricLighting._raymarchingShader->update("phi", lightIntensity);
-    volumetricLighting._raymarchingShader->update("lightView", lightView);
-    volumetricLighting._raymarchingShader->update("lightProjection", lightProjection);
-    volumetricLighting._raymarchingShader->update("lightColor", lightColor);
-    volumetricLighting._raymarchingShader->update("cameraPosLightSpace", cameraPosLightSpace);
-    volumetricLighting._raymarchingShader->bindTextureOnUse("noiseMap", noiseMap.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+    volumetricLighting.setupNoiseTexture();
     //</editor-fold>
 
 
@@ -384,15 +278,12 @@ int main()
         ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
         ImGui::PushItemWidth(-100);
 
-        ImGui::SliderInt("Number ff Samples", &numberOfSamples, 1, 10);
-        ImGui::SliderFloat("lightIntensity", &lightIntensity, 100.0f, 100000000.0f);
         ImGui::SliderFloat3("lightPos", glm::value_ptr(lightPos), -10.0f, 10.0f);
         ImGui::SliderFloat("lightAngle", &lightViewAngle, 0.1f, 90.0f);
         ImGui::SliderFloat("lightNearPlane", &lightNearPlane, 0.01f, 1.0f);
         ImGui::SliderFloat("lightFarPlane", &lightFarPlane, 10.0f, 1000.0f);
         ImGui::SliderFloat4("lightColor", glm::value_ptr(lightColor), 0.0f, 1.0f);
-        ImGui::SliderFloat("tau", &mediumDensity, 0.0f, 1.0f);
-        ImGui::SliderFloat("albedo", &scatterProbability, 0.0f, 1.0f);
+        ImGui::SliderFloat("albedo", &scatterProbability, 0.0f, 4.0f);
         ImGui::Checkbox("auto-rotate", &s_isRotating); // enable/disable rotating volume
         ImGui::PopItemWidth();
         //////////////////////////////////////////////////////////////////////////////
@@ -425,16 +316,14 @@ int main()
         shaderProgram.update("model", model);
         shaderProgram.update("view", view);
         shaderProgram.update("projection", perspective);
-
         shadowMapShader.update("lightMVP", lightMVP);
 
         // update raymarching related uniforms
-        volumetricLighting._raymarchingShader->update("numberOfSamples", numberOfSamples);
-        volumetricLighting._raymarchingShader->update("phi", lightIntensity);
         volumetricLighting._raymarchingShader->update("lightView", lightView);
         volumetricLighting._raymarchingShader->update("lightProjection", lightProjection);
         volumetricLighting._raymarchingShader->update("lightColor", lightColor);
         volumetricLighting._raymarchingShader->update("cameraPosLightSpace", cameraPosLightSpace);
+        volumetricLighting._raymarchingShader->update("albedo", scatterProbability);
         //////////////////////////////////////////////////////////////////////////////
         //</editor-fold>
 
@@ -451,6 +340,14 @@ int main()
         texShader.bindTextureOnUse("tex", volumetricLighting._raymarchingFBO->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
         showVolumeLighting.render();
 
+        // draw depthmap
+        RenderPass showDepth( &texShader, 0 );
+        showDepth.setViewport(0, 0, 150, 150);
+        showDepth.addRenderable(&quad);
+        texShader.bindTextureOnUse("tex", shadowMap.getDepthTextureHandle());
+        showDepth.render();
+
+        glViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
         ImGui::Render();
         //////////////////////////////////////////////////////////////////////////////
         //</editor-fold>

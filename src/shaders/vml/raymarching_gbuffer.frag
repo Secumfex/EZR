@@ -1,28 +1,35 @@
 #version 330
 
+#define SAMPLES 2048
+#define SAMPLES_RCP 0.0078125
+#define PIXEL_SIZE 8
 #define PI_RCP 0.31830988618379067153776752674503
-#define BIAS 0.005
-#define PIXELTILESIZE 8 // an 8x8 pixel tile
+#define BIAS 0.00005
+#define PHI 10000000.0
+#define TAU 0.0001
 
 in vec2 passUV;
 
+// sampler
+uniform sampler2D noiseMap;
 uniform sampler2D worldPosMap;
 uniform sampler2D shadowMapSampler;
-uniform usampler2D noiseMap;
-uniform int numberOfSamples;
-uniform float phi;
+
+// light
+uniform vec4 lightColor;
 uniform mat4 lightView;
 uniform mat4 lightProjection;
-uniform vec4 lightColor;
+
+// camera
 uniform vec4 cameraPosLightSpace;
 uniform vec4 cameraViewDirInvLightSpace;
-uniform vec4 color;
-uniform float tau;
+
+// raymarching
 uniform float albedo;
 
 // visibility function
-float v(vec4 rayPositionLightSpace) {
-    vec4 rayCoordLightSpace = lightProjection * rayPositionLightSpace;
+float v(vec3 rayPositionLightSpace) {
+    vec4 rayCoordLightSpace = lightProjection * vec4(rayPositionLightSpace, 1.0);
     rayCoordLightSpace.xyz /= rayCoordLightSpace.w;
     rayCoordLightSpace.xyz /= 2;
     rayCoordLightSpace.xyz += 0.5;
@@ -40,50 +47,39 @@ float p() {
 }
 
 // calculate the lightintensity of the current sample at position rayPositionLightSpace
-float executeRaymarching(vec4 rayPositionLightSpace, float stepSize, float l) {
+float executeRaymarching(vec3 x, float dl, float l) {
     // fetch whether the current position on the ray is visible form the light's perspective or not
-    float v = v(rayPositionLightSpace);
-
+    float v = v(x);
     // get distance of current ray postition to the light source in light view-space
-    float d = length(rayPositionLightSpace.xyz);
-    float dRcp = (d != 0) ? 1.0/d : 1000000;
+    float d = length(x);
+    float dRcp = 1.0/d;
 
     // calculate anisotropic scattering
     float p = p();
 
     // calculate the final light contribution for the sample on the way
-    float radiantFluxAttenuation = phi;
-    float Li = tau * albedo * radiantFluxAttenuation * v * exp(-tau * d) * p;
-    float intens = Li * exp(-tau * l) * stepSize;
+    float radiantFluxAttenuation = PHI * PI_RCP * 0.25 * dRcp * dRcp;
+    float Li = TAU * albedo * radiantFluxAttenuation * v * p;
+    float intens = Li * exp(-TAU * d) * exp(-TAU * l) * dl;
     return intens;
 }
 
-void main() {
+/*void main() {
 
-    vec2 dim = textureSize(shadowMapSampler, 0);
-    float pixelBlockSize = PIXELTILESIZE * PIXELTILESIZE;
+    float pixelBlockSize = PIXEL_SIZE * PIXEL_SIZE;
 
-    // get position of the fragment within the pixelblock
-/*    vec2 pixelPosition = vec2(gl_FragCoord);
-    pixelPosition.xy = mod(pixelPosition.xy,PIXELTILESIZE);
-    float index = PIXELTILESIZE * pixelPosition.y + pixelPosition.x;
-
-    // randomize order of pixels in a tile
-    vec2 tilePos = round(pixelPosition / PIXELTILESIZE);
-    float tileIndex = tilePos.y * dim.x + tilePos.x;
-    float randIndex1 = mod(sin(tileIndex + index)*pixelBlockSize, pixelBlockSize);
-    float randIndex2 = mod(cos(tileIndex)*pixelBlockSize, pixelBlockSize);
-    index = mod(index * randIndex1 * randIndex2,pixelBlockSize);*/
+    // get index for the fragment within the pixelblock
     uint index = texture(noiseMap, passUV).x;
 
     // calculate number of samples
-    float sampleNum = pow(2, numberOfSamples);
-    float totalSampleNum = sampleNum * pixelBlockSize;
+    float totalSampleNum = SAMPLES;
+    float sampleNum = SAMPLES / pixelBlockSize;
 
     // calculate complete raymarching distance
     vec4 startPosLightSpace = lightView * texture(worldPosMap, passUV);
     float raymarchDistance = length(cameraPosLightSpace.xyz - startPosLightSpace.xyz);
     float stepSize = raymarchDistance / totalSampleNum;
+    float stepSizePixel = raymarchDistance / sampleNum;
 
     // calculate the stepsize of the ray
     vec3 viewDir = normalize(cameraPosLightSpace.xyz - startPosLightSpace.xyz);
@@ -91,14 +87,12 @@ void main() {
 
     // offset starting position
     vec3 offset = viewDir  * index * stepSize;
-    vec4 rayPositionLightSpace = vec4(startPosLightSpace.xyz + offset, 1.0) ;
+    vec3 rayPositionLightSpace = startPosLightSpace.xyz + offset;
 
     // total light contribution accumulated along the ray
     float vli = 0.0f;
-    for (float i = 0; i <sampleNum; i++) {
-        float t = i / (sampleNum-1);
-        //float distanceToCamera = raymarchDistance - (t*raymarchDistance);
-        vec4 currentPos = vec4(rayPositionLightSpace.xyz + i * rayDir, 1.0);
+    for (float i = 0; i <sampleNum-1; i++) {
+        vec3 currentPos = rayPositionLightSpace + i * rayDir;
         float distanceToCamera = length(cameraPosLightSpace.xyz - currentPos.xyz);
         vli += executeRaymarching(currentPos, stepSize, distanceToCamera);
     }
@@ -107,5 +101,47 @@ void main() {
 
     gl_FragColor =  vec4(lightColor.xyz * vli, 1.0);
 
-    //gl_FragColor = vec4(index / pixelBlockSize, 0, 0, 1);
+}*/
+
+void main() {
+
+    int blockSize = PIXEL_SIZE * PIXEL_SIZE;
+
+    // get index for the fragment within the pixelblock
+    int index = int(texture(noiseMap, passUV).r * 255.0);
+
+    // calculate number of samples
+    float totalSampleNum = SAMPLES;
+    float sampleNum = SAMPLES / blockSize;
+
+    // calculate complete raymarching distance
+    vec4 startPosLightSpace = lightView * texture(worldPosMap, passUV);
+    vec3 invViewDir = cameraPosLightSpace.xyz - startPosLightSpace.xyz;
+    float s = length(invViewDir);
+    float dl = s / totalSampleNum;
+    float dlb = blockSize * dl;
+
+    // calculate the stepsize of the ray
+    vec3 viewDirNormal = normalize(invViewDir);
+    vec3 viewDir = viewDirNormal * dlb;
+
+    // offset starting position
+    vec3 offset = viewDirNormal * index * dl;
+    float o = length(offset);
+    vec3 x = startPosLightSpace.xyz + offset;
+
+    // total light contribution accumulated along the ray
+    float vli = 0.0f;
+    for (float l = s - o - dl; l >= 0;  l -= dlb) {
+        x +=  viewDir;
+        vli += executeRaymarching(x, dl, l);
+    }
+    vli /= sampleNum;
+
+    gl_FragColor =  vec4(lightColor.xyz * vli, 1);
+/*    if (index <= 16)  gl_FragColor = vec4(1, 0, 0, 1);
+    if (index > 16)  gl_FragColor = vec4(0, 1, 0, 1);
+    if (index > 32)  gl_FragColor = vec4(0, 0, 1, 1);
+    if (index > 48)  gl_FragColor = vec4(1, 0, 1, 1);
+    if (index > 1000)  gl_FragColor = vec4(1, 1, 0, 1);*/
 }

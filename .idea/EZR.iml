@@ -21,6 +21,8 @@
       <sourceFolder url="file://$MODULE_DIR$/src/executables/misc/main.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/npr/CMakeLists.txt" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/npr/main.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/executables/postprocessing/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/executables/postprocessing/main.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/ssr/CMakeLists.txt" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/ssr/main.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/executables/treeanim/CMakeLists.txt" isTestSource="false" />
@@ -54,6 +56,8 @@
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/Rendering/FrameBufferObject.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/Rendering/GLTools.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/Rendering/GLTools.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/libraries/Rendering/PostProcessing.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/libraries/Rendering/PostProcessing.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/Rendering/RenderPass.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/Rendering/RenderPass.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/Rendering/Shader.cpp" isTestSource="false" />
@@ -88,9 +92,13 @@
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/UI/imgui_impl_glfw_gl3.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/libraries/UI/imgui_impl_glfw_gl3.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/cubemap/cubemap.frag" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/cubemap/cubemap.vert" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/geometry/simpleGeom.geom" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/modelSpace/GBuffer.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/modelSpace/GBuffer.vert" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/modelSpace/billboardProjection.vert" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/modelSpace/billboardView.vert" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/modelSpace/dpGBuffer.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/modelSpace/geometry.vert" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/modelSpace/instancedModelViewProjection.vert" isTestSource="false" />
@@ -105,7 +113,17 @@
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/finalCompositing.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/fullscreen.vert" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/npr1.frag" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/postProcessAddTexture.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/postProcessBloomMipMap.frag" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/postProcessCircleOfConfusion.frag" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/postProcessDOF.frag" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/postProcessDOFCompositing.frag" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/postProcessLFDownSampling.frag" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/postProcessLFGhosting.frag" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/postProcessLFUpscaleBlend.frag" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/postProcessSunOcclusionTest.frag" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/postProcessSunOcclusionTest.vert" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/pushBoxBlur.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/simpleAlphaTexture.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/screenSpace/ssr.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/treeAnim/foliage.frag" isTestSource="false" />
@@ -116,6 +134,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/raymarching.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/raymarching.vert" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/raymarching_gbuffer.frag" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/raymarching_gbuffer2.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/raymarching_interleaved.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/shadowmap.frag" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/shaders/vml/shadowmap.vert" isTestSource="false" />
@@ -160,11 +179,13 @@
           <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/imconfig.h" />
           <root url="file://$MODULE_DIR$/src/libraries/Importing/AssimpTools.h" />
           <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/stb_truetype.h" />
-          <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/stb_textedit.h" />
-          <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/imgui.h" />
+          <root url="file://$MODULE_DIR$/src/libraries/Rendering/PostProcessing.cpp" />
+          <root url="file://$MODULE_DIR$/src/libraries/Rendering/PostProcessing.h" />
           <root url="file://$MODULE_DIR$/src/libraries/UI/imgui_impl_glfw_gl3.h" />
           <root url="file://$MODULE_DIR$/src/libraries/Core/DebugLog.h" />
+          <root url="file://$MODULE_DIR$/src/libraries/Importing/TextureTools.h" />
           <root url="file://$MODULE_DIR$/src/libraries/UI/Turntable.h" />
+          <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/imgui.h" />
           <root url="file://$MODULE_DIR$/src/libraries/Core/Updatable.h" />
           <root url="file://$MODULE_DIR$/src/libraries/Importing/Importer.h" />
           <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/CMakeLists.txt" />
@@ -190,7 +211,7 @@
           <root url="file://$MODULE_DIR$/src/libraries/Importing/Importer.cpp" />
           <root url="file://$MODULE_DIR$/src/libraries/Importing/TextureTools.cpp" />
           <root url="file://$MODULE_DIR$/src/libraries/Importing/AssimpTools.cpp" />
-          <root url="file://$MODULE_DIR$/src/libraries/Importing/TextureTools.h" />
+          <root url="file://$MODULE_DIR$/src/libraries/UI/imgui/stb_textedit.h" />
           <root url="file://$MODULE_DIR$/src/libraries/Core/Updatable.cpp" />
           <root url="file://$MODULE_DIR$/src/libraries/Core/Singleton.cpp" />
           <root url="file://$MODULE_DIR$/src/libraries/Core/Timer.cpp" />
