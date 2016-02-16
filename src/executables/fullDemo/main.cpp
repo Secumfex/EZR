@@ -20,6 +20,16 @@
 ////////////////////// PARAMETERS /////////////////////////////
 static const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 
+// needed for bezier-patch-interpolation
+glm::mat4 bezier = glm::mat4(
+	-1, 3, -3, 1,
+	3, -6, 3, 0,
+	-3, 3, 0, 0,
+	1, 0, 0, 0
+);
+
+glm::mat4 bezier_transposed = glm::transpose(bezier);
+
 //////////////////// MISC /////////////////////////////////////
 std::map<aiTextureType, GLuint> textures;
 
@@ -28,6 +38,7 @@ std::map<aiTextureType, GLuint> textures;
 //////////////////////////////////////////////////////////////////////////////
 int main()
 {
+
 	DEBUGLOG->setAutoPrint(true);
 	// create window and opengl context
 	auto window = generateWindow(WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y);
@@ -53,6 +64,10 @@ int main()
 	GLuint tex_cubeMap = TextureTools::loadDefaultCubemap();
 
 	//TODO load all (non-material) textures that are needed
+	// Tess
+	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_height.png");
+	GLuint diffTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_grass.jpg");
+	GLuint rockTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_rock.jpg");
 
 	/////////////////////    Import Stuff (Misc)    //////////////////////////
 
@@ -67,6 +82,16 @@ int main()
 	lightCamera.setProjectionMatrix( glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 30.0f) );
 	lightCamera.setPosition(glm::vec3(-2.16f, 2.6f, 10.0f));
 	lightCamera.setCenter( glm::vec3( 0.0f,0.0f,0.0f) );
+
+	// create terrain
+	std::vector<Renderable* > objects;
+	objects.push_back(new Terrain());
+
+	// modelmartix for terrain
+	std::vector<glm::mat4 > modelMatrices;
+	modelMatrices.resize(1);
+	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,-0.5f,0.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) * glm::scale(glm::mat4(1.0), glm::vec3(60.0f, 7.0f, 60.0f));
+	glm::mat4 model = modelMatrices[0];
 	
 	//////////////////////////////////////////////////////////////////////////////
 	////////////////////////// RENDERING SETUP  //////////////////////////////////
@@ -87,6 +112,19 @@ int main()
 	r_gbuffer.setClearColor(0.0,0.0,0.0,0.0);
 	r_gbuffer.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
+	// Terrainstuff
+	ShaderProgram shaderProgram("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag_lod.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te_bezier.te"); DEBUGLOG->outdent();//
+	shaderProgram.update("model", model);
+	//shaderProgram.update("view", view);
+	shaderProgram.update("view", mainCamera.getViewMatrix());
+	//shaderProgram.update("projection", perspective);
+	shaderProgram.update("projection", mainCamera.getProjectionMatrix());
+	shaderProgram.update("b", bezier);
+	shaderProgram.update("bt", bezier_transposed);
+	shaderProgram.bindTextureOnUse("terrain", distortionTex);
+	shaderProgram.bindTextureOnUse("diff", diffTex);
+	shaderProgram.bindTextureOnUse("rock", rockTex);
+
 	// TODO shadow map (light source) renderpass
 
 	// skybox rendering (gbuffer style)
@@ -99,6 +137,14 @@ int main()
 	DEBUGLOG->log("Rendering Setup: assigning renderables");
 
 	// TODO assign renderables to render passes that render geometry 
+	
+	// Terrainstuff
+	RenderPass renderPass(&shaderProgram, 0);
+	renderPass.addEnable(GL_DEPTH_TEST);
+	renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	renderPass.setClearColor(0.0, 0.0, 0.4,0.0);
+	for (auto r : objects){renderPass.addRenderable(r);}
+
 	// TODO assign all Renderables to gbuffer render pass that should be rendered by it
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
@@ -190,6 +236,8 @@ int main()
 		r_skybox.m_skyboxShader.update("view", glm::mat4(glm::mat3(mainCamera.getViewMatrix())));
 		r_lensFlare.updateLensStarMatrix(mainCamera.getViewMatrix());
 
+		shaderProgram.update("view", mainCamera.getViewMatrix());
+
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
@@ -205,6 +253,7 @@ int main()
 		//TODO render trees
 		//TODO render grass
 		//TODO render tesselated mountains
+		renderPass.render();
 		//TODO render skybox
 
 		//TODO render shadow map ( most of above again )
