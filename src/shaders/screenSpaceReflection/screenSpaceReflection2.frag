@@ -1,19 +1,19 @@
+//ssr fragment shader
 #version 430
 
+//in-vars
 in vec2 vert_UV;
 
+//outvars
 out vec4 FragColor;
 
+//uniforms
 uniform float screenWidth; 
 uniform float screenHeight;
-
 uniform float camNearPlane; 
 uniform float camFarPlane; 
-
 uniform int user_pixelStepSize; 
-
 uniform bool fadeToEdges;
-
 uniform mat4 projection; 
 
 uniform sampler2D vsPositionTex; 
@@ -22,7 +22,7 @@ uniform sampler2D ReflectanceTex;
 uniform sampler2D DepthTex; 
 uniform sampler2D DiffuseTex; 
 
-//otimized
+//for otimized ssr
 const float pi = 3.14159265f;
 const vec2 sampleOffsets[16] = vec2[](
     vec2(-0.3857104f, -0.8171502f),
@@ -47,14 +47,14 @@ const vec2 sampleOffsets[16] = vec2[](
 //!< Linearizes a depth value 
 //  Source: http://www.geeks3d.com/20091216/geexlab-how-to-visualize-the-depth-buffer-in-glsl/ 
 float linearizeDepth(float depth) { 
- float near = camNearPlane; 
- float far = camFarPlane; 
- float linearDepth = (2.0 * near) / (far + near - depth * (far - near)); 
+	float near = camNearPlane; 
+	float far = camFarPlane; 
+ 	float linearDepth = (2.0 * near) / (far + near - depth * (far - near)); 
  
- return linearDepth; 
+	return linearDepth; 
 } 
 
-//!< ssr func
+//ssr function
 vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsReflectionVector){
     
     float factor = dot(vsReflectionVector, vsNormal);
@@ -84,7 +84,7 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
     int sampleCount = max(int(screenWidth), int(screenHeight));
     int count = 0;
     
-    //optimiert
+    //optimized ssr
 //    if(optimizedSSR)
 //    {
         // Ray trace
@@ -245,7 +245,7 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
     return (reflectedColor * fadeToScreenEdge.x * fadeToScreenEdge.y);
 }
 
-//!< main
+//main
 void main(void){
  //texture information from G-Buffer
  float reflectance = texture(ReflectanceTex, vert_UV).a; 
