@@ -359,10 +359,18 @@ int main(){
 	 	}
 	 	}
 		 float mId = scene->mMeshes[k]->mMaterialIndex / 100.0f;
-		 float matRefl = 0.5f;
+		 float matRefl = 0.0f;
+		 //shinines aus material auslesen
+		 auto matInfo = AssimpTools::getMaterialInfo(scene, mId);
+		 if(matInfo.scalar.find(AssimpTools::ScalarType::SHININESS) != matInfo.scalar.end()){
+			 matRefl = matInfo.scalar[AssimpTools::ScalarType::SHININESS];
+		 }
+		 //float shine = 0.0f;
+		 //mat->Get(AI_MATKEY_SHININESS,shine);
+
 		 //std::cout << "matid: " << mId <<endl;
 		 gShader.update("matId",mId);
-		 gShader.update("matReflectance",matRefl);
+		 gShader.update("matReflectance",matRefl);	//matRefl
 
 	 	//i = i+1;
 	 	};
@@ -417,6 +425,7 @@ int main(){
 //			lightPass.render();
 			//std::cout << "lightpass" << endl;
 			ssrPass.render();
+
 			//std::cout << "ssrpass" << endl;
 			compoPass.render();
 			//std::cout << "comppass" << endl;
