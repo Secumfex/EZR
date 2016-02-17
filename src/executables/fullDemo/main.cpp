@@ -31,6 +31,8 @@ glm::mat4 bezier_transposed = glm::transpose(bezier);
 static float s_wind_power = 0.25f;
 static float s_foliage_size = 0.4f;
 
+static int s_ssrRayStep = 0.0f;
+
 //////////////////// MISC /////////////////////////////////////
 std::map<aiTextureType, GLuint> textures;
 
@@ -104,6 +106,10 @@ int main()
 	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,-0.5f,0.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) * glm::scale(glm::mat4(1.0), glm::vec3(60.0f, 7.0f, 60.0f));
 	glm::mat4 model = modelMatrices[0];
 	
+	// grid resembling water surface
+	Renderable* waterGrid = new Grid(32,32,1.0f,1.0f,true);
+	glm::mat4 modelWater = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
+
 	//////////////////////////////////////////////////////////////////////////////
 	////////////////////////// RENDERING SETUP  //////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
@@ -122,6 +128,7 @@ int main()
 	r_gbuffer.addEnable(GL_DEPTH_TEST);	
 	r_gbuffer.setClearColor(0.0,0.0,0.0,0.0);
 	r_gbuffer.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	r_gbuffer.addRenderable(waterGrid); // render water grid
 
 	// Terrainstuff
 	ShaderProgram shaderProgram("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag_lod.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te_bezier.te"); DEBUGLOG->outdent();//
@@ -137,15 +144,19 @@ int main()
 	//shaderProgram.bindTextureOnUse("rock", rockTex);
 
 	// setup variables for shadowmapping
-	glm::mat4 lightMVP = lightCamera.getProjectionMatrix() * lightCamera.getViewMatrix();
 	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
 	FrameBufferObject shadowMap(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
 
 	// setup shaderprogram
 	ShaderProgram shadowMapShader("/vml/shadowmap.vert", "/vml/shadowmap.frag");
-	shadowMapShader.update("lightMVP", lightMVP);
 	RenderPass shadowMapRenderpass(&shadowMapShader, &shadowMap);
+	shadowMapShader.update("projection", lightCamera.getProjectionMatrix());
+	
+	// setup renderpass
+	shadowMapRenderpass.addClearBit(GL_DEPTH_BUFFER_BIT);
+	shadowMapRenderpass.addEnable(GL_DEPTH_TEST);
+	shadowMapRenderpass.addRenderable(waterGrid);
 
 	/************ trees / branches ************/
 	treeRendering.createAndConfigureShaders("/modelSpace/GBuffer_mat.frag", "/treeAnim/foliage.frag");
@@ -158,11 +169,6 @@ int main()
 	assignWindFieldUniforms(treeRendering, windField);
 	treeRendering.createAndConfigureRenderpasses( &fbo_gbuffer, &fbo_gbuffer, &shadowMap );
 	/******************************************/
-
-	// setup renderpass
-	shadowMapRenderpass.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	shadowMapRenderpass.addClearBit(GL_DEPTH_BUFFER_BIT);
-	shadowMapRenderpass.addEnable(GL_DEPTH_TEST);
 
 	// skybox rendering (gbuffer style)
 	PostProcessing::SkyboxRendering r_skybox;
@@ -188,6 +194,27 @@ int main()
 	DEBUGLOG->outdent(); DEBUGLOG->log("Rendering Setup: per-renderable functions"); DEBUGLOG->indent();
 
 	//TODO per-renderable function that automatically updates material information and textures for r_gbuffer
+	std::function<void(Renderable*)> r_gbuffer_perRenderableFunc = [&](Renderable* r)
+	{
+		if (r == waterGrid)
+		{
+			sh_gbuffer.update("materialType", 2.0f);
+			sh_gbuffer.update("model", modelWater);
+			sh_gbuffer.update("color", glm::vec4(0.2f,0.2f,0.7f,1.0f));
+		}
+	};
+	r_gbuffer.setPerRenderableFunction(&r_gbuffer_perRenderableFunc);
+
+	std::function<void(Renderable*)> r_shadowMap_perRenderableFunc = [&](Renderable* r)
+	{
+		if (r == waterGrid)
+		{
+			shadowMapShader.update("materialType", 2.0f);
+			shadowMapShader.update("model", modelWater);
+			shadowMapShader.update("color", glm::vec4(0.2f,0.2f,0.8f,1.0f));
+		}
+	};
+	shadowMapRenderpass.setPerRenderableFunction(&r_shadowMap_perRenderableFunc);
 
 	//TODO create and assign per-renderable functions to render passes (at least if it's already possible)
 
@@ -205,6 +232,25 @@ int main()
 	r_gbufferComp.addDisable(GL_DEPTH_TEST);
 	r_gbufferComp.addRenderable(&quad);
 	DEBUGLOG->outdent();
+
+	//ssr render pass
+	ShaderProgram sh_ssr("/screenSpaceReflection/screenSpaceReflection.vert", "/screenSpaceReflection/screenSpaceReflection2.frag"); DEBUGLOG->outdent();
+	sh_ssr.update("screenWidth",getResolution(window).x);
+	sh_ssr.update("screenHeight",getResolution(window).y);
+	sh_ssr.update("camNearPlane",mainCamera.getProjectionMatrix()[15]);
+	sh_ssr.update("camFarPlane",mainCamera.getProjectionMatrix()[16]);
+	sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
+	sh_ssr.update("projection",mainCamera.getProjectionMatrix());
+	sh_ssr.bindTextureOnUse("vsPositionTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
+	sh_ssr.bindTextureOnUse("vsNormalTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
+	sh_ssr.bindTextureOnUse("ReflectanceTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT4));
+	sh_ssr.bindTextureOnUse("DepthTex",fbo_gbuffer.getDepthTextureHandle());
+	sh_ssr.bindTextureOnUse("DiffuseTex",fbo_gbufferComp.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));	//aus beleuchtung
+	//sh_ssr.bindTextureOnUse("DiffuseTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+	FrameBufferObject fbo_ssr(sh_ssr.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
+	RenderPass r_ssr(&sh_ssr, &fbo_ssr);
+	r_ssr.setClearColor(0.0,0.0,0.0,0.0);
+	r_ssr.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 	// Post-Processing rendering
 	PostProcessing::DepthOfField r_depthOfField(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y, &quad);
@@ -225,7 +271,7 @@ int main()
 	r_showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 
 	// arbitrary texture display shader
-	ShaderProgram sh_addTexShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessAddTexture.frag");
+	ShaderProgram sh_addTexShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessVolumetricLighting.frag");
 	RenderPass r_addTex(&sh_addTexShader, &fbo_gbufferComp);
 	r_addTex.addRenderable(&quad);
 	r_addTex.addDisable(GL_DEPTH_TEST);
@@ -234,7 +280,11 @@ int main()
 	sh_addTexShader.bindTextureOnUse("addTex", r_volumetricLighting._raymarchingFBO->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));	
 	sh_addTexShader.update("strength", 0.5f);		
 	
-		//addTex.render();
+	//addTex.render();
+
+	//ssr stuff
+	r_ssr.addRenderable(&quad);
+
 
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
@@ -303,7 +353,8 @@ int main()
 		r_lensFlare.updateLensStarMatrix(mainCamera.getViewMatrix());
 		sh_gbufferComp.update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
 		treeRendering.foliageShader->update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
-
+		
+		shadowMapShader.update("view", lightCamera.getViewMatrix());
 		shaderProgram.update("view", mainCamera.getViewMatrix());
 
 		treeRendering.foliageShader->update("view", mainCamera.getViewMatrix());
@@ -367,6 +418,7 @@ int main()
 		r_gbufferComp.render();
 
 		//TODO render water reflections 
+		r_ssr.render();
 		//TODO render god rays
 		r_volumetricLighting._raymarchingRenderPass->render();
 

@@ -150,7 +150,7 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
                 }
                 if(delta < 0.015)
                 {
-               bool toggleGlossy = false;	//da nicht als uniform
+               bool toggleGlossy = true;	//da nicht als uniform
                     if(toggleGlossy)
                     {
                         float diskSize = 0.00001f;
@@ -234,6 +234,7 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
 
 //    }
 
+bool fadeToEdges = true; 	//da nicht als uniform
     // Fading to screen edges
     vec2 fadeToScreenEdge = vec2(1.0);
     if(fadeToEdges){
@@ -248,10 +249,16 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
 //main
 void main(void){
  //texture information from G-Buffer
- float reflectance = texture(ReflectanceTex, vert_UV).a; 
- vec4 test = texture(vsPositionTex, vert_UV);
+ //float reflectance = texture(ReflectanceTex, vert_UV).a;	//
+ float reflectance = 0.0f;
+ float test1 = texture(ReflectanceTex, vert_UV).x;
+ if(test1 == 2){	//gibt noch kein obj mit materialwert, doch gleich schon
+ 	reflectance = texture(ReflectanceTex, vert_UV).y;
+ }
+ //reflectance = texture(ReflectanceTex, vert_UV).y;
+ vec4 test2 = texture(vsPositionTex, vert_UV);
  vec3 vsPosition = texture(vsPositionTex, vert_UV).xyz; 
- if(test.a == 0){
+ if(test2.a == 0){
  discard;
  }
  vec3 vsNormal = texture(vsNormalTex, vert_UV).xyz; 
