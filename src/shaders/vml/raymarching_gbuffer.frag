@@ -7,6 +7,7 @@
 #define BIAS 0.00005
 #define PHI 10000000.0
 #define TAU 0.0001
+#define LIMIT 100.0
 
 in vec2 passUV;
 
@@ -31,6 +32,10 @@ float v(vec3 rayPositionLightSpace) {
     rayCoordLightSpace.xyz += 0.5;
 
     float v = 1;
+    if (any( lessThan(rayCoordLightSpace.xy, vec2(0.0,0.0))) || any ( greaterThan(rayCoordLightSpace.xy,vec2(1.0,1.0) )) )
+    {
+        return v;
+    }
     if (texture(shadowMap, rayCoordLightSpace.xy).z < rayCoordLightSpace.z - BIAS) {
         v = 0;
     }
@@ -47,16 +52,18 @@ float executeRaymarching(vec3 x, float dl, float l) {
     // fetch whether the current position on the ray is visible form the light's perspective or not
     float v = v(x);
     // get distance of current ray postition to the light source in light view-space
-    float d = length(x);
-    float dRcp = 1.0/d;
+    // float d = length(x);
+    // float dRcp = 1.0/d;
+    float dRcp = 1.0;
 
     // calculate anisotropic scattering
     float p = p();
 
     // calculate the final light contribution for the sample on the way
-    float radiantFluxAttenuation = PHI * PI_RCP * 0.25 * dRcp * dRcp;
+    float radiantFluxAttenuation = PHI * PI_RCP * 0.25 * dRcp;
     float Li = TAU * albedo * radiantFluxAttenuation * v * p;
-    float intens = Li * exp(-TAU * d) * exp(-TAU * l) * dl;
+    float intens = Li * exp(-TAU * l) * dl;
+    
     return intens;
 }
 
@@ -75,6 +82,10 @@ void main() {
     vec4 startPosLightSpace = viewToLight * texture(worldPosMap, passUV);
     vec3 invViewDir = cameraPosLightSpace.xyz - startPosLightSpace.xyz;
     float s = length(invViewDir);
+    float clamped_s = clamp(s, 0.0, LIMIT);
+    
+    float diff_s = s - clamped_s;
+
     float dl = s / totalSampleNum;
     float dlb = blockSize * dl;
 
@@ -100,5 +111,5 @@ void main() {
     // if (index > 16)  gl_FragColor = vec4(0, 1, 0, 1);
     // if (index > 32)  gl_FragColor = vec4(0, 0, 1, 1);
     // if (index > 48)  gl_FragColor = vec4(1, 0, 1, 1);
-    // if (index > 1000)  gl_FragColor = vec4(1, 1, 0, 1);
+    // if (index > 1000)  gl_FragColor = vec4(1, 1, 0, 1);  
 }

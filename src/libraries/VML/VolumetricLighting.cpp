@@ -10,7 +10,7 @@ VolumetricLighting::VolumetricLighting(int width, int height)
  :   _blockSize(64),
     _blockSide(8),
     _radiocity(10000000.0f),
-    _scatterProbability(0.02f)
+    _scatterProbability(0.2f)
     {
     _width = width;
     _height = height;
@@ -104,7 +104,7 @@ void VolumetricLighting::setupNoiseTexture() {
 void VolumetricLighting::update(glm::mat4 &cameraView, glm::vec3 &cameraPos, glm::mat4 &lightView, glm::mat4 &lightProjection) {
     glm::mat4 viewToLightMat = lightView * glm::inverse(cameraView);
     glm::vec4 cameraPositionLightSpace = lightView * glm::vec4(cameraPos, 1.0f);
-    _raymarchingShader->update("viewToLight", glm::value_ptr(viewToLightMat));
-    _raymarchingShader->update("cameraPosLightSpace", glm::value_ptr(cameraPositionLightSpace));
-    _raymarchingShader->update("lightProjection", glm::value_ptr(lightProjection));
+    _raymarchingShader->update("viewToLight", viewToLightMat);
+    _raymarchingShader->update("cameraPosLightSpace", cameraPositionLightSpace);
+    _raymarchingShader->update("lightProjection", lightProjection);
 }
