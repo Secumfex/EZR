@@ -72,7 +72,7 @@ int main()
 	// Tess
 	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_height.png");
 	GLuint diffTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_grass.jpg");
-	GLuint rockTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_rock.jpg");
+	//GLuint rockTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_rock.jpg");
 
 	/////////////////////    Import Stuff (Misc)    //////////////////////////
 
@@ -128,7 +128,7 @@ int main()
 	shaderProgram.update("bt", bezier_transposed);
 	shaderProgram.bindTextureOnUse("terrain", distortionTex);
 	shaderProgram.bindTextureOnUse("diff", diffTex);
-	shaderProgram.bindTextureOnUse("rock", rockTex);
+	//shaderProgram.bindTextureOnUse("rock", rockTex);
 
 	/************ trees / branches ************/
 	treeRendering.createAndConfigureShaders("/modelSpace/GBuffer_mat.frag", "/treeAnim/foliage.frag");
