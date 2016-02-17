@@ -35,9 +35,9 @@ float level(vec2 v0, vec2 v1){
         return true;
     }   
     return any(
-        lessThan(vertex.xy, vec2(-1.7)) ||
-        greaterThan(vertex.xy, vec2(1.7))
-    );  
+        lessThan(vertex.xy, vec2(-1.7))) || any(
+        greaterThan(vertex.xy, vec2(1.7)))
+    ;  
 }
 
 void main(){
