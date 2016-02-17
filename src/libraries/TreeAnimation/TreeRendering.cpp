@@ -655,7 +655,6 @@ void TreeAnimation::TreeRendering::createAndConfigureRenderpasses(FrameBufferObj
 			{
 				branchShadowMapRenderpasses[i]->addRenderable(r);
 			}
-			branchShadowMapRenderpasses[i]->addEnable(GL_ALPHA_TEST); // for foliage
 			branchShadowMapRenderpasses[i]->addEnable(GL_DEPTH_TEST);
 
 			foliageShadowMapRenderpasses[i] = new RenderPass(foliageShadowMapShader, targetShadowMapFBO);
@@ -663,7 +662,7 @@ void TreeAnimation::TreeRendering::createAndConfigureRenderpasses(FrameBufferObj
 			{
 				foliageShadowMapRenderpasses[i]->addRenderable(r);
 			}
-			foliageShadowMapRenderpasses[i]->addEnable(GL_ALPHA_TEST); // for foliage
+			//foliageShadowMapRenderpasses[i]->addEnable(GL_ALPHA_TEST); // for foliage
 			foliageShadowMapRenderpasses[i]->addEnable(GL_DEPTH_TEST);
 		}
 	}

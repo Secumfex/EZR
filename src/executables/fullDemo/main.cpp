@@ -92,7 +92,7 @@ int main()
 	mainCamera.setProjectionMatrix( glm::perspective(glm::radians(65.f), getRatio(window), 0.5f, 100.f) );
 
 	Camera lightCamera; // used for shadow mapping
-	lightCamera.setProjectionMatrix( glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 30.0f) );
+	lightCamera.setProjectionMatrix( glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, -15.0f, 30.0f) );
 	lightCamera.setPosition(- glm::vec3(WORLD_LIGHT_DIRECTION) * 15.0f);
 	lightCamera.setCenter( glm::vec3( 0.0f,0.0f,0.0f) );
 
@@ -277,8 +277,6 @@ int main()
 	sh_addTexShader.bindTextureOnUse("tex", fbo_gbufferComp.getBuffer("fragmentColor"));
 	sh_addTexShader.bindTextureOnUse("addTex", r_volumetricLighting._raymarchingFBO->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));	
 	sh_addTexShader.update("strength", 0.5f);		
-	
-	//addTex.render();
 
 	//ssr stuff
 	r_ssr.addRenderable(&quad);
