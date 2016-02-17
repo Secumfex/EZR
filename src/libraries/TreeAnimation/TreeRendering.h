@@ -79,14 +79,20 @@ public:
 
 	ShaderProgram* foliageShader;
 	ShaderProgram* branchShader;
+	ShaderProgram* branchShadowMapShader;
+	ShaderProgram* foliageShadowMapShader;
 
 	std::vector<RenderPass* > foliageRenderpasses;
 	std::vector<RenderPass* > branchRenderpasses;
+	std::vector<RenderPass* > foliageShadowMapRenderpasses;
+	std::vector<RenderPass* > branchShadowMapRenderpasses;
 
 	ShaderProgram::UniformBlockInfo treeUniformBlockInfo;
 	ShaderProgram::UniformBlockInfo simulationUniformBlockInfo;
 	std::map<std::string, ShaderProgram::UniformBlockInfo> branchShaderUniformBlockInfoMap;
 	std::map<std::string, ShaderProgram::UniformBlockInfo> foliageShaderUniformBlockInfoMap;
+	std::map<std::string, ShaderProgram::UniformBlockInfo> foliageShadowMapShaderUniformBlockInfoMap;
+	std::map<std::string, ShaderProgram::UniformBlockInfo> branchShadowMapShaderUniformBlockInfoMap;
 
 	std::vector<GLuint> treeUniformBlockBuffers;
 	GLuint simulationUniformBlockBuffer;
@@ -103,7 +109,7 @@ public:
 	void createInstanceMatrixAttributes(int attributeLocation = 5);
 	void createAndConfigureShaders(std::string branchFragmentShader = "/modelSpace/GBuffer.frag", std::string foliageFragmentShader = "/treeAnim/foliage.frag");
 	void createAndConfigureUniformBlocksAndBuffers(int firstBindingPointIdx = 1);
-	void createAndConfigureRenderpasses(FrameBufferObject* targetBranchFBO, FrameBufferObject* targetFoliageFBO);
+	void createAndConfigureRenderpasses(FrameBufferObject* targetBranchFBO, FrameBufferObject* targetFoliageFBO, FrameBufferObject* targetShadowMapFBO = nullptr);
 
 	// Imgui
 	void imguiInterfaceSimulationProperties();

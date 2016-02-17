@@ -438,12 +438,16 @@ TreeAnimation::TreeRendering::TreeRendering()
 {
 	foliageShader = nullptr;
 	branchShader = nullptr;
+	branchShadowMapShader = nullptr;
+	foliageShadowMapShader = nullptr;
 }
 
 TreeAnimation::TreeRendering::~TreeRendering()
 {
 	delete foliageShader;
 	delete branchShader;
+	delete foliageShadowMapShader;
+	delete branchShadowMapShader;
 }
 
 void TreeAnimation::TreeRendering::generateAndConfigureTreeEntities(int numTreeVariants, float treeHeight, float treeWidth, int numMainBranches, int numSubBranches, int numFoliageQuadsPerBranch, const aiScene* branchModel)
@@ -565,6 +569,8 @@ void TreeAnimation::TreeRendering::createAndConfigureShaders(std::string branchF
 {
 	branchShader = new ShaderProgram("/treeAnim/tree.vert", branchFragmentShader);
 	foliageShader = new ShaderProgram("/treeAnim/tree.vert", foliageFragmentShader , "/treeAnim/foliage.geom" );
+	branchShadowMapShader = new ShaderProgram("/treeAnim/tree.vert", "/vml/shadowmap.frag" );
+	foliageShadowMapShader = new ShaderProgram("/treeAnim/tree.vert", "/vml/shadowmap.frag", "/treeAnim/foliage.geom" );
 }
 
 void TreeAnimation::TreeRendering::createAndConfigureUniformBlocksAndBuffers(int firstBindingPointIdx)
@@ -574,6 +580,8 @@ void TreeAnimation::TreeRendering::createAndConfigureUniformBlocksAndBuffers(int
 
 	branchShaderUniformBlockInfoMap = ShaderProgram::getAllUniformBlockInfo(*branchShader);
 	foliageShaderUniformBlockInfoMap = ShaderProgram::getAllUniformBlockInfo(*foliageShader);
+	foliageShadowMapShaderUniformBlockInfoMap = ShaderProgram::getAllUniformBlockInfo(*branchShadowMapShader);
+	branchShadowMapShaderUniformBlockInfoMap = ShaderProgram::getAllUniformBlockInfo(*foliageShadowMapShader);
 
 	if (branchShaderUniformBlockInfoMap.find("Tree") == branchShaderUniformBlockInfoMap.end() || foliageShaderUniformBlockInfoMap.find("Tree") == foliageShaderUniformBlockInfoMap.end() ) {
 		DEBUGLOG->log("ERROR: At least one Shader has no Uniform Block called 'Tree'"); return;}; 
@@ -604,16 +612,24 @@ void TreeAnimation::TreeRendering::createAndConfigureUniformBlocksAndBuffers(int
 
 	glUniformBlockBinding(foliageShader->getShaderProgramHandle(), foliageShaderUniformBlockInfoMap["Simulation"].index, firstBindingPointIdx);
 	glUniformBlockBinding(foliageShader->getShaderProgramHandle(), foliageShaderUniformBlockInfoMap["Tree"].index, firstBindingPointIdx+1);
+
+	glUniformBlockBinding(foliageShadowMapShader->getShaderProgramHandle(), foliageShaderUniformBlockInfoMap["Simulation"].index, firstBindingPointIdx);
+	glUniformBlockBinding(foliageShadowMapShader->getShaderProgramHandle(), foliageShaderUniformBlockInfoMap["Tree"].index, firstBindingPointIdx+1);
+
+	glUniformBlockBinding(branchShadowMapShader->getShaderProgramHandle(), foliageShaderUniformBlockInfoMap["Simulation"].index, firstBindingPointIdx);
+	glUniformBlockBinding(branchShadowMapShader->getShaderProgramHandle(), foliageShaderUniformBlockInfoMap["Tree"].index, firstBindingPointIdx+1);
 }
 
 
-void TreeAnimation::TreeRendering::createAndConfigureRenderpasses(FrameBufferObject* targetBranchFBO, FrameBufferObject* targetFoliageFBO)
+void TreeAnimation::TreeRendering::createAndConfigureRenderpasses(FrameBufferObject* targetBranchFBO, FrameBufferObject* targetFoliageFBO, FrameBufferObject* targetShadowMapFBO)
 {
 	if ( treeEntities.empty()){ DEBUGLOG->log("ERROR: Create TreeEntities first!"); return;}
 	if ( branchShader == nullptr || foliageShader == nullptr){ DEBUGLOG->log("ERROR: Create shaders first!"); return;}
 
 	branchRenderpasses.resize(treeEntities.size());
 	foliageRenderpasses.resize(treeEntities.size());
+	branchShadowMapRenderpasses.resize(treeEntities.size());
+	foliageShadowMapRenderpasses.resize(treeEntities.size());
 	for ( int i = 0; i < treeEntities.size(); i++)
 	{
 		branchRenderpasses[i] = new RenderPass(branchShader, targetBranchFBO);
@@ -630,6 +646,26 @@ void TreeAnimation::TreeRendering::createAndConfigureRenderpasses(FrameBufferObj
 		}
 		foliageRenderpasses[i]->addEnable(GL_ALPHA_TEST); // for foliage
 		foliageRenderpasses[i]->addEnable(GL_DEPTH_TEST);
+
+		if ( targetShadowMapFBO != nullptr)
+		{
+			// SHADOW MAP
+			branchShadowMapRenderpasses[i] = new RenderPass(branchShadowMapShader, targetShadowMapFBO);
+			for ( auto r : treeEntities[i]->branchRenderables )
+			{
+				branchShadowMapRenderpasses[i]->addRenderable(r);
+			}
+			branchShadowMapRenderpasses[i]->addEnable(GL_ALPHA_TEST); // for foliage
+			branchShadowMapRenderpasses[i]->addEnable(GL_DEPTH_TEST);
+
+			foliageShadowMapRenderpasses[i] = new RenderPass(foliageShadowMapShader, targetShadowMapFBO);
+			for ( auto r : treeEntities[i]->foliageRenderables )
+			{
+				foliageShadowMapRenderpasses[i]->addRenderable(r);
+			}
+			foliageShadowMapRenderpasses[i]->addEnable(GL_ALPHA_TEST); // for foliage
+			foliageShadowMapRenderpasses[i]->addEnable(GL_DEPTH_TEST);
+		}
 	}
 	glAlphaFunc(GL_GREATER, 0);
 }

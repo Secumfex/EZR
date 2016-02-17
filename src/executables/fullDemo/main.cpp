@@ -136,17 +136,6 @@ int main()
 	shaderProgram.bindTextureOnUse("diff", diffTex);
 	//shaderProgram.bindTextureOnUse("rock", rockTex);
 
-	/************ trees / branches ************/
-	treeRendering.createAndConfigureShaders("/modelSpace/GBuffer_mat.frag", "/treeAnim/foliage.frag");
-	treeRendering.branchShader->update("projection", mainCamera.getProjectionMatrix());
-	treeRendering.foliageShader->update("projection", mainCamera.getProjectionMatrix());
-	treeRendering.createAndConfigureUniformBlocksAndBuffers(1);
-	assignTreeMaterialTextures(treeRendering);
-	assignWindFieldUniforms(treeRendering, windField);
-	treeRendering.createAndConfigureRenderpasses( &fbo_gbuffer, &fbo_gbuffer );
-	/******************************************/
-
-	// TODO shadow map (light source) renderpass
 	// setup variables for shadowmapping
 	glm::mat4 lightMVP = lightCamera.getProjectionMatrix() * lightCamera.getViewMatrix();
 	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
@@ -158,11 +147,22 @@ int main()
 	shadowMapShader.update("lightMVP", lightMVP);
 	RenderPass shadowMapRenderpass(&shadowMapShader, &shadowMap);
 
+	/************ trees / branches ************/
+	treeRendering.createAndConfigureShaders("/modelSpace/GBuffer_mat.frag", "/treeAnim/foliage.frag");
+	treeRendering.branchShader->update("projection", mainCamera.getProjectionMatrix());
+	treeRendering.foliageShader->update("projection", mainCamera.getProjectionMatrix());
+	treeRendering.branchShadowMapShader->update("projection", lightCamera.getProjectionMatrix());
+	treeRendering.foliageShadowMapShader->update("projection", lightCamera.getProjectionMatrix());
+	treeRendering.createAndConfigureUniformBlocksAndBuffers(1);
+	assignTreeMaterialTextures(treeRendering);
+	assignWindFieldUniforms(treeRendering, windField);
+	treeRendering.createAndConfigureRenderpasses( &fbo_gbuffer, &fbo_gbuffer, &shadowMap );
+	/******************************************/
+
 	// setup renderpass
 	shadowMapRenderpass.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	shadowMapRenderpass.addClearBit(GL_DEPTH_BUFFER_BIT);
 	shadowMapRenderpass.addEnable(GL_DEPTH_TEST);
-
 
 	// skybox rendering (gbuffer style)
 	PostProcessing::SkyboxRendering r_skybox;
@@ -271,7 +271,7 @@ int main()
 
 		///////////////////////////// VARIABLE UPDATING ///////////////////////////////
 		mainCamera.update(dt);
-		updateLightCamera(mainCamera, lightCamera);
+		updateLightCamera(mainCamera, lightCamera, - glm::vec3(WORLD_LIGHT_DIRECTION) * 15.0f);
 		windField.updateVectorTexture(elapsedTime);
 		glm::mat4 cameraView = mainCamera.getViewMatrix();
 		glm::vec3 cameraPos = mainCamera.getPosition();
@@ -295,11 +295,17 @@ int main()
 
 		treeRendering.foliageShader->update("view", mainCamera.getViewMatrix());
 		treeRendering.branchShader->update("view", mainCamera.getViewMatrix());
+		treeRendering.branchShadowMapShader->update("view", lightCamera.getViewMatrix());
+		treeRendering.foliageShadowMapShader->update("view", lightCamera.getViewMatrix());
 
 		// wind related uniforms
 		treeRendering.branchShader->update( "windPower", s_wind_power);
 		treeRendering.foliageShader->update("windPower", s_wind_power);
+		treeRendering.branchShadowMapShader->update("windPower", s_wind_power);
+		treeRendering.foliageShadowMapShader->update("windPower", s_wind_power);
+		
 		treeRendering.foliageShader->update("foliageSize", s_foliage_size);
+		treeRendering.foliageShadowMapShader->update("foliageSize", s_foliage_size);
 		
 		treeRendering.updateActiveImguiInterfaces();
 
@@ -326,7 +332,6 @@ int main()
 			glUniformBlockBinding(treeRendering.foliageShader->getShaderProgramHandle(), treeRendering.foliageShaderUniformBlockInfoMap["Tree"].index, 2+i);
 			treeRendering.foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
-
 		//TODO render grass
 		//TODO render tesselated mountains
 		//renderPass.render();
@@ -335,7 +340,16 @@ int main()
 
 		//TODO render shadow map ( most of above again )
 		shadowMapRenderpass.render();
-
+		for(unsigned int i = 0; i < treeRendering.foliageShadowMapRenderpasses.size(); i++)
+		{
+			glUniformBlockBinding(treeRendering.foliageShadowMapShader->getShaderProgramHandle(), treeRendering.foliageShadowMapShaderUniformBlockInfoMap["Tree"].index, 2+i);
+			treeRendering.foliageShadowMapRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
+		}
+		for(unsigned int i = 0; i < treeRendering.branchShadowMapRenderpasses.size(); i++)
+		{
+			glUniformBlockBinding(treeRendering.branchShadowMapShader->getShaderProgramHandle(), treeRendering.branchShadowMapShaderUniformBlockInfoMap["Tree"].index, 2+i);
+			treeRendering.branchShadowMapRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
+		}
 		// render regular compositing from GBuffer
 		r_gbufferComp.render();
 
