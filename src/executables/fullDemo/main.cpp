@@ -255,22 +255,11 @@ int main()
 	sh_addTexShader.bindTextureOnUse("addTex", r_volumetricLighting._raymarchingFBO->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));	
 	sh_addTexShader.update("strength", 0.5f);		
 	
-		//addTex.render();
+	//addTex.render();
 
 	//ssr stuff
 	r_ssr.addRenderable(&quad);
 
-	// arbitrary texture display shader
-	ShaderProgram sh_addTexShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessAddTexture.frag");
-	RenderPass r_addTex(&sh_addTexShader, &fbo_gbufferComp);
-	r_addTex.addRenderable(&quad);
-	r_addTex.addDisable(GL_DEPTH_TEST);
-	r_addTex.addDisable(GL_BLEND);
-	sh_addTexShader.bindTextureOnUse("tex", fbo_gbufferComp.getBuffer("fragmentColor"));
-	sh_addTexShader.bindTextureOnUse("addTex", r_volumetricLighting._raymarchingFBO->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));	
-	sh_addTexShader.update("strength", 0.5f);		
-	
-		//addTex.render();
 
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
