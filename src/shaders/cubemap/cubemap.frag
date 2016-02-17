@@ -6,6 +6,7 @@ layout(location = 0) out vec4 color;
 layout(location = 1) out vec4 normal;
 layout(location = 2) out vec4 position;
 layout(location = 3) out vec4 fragUVCoord;
+layout(location = 4) out vec4 material;
 
 uniform samplerCube skybox;
 
@@ -15,4 +16,5 @@ void main()
 	position = vec4(passPosition, 1.0);
 	normal = vec4(normalize(-passPosition),0);
 	fragUVCoord = vec4(passTexCoords,0);
-}
+	material = vec4(1.0,0, 0, 0);
+} 
