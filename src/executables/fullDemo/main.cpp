@@ -14,6 +14,7 @@
 #include "misc.cpp"
 ////////////////////// PARAMETERS /////////////////////////////
 static const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
+static const glm::vec4 WORLD_LIGHT_DIRECTION = glm::vec4(-glm::normalize(glm::vec3(-2.16f, 2.6f, 10.0f)), 0.0f);
 
 // needed for bezier-patch-interpolation
 glm::mat4 bezier = glm::mat4(
@@ -85,7 +86,7 @@ int main()
 
 	Camera lightCamera; // used for shadow mapping
 	lightCamera.setProjectionMatrix( glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 30.0f) );
-	lightCamera.setPosition(glm::vec3(-2.16f, 2.6f, 10.0f));
+	lightCamera.setPosition(- glm::vec3(WORLD_LIGHT_DIRECTION) * 15.0f);
 	lightCamera.setCenter( glm::vec3( 0.0f,0.0f,0.0f) );
 
 	// create terrain
@@ -173,10 +174,11 @@ int main()
 	DEBUGLOG->outdent(); DEBUGLOG->log("Rendering Setup: 'Screen-Space' Rendering"); DEBUGLOG->indent();
 	Quad quad; // can be assigned to all screen-space render passes
 	
-	ShaderProgram sh_gbufferComp("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing.frag"); DEBUGLOG->outdent();
+	ShaderProgram sh_gbufferComp("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing_mat.frag"); DEBUGLOG->outdent();
 	sh_gbufferComp.bindTextureOnUse("colorMap", 	 fbo_gbuffer.getBuffer("fragColor"));
 	sh_gbufferComp.bindTextureOnUse("normalMap", 	 fbo_gbuffer.getBuffer("fragNormal"));
 	sh_gbufferComp.bindTextureOnUse("positionMap",   fbo_gbuffer.getBuffer("fragPosition"));
+	sh_gbufferComp.bindTextureOnUse("materialMap",   fbo_gbuffer.getBuffer("fragMaterial"));
 	FrameBufferObject fbo_gbufferComp(sh_gbufferComp.getOutputInfoMap(), WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 	RenderPass r_gbufferComp(&sh_gbufferComp, &fbo_gbufferComp);
 	r_gbufferComp.addDisable(GL_DEPTH_TEST);
@@ -233,7 +235,6 @@ int main()
         ImGuiIO& io = ImGui::GetIO();
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
 			
-		
 		if (ImGui::CollapsingHeader("Tree Rendering")) 
 			treeRendering.imguiInterfaceSimulationProperties();
 
@@ -255,6 +256,7 @@ int main()
 		sh_gbuffer.update( "view", mainCamera.getViewMatrix());
 		r_skybox.m_skyboxShader.update("view", glm::mat4(glm::mat3(mainCamera.getViewMatrix())));
 		r_lensFlare.updateLensStarMatrix(mainCamera.getViewMatrix());
+		sh_gbufferComp.update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
 
 		shaderProgram.update("view", mainCamera.getViewMatrix());
 
@@ -272,12 +274,12 @@ int main()
 		r_gbuffer.render();
 		
 		//TODO other rendering procedures that render into G-Buffer
-		//TODO render trees
+		
+		// render trees
 		for( unsigned int i = 0; i < treeRendering.branchRenderpasses.size(); i++){
 			glUniformBlockBinding(treeRendering.branchShader->getShaderProgramHandle(), treeRendering.branchShaderUniformBlockInfoMap["Tree"].index, 2+i);
 			treeRendering.branchRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
-		// copy depth buffer to comp fbo
 		for(unsigned int i = 0; i < treeRendering.foliageRenderpasses.size(); i++)
 		{
 			glUniformBlockBinding(treeRendering.foliageShader->getShaderProgramHandle(), treeRendering.foliageShaderUniformBlockInfoMap["Tree"].index, 2+i);
@@ -305,13 +307,17 @@ int main()
 		// r_lensFlare.renderLensFlare(depthOfField.m_dofCompFBO->getBuffer("fragmentColor"), 0);
 
 		/////////// DEBUGGING ////////////////////////////
+		r_showTex.setViewport(0,0, WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y );
+		sh_showTex.updateAndBindTexture("tex", 0, fbo_gbufferComp.getBuffer("fragmentColor"));
+		r_showTex.render();
+
 		// show / debug view of some texture
 		r_showTex.setViewport(0,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
-		sh_showTex.updateAndBindTexture("tex", 0, fbo_gbuffer.getBuffer("fragColor"));
+		sh_showTex.updateAndBindTexture("tex", 0, fbo_gbuffer.getBuffer("fragNormal"));
 		r_showTex.render();
 
 		r_showTex.setViewport(WINDOW_RESOLUTION.x / 4,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
-		sh_showTex.updateAndBindTexture("tex", 0, fbo_gbufferComp.getBuffer("fragColor"));
+		sh_showTex.updateAndBindTexture("tex", 0, fbo_gbuffer.getBuffer("fragMaterial"));
 		r_showTex.render();
 
 		glViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y); // reset

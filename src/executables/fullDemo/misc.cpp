@@ -104,10 +104,10 @@ namespace CallbackHelper
 static const float TREE_HEIGHT = 4.0f;
 static const float TREE_WIDTH = TREE_HEIGHT / 10.0f;
 static const int NUM_MAIN_BRANCHES = 5;
-static const int NUM_SUB_BRANCHES  = 5;
+static const int NUM_SUB_BRANCHES  = 3;
 static const int NUM_TREE_VARIANTS = 3;
-static const int NUM_TREES_PER_VARIANT = 33;
-static const int NUM_FOLIAGE_QUADS_PER_BRANCH = 10;
+static const int NUM_TREES_PER_VARIANT = 10;
+static const int NUM_FOLIAGE_QUADS_PER_BRANCH = 5;
 static Assimp::Importer branchImporter;
 static std::vector<std::map<aiTextureType, GLuint>> s_tree_materials_textures; //!< mapping material texture types to texture handles
 static const glm::vec4 FORESTED_AREA = glm::vec4(-15.0f,-15.0f, 15.0f,15.0f);
