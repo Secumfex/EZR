@@ -150,7 +150,7 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
                 }
                 if(delta < 0.015)
                 {
-               bool toggleGlossy = false;	//da nicht als uniform
+               bool toggleGlossy = true;	//da nicht als uniform
                     if(toggleGlossy)
                     {
                         float diskSize = 0.00001f;
@@ -250,10 +250,12 @@ void main(void){
  //texture information from G-Buffer
  float reflectance = texture(ReflectanceTex, vert_UV).a; 
  vec4 test = texture(vsPositionTex, vert_UV);
- vec3 vsPosition = texture(vsPositionTex, vert_UV).xyz; 
+ vec3 vsPosition = texture(vsPositionTex, vert_UV).xyz;
+ //for debug 
  if(test.a == 0){
  discard;
  }
+ //
  vec3 vsNormal = texture(vsNormalTex, vert_UV).xyz; 
  
  //reflection vector calculation
