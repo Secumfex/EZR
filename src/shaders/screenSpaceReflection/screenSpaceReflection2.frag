@@ -252,10 +252,10 @@ void main(void){
  //float reflectance = texture(ReflectanceTex, vert_UV).a;	//
  float reflectance = 0.0f;
  float test1 = texture(ReflectanceTex, vert_UV).x;
- //if(test1 == 2){	//gibt noch kein obj mit materialwert
- //	reflectance = texture(ReflectanceTex, vert_UV).y;
- //}
- reflectance = texture(ReflectanceTex, vert_UV).y;
+ if(test1 == 2){	//gibt noch kein obj mit materialwert, doch gleich schon
+ 	reflectance = texture(ReflectanceTex, vert_UV).y;
+ }
+ //reflectance = texture(ReflectanceTex, vert_UV).y;
  vec4 test2 = texture(vsPositionTex, vert_UV);
  vec3 vsPosition = texture(vsPositionTex, vert_UV).xyz; 
  if(test2.a == 0){

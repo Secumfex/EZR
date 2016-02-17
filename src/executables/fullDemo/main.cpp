@@ -245,10 +245,10 @@ int main()
 	r_showTex.addDisable(GL_DEPTH_TEST);
 	r_showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 
-<<<<<<< HEAD
+
 	//ssr stuff
 	r_ssr.addRenderable(&quad);
-=======
+
 	// arbitrary texture display shader
 	ShaderProgram sh_addTexShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessAddTexture.frag");
 	RenderPass r_addTex(&sh_addTexShader, &fbo_gbufferComp);
@@ -260,7 +260,6 @@ int main()
 	sh_addTexShader.update("strength", 0.5f);		
 	
 		//addTex.render();
->>>>>>> origin/master
 
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
