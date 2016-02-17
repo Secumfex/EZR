@@ -280,7 +280,7 @@ int main()
 
 		if ( s_camera_mouse_control )
 		{
-			cam.mouseControlCallback( - d_y / 400.0f, - d_x / 400.0f);
+			cam.mouseControlCallback( d_y, d_x );
 		}
 		old_x = x;
 		old_y = y;

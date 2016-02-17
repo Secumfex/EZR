@@ -21,6 +21,8 @@ protected:
 	float m_speedRight;		/**< horizontal velocity */
 	float m_speedForward;	/**< forward velocity */
 
+	float m_mouseSensitivity;
+
 	bool m_topDown;			/**< bool to decide whether up vector should be inverted */
 
 	/** \brief returns an Up vector

@@ -258,7 +258,7 @@ int main()
 
 		if ( active_mouse_control )
 		{
-			camera.mouseControlCallback(- d_y / 300.0f, - d_x/ 300.0f);
+			camera.mouseControlCallback(d_y,d_x);
 		}
 		if ( turntable.getDragActive() )
 		{

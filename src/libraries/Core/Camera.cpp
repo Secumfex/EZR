@@ -19,6 +19,8 @@ Camera::Camera(){
 	updateViewDirection();
 	m_viewMatrix = getViewMatrix();
 	m_projectionMatrix = glm::ortho(-0.5f,0.5f,-0.5f,0.5f);
+
+	m_mouseSensitivity = 1.0f / 300.0f;
 }
 
 Camera::~Camera(){}
@@ -229,8 +231,8 @@ std::function<void(int,int,int,int)> Camera::getKeyboardControlCallbackFunction(
 
 void Camera::mouseControlCallback(double d_theta, double d_phi)
 {
-	setTheta(getTheta() + d_theta);
-	setPhi( getPhi() + d_phi);
+	setTheta(getTheta() - d_theta * m_mouseSensitivity);
+	setPhi( getPhi() - d_phi * m_mouseSensitivity);
 }
 
 std::function<void(double, double)> Camera::getMouseControlCallbackFunction()
