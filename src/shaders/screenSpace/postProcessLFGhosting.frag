@@ -8,7 +8,7 @@ uniform float uGhostDispersal; // dispersion factor
 uniform float uHaloWidth; // dispersion factor
 uniform float uDistortion; // chromatic abberation
 
-noperspective in vec2 passUV;
+in vec2 passUV;
 
 out vec4 fResult;
 
