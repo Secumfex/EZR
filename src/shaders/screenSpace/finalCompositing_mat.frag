@@ -7,7 +7,7 @@ uniform sampler2D normalMap;
 uniform sampler2D positionMap;
 uniform sampler2D materialMap;
 
-uniform vec3 vLightDir;
+uniform vec4 vLightDir;
 out vec4 fragmentColor;
 
 void main() {
@@ -21,7 +21,7 @@ void main() {
     {
         //calculate lighting with given position, normal and lightposition
         // vec3 nPosToLight = normalize( vLightPos.xyz - position.xyz );
-        vec3 nPosToLight = normalize( - vLightDir );
+        vec3 nPosToLight = normalize( - vLightDir.xyz );
 
         vec3 nReflection = normalize( reflect( normalize(position.xyz), normalize(normal.xyz) ) );
 

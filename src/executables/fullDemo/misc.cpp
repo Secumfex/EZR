@@ -175,6 +175,10 @@ inline void assignTreeMaterialTextures(TreeAnimation::TreeRendering& treeRenderi
 
 	GLuint foliageTexHandle = s_tree_materials_textures[1].find(aiTextureType_DIFFUSE)->second;
 	treeRendering.foliageShader->bindTextureOnUse("tex", foliageTexHandle);
+
+	treeRendering.branchShader->update("materialType", 0.0);
+	treeRendering.branchShader->update("shininess", 1.0);
+	treeRendering.branchShader->update("shininess_strength", 0.1);
 }
 inline void assignWindFieldUniforms(TreeAnimation::TreeRendering& treeRendering, TreeAnimation::WindField& windField)
 {
