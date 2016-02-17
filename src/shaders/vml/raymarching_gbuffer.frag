@@ -22,6 +22,8 @@ uniform mat4 lightProjection;
 uniform vec4 cameraPosLightSpace;
 
 // raymarching
+uniform float phi;
+uniform float tau;
 uniform float albedo;
 
 // visibility function
@@ -52,17 +54,16 @@ float executeRaymarching(vec3 x, float dl, float l) {
     // fetch whether the current position on the ray is visible form the light's perspective or not
     float v = v(x);
     // get distance of current ray postition to the light source in light view-space
-    // float d = length(x);
-    // float dRcp = 1.0/d;
-    float dRcp = 1.0;
+    float d = length(x);
+    float dRcp = 1.0/d;
 
     // calculate anisotropic scattering
     float p = p();
 
     // calculate the final light contribution for the sample on the way
-    float radiantFluxAttenuation = PHI * PI_RCP * 0.25 * dRcp;
-    float Li = TAU * albedo * radiantFluxAttenuation * v * p;
-    float intens = Li * exp(-TAU * l) * dl;
+    float radiantFluxAttenuation = phi * PI_RCP * 0.25 * dRcp * dRcp;
+    float Li = tau * albedo * radiantFluxAttenuation * v * p;
+    float intens = Li * exp(-tau * d)* exp(-tau * l) * dl;
     
     return intens;
 }
@@ -79,12 +80,12 @@ void main() {
     float sampleNum = SAMPLES / blockSize;
 
     // calculate complete raymarching distance
-    vec4 startPosLightSpace = viewToLight * texture(worldPosMap, passUV);
+    vec4 startPosCameraSpace = texture(worldPosMap, passUV);
+    startPosCameraSpace = vec4(min(length(startPosCameraSpace.xyz), 20) * normalize(startPosCameraSpace.xyz), 1.0);
+
+    vec4 startPosLightSpace = viewToLight * startPosCameraSpace;
     vec3 invViewDir = cameraPosLightSpace.xyz - startPosLightSpace.xyz;
     float s = length(invViewDir);
-    float clamped_s = clamp(s, 0.0, LIMIT);
-    
-    float diff_s = s - clamped_s;
 
     float dl = s / totalSampleNum;
     float dlb = blockSize * dl;
@@ -105,6 +106,7 @@ void main() {
         vli += executeRaymarching(x, dl, l);
     }
     vli /= sampleNum;
+    vli = clamp(vli, 0.0f, 1.0f);
 
     gl_FragColor =  vec4(vec3(1,1,1) * vli, 1);
     // if (index <= 16)  gl_FragColor = vec4(1, 0, 0, 1);

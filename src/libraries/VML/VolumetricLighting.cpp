@@ -4,30 +4,34 @@
 
 #include <Rendering/GLTools.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <UI/imgui/imgui.h>
 #include "VolumetricLighting.h"
 
 VolumetricLighting::VolumetricLighting(int width, int height) 
  :   _blockSize(64),
     _blockSide(8),
     _radiocity(10000000.0f),
-    _scatterProbability(0.2f)
+    _scatterProbability(0.3f),
+    _collisionProbability(0.1f)
     {
-    _width = width;
-    _height = height;
+        _width = width;
+        _height = height;
 
-    // setup shader program
-    _raymarchingFBO = new FrameBufferObject(width, height);
-    _raymarchingFBO->addColorAttachments(1);
-    _raymarchingShader = new ShaderProgram("/screenSpace/fullscreen.vert", "/vml/raymarching_gbuffer.frag");
-    _raymarchingShader->update("albedo", _scatterProbability);
+        // setup shader program
+        _raymarchingFBO = new FrameBufferObject(width, height);
+        _raymarchingFBO->addColorAttachments(1);
+        _raymarchingShader = new ShaderProgram("/screenSpace/fullscreen.vert", "/vml/raymarching_gbuffer.frag");
+        _raymarchingShader->update("phi", _radiocity);
+        _raymarchingShader->update("tau", _collisionProbability);
+        _raymarchingShader->update("albedo", _scatterProbability);
 
-    // setup render pass
-    _raymarchingRenderPass = new RenderPass(_raymarchingShader, _raymarchingFBO);
-    _raymarchingRenderPass->addRenderable(&_screenfillingQuad);
-    _raymarchingRenderPass->setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    _raymarchingRenderPass->addClearBit(GL_COLOR_BUFFER_BIT);
-    _raymarchingRenderPass->addDisable(GL_DEPTH_BUFFER_BIT);
-};
+        // setup render pass
+        _raymarchingRenderPass = new RenderPass(_raymarchingShader, _raymarchingFBO);
+        _raymarchingRenderPass->addRenderable(&_screenfillingQuad);
+        _raymarchingRenderPass->setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        _raymarchingRenderPass->addClearBit(GL_COLOR_BUFFER_BIT);
+        _raymarchingRenderPass->addDisable(GL_DEPTH_BUFFER_BIT);
+    };
 
 VolumetricLighting::~VolumetricLighting() {
 
@@ -107,4 +111,14 @@ void VolumetricLighting::update(glm::mat4 &cameraView, glm::vec3 &cameraPos, glm
     _raymarchingShader->update("viewToLight", viewToLightMat);
     _raymarchingShader->update("cameraPosLightSpace", cameraPositionLightSpace);
     _raymarchingShader->update("lightProjection", lightProjection);
+}
+
+void VolumetricLighting::imguiInterfaceSimulationProperties()
+{
+    ImGui::SliderFloat("phi", &_radiocity, 0.0f, 10000000.0f);
+    ImGui::SliderFloat("tau", &_collisionProbability, 0.0f, 1.0f);
+    ImGui::SliderFloat("albedo", &_scatterProbability, 0.0f, 1.0f);
+    _raymarchingShader->update("phi", _radiocity);
+    _raymarchingShader->update("tau", _collisionProbability);
+    _raymarchingShader->update("albedo", _scatterProbability);
 }

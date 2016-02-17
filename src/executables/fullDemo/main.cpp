@@ -275,8 +275,10 @@ int main()
 			
 		if (ImGui::CollapsingHeader("Tree Rendering")) 
 			treeRendering.imguiInterfaceSimulationProperties();
+		if (ImGui::CollapsingHeader("Volumetric Lighting"))
+			r_volumetricLighting.imguiInterfaceSimulationProperties();
 
-		//TODO what you want to be able to modify, use multiple windows, collapsing headers, whatever 
+			//TODO what you want to be able to modify, use multiple windows, collapsing headers, whatever
 
         //////////////////////////////////////////////////////////////////////////////
 

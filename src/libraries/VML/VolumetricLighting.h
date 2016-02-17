@@ -16,6 +16,7 @@ public:
 
     void setupNoiseTexture();
     void update(glm::mat4 &cameraView, glm::vec3 &cameraPos, glm::mat4 &lightView, glm::mat4 &lightProjection);
+    void imguiInterfaceSimulationProperties();
 
     // shader variables
     ShaderProgram* _raymarchingShader;
@@ -29,8 +30,10 @@ public:
 	float _height;
     float _blockSize;
     float _blockSide;
-    int _radiocity;
+
+    float _radiocity;
     float _scatterProbability;
+    float _collisionProbability;
 
     // rendering
     Quad _screenfillingQuad;
