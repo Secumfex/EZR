@@ -640,7 +640,7 @@ std::map<std::string, ShaderProgram::UniformBlockInfo> ShaderProgram::getAllUnif
 			//DEBUGLOG->log("arr-str: ",uniformValues[3]);
 			//DEBUGLOG->log("mat-str: ",uniformValues[4]);
 
-			const GLuint idx[1] = {attribIdx};
+			GLuint idx[1] = {(GLuint) attribIdx};
 			GLint uniformSize;
 			glGetActiveUniformsiv(shaderProgram.getShaderProgramHandle(), 1, idx, GL_UNIFORM_SIZE, &uniformSize );
 			//DEBUGLOG->log("size   :", uniformSize);
