@@ -255,6 +255,7 @@ int main()
 		//TODO render tesselated mountains
 		renderPass.render();
 		//TODO render skybox
+		r_skybox.render(tex_cubeMap, &fbo_gbuffer);
 
 		//TODO render shadow map ( most of above again )
 
