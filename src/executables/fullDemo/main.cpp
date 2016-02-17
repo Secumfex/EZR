@@ -82,6 +82,8 @@ int main()
 	GLuint diffTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_grass.jpg");
 	//GLuint rockTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_rock.jpg");
 
+	GLuint tex_grassQuad = TextureTools::loadTextureFromResourceFolder("grass.png");
+
 	/////////////////////    Import Stuff (Misc)    //////////////////////////
 
 	//TODO load whatever else is needed
@@ -109,6 +111,9 @@ int main()
 	// grid resembling water surface
 	Renderable* waterGrid = new Grid(32,32,1.0f,1.0f,true);
 	glm::mat4 modelWater = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
+	// grid resembling grass spawning area
+	Renderable* grassGrid = new Grid(64,64,0.5f,0.5f,true);
+	glm::mat4 modelGrass = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
 
 	//////////////////////////////////////////////////////////////////////////////
 	////////////////////////// RENDERING SETUP  //////////////////////////////////
@@ -128,7 +133,6 @@ int main()
 	r_gbuffer.addEnable(GL_DEPTH_TEST);	
 	r_gbuffer.setClearColor(0.0,0.0,0.0,0.0);
 	r_gbuffer.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	r_gbuffer.addRenderable(waterGrid); // render water grid
 
 	// Terrainstuff
 	ShaderProgram shaderProgram("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag_lod.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te_bezier.te"); DEBUGLOG->outdent();//
@@ -156,8 +160,7 @@ int main()
 	// setup renderpass
 	shadowMapRenderpass.addClearBit(GL_DEPTH_BUFFER_BIT);
 	shadowMapRenderpass.addEnable(GL_DEPTH_TEST);
-	shadowMapRenderpass.addRenderable(waterGrid);
-
+	
 	/************ trees / branches ************/
 	treeRendering.createAndConfigureShaders("/modelSpace/GBuffer_mat.frag", "/treeAnim/foliage.frag");
 	treeRendering.branchShader->update("projection", mainCamera.getProjectionMatrix());
@@ -174,6 +177,23 @@ int main()
 	PostProcessing::SkyboxRendering r_skybox;
 	r_skybox.m_skyboxShader.update("projection", mainCamera.getProjectionMatrix());
 
+	ShaderProgram sh_grassGeom("/modelSpace/geometry.vert", "/modelSpace/GBuffer_mat.frag", "/geometry/simpleGeom.geom");
+	RenderPass r_grassGeom(&sh_grassGeom, &fbo_gbuffer);
+	// geom.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	r_grassGeom.addRenderable(grassGrid);
+	r_grassGeom.addEnable(GL_DEPTH_TEST);
+	r_grassGeom.addEnable(GL_ALPHA_TEST);
+	//r_grassGeom.addEnable(GL_BLEND);
+	sh_grassGeom.update("projection", mainCamera.getProjectionMatrix());
+	sh_grassGeom.bindTextureOnUse("tex", tex_grassQuad);
+	sh_grassGeom.update("model", modelGrass);
+	sh_grassGeom.update("mixTexture", 1.0f);
+	sh_grassGeom.update("materialType", 0.0f);
+	sh_grassGeom.update("shininess", 3.0f);
+	sh_grassGeom.update("shininess_strength", 0.1f);
+	sh_grassGeom.update("strength", 0.5f); // grass size
+	glAlphaFunc(GL_GREATER, 0);
+
 	// TODO construct all renderpasses, shaders and framebuffer objects
 
 	/////////////////////// 	Assign Renderables    ///////////////////////////
@@ -188,7 +208,11 @@ int main()
 	renderPass.setClearColor(0.0, 0.0, 0.4,0.0);
 	for (auto r : objects){renderPass.addRenderable(r);}
 
-	// TODO assign all Renderables to gbuffer render pass that should be rendered by it
+	// assign all Renderables to gbuffer render pass that should be rendered by it
+	r_gbuffer.addRenderable(waterGrid);
+
+	// assign all Renderables to shadow map render pass that should and can be rendered by it
+	shadowMapRenderpass.addRenderable(waterGrid);
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
 	DEBUGLOG->outdent(); DEBUGLOG->log("Rendering Setup: per-renderable functions"); DEBUGLOG->indent();
@@ -346,6 +370,7 @@ int main()
 		// update view dependent uniforms
 		sh_gbuffer.update( "view", mainCamera.getViewMatrix());
 		r_skybox.m_skyboxShader.update("view", glm::mat4(glm::mat3(mainCamera.getViewMatrix())));
+		sh_grassGeom.update("view", mainCamera.getViewMatrix());
 		r_lensFlare.updateLensStarMatrix(mainCamera.getViewMatrix());
 		sh_gbufferComp.update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
 		treeRendering.foliageShader->update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
@@ -410,6 +435,10 @@ int main()
 			glUniformBlockBinding(treeRendering.branchShadowMapShader->getShaderProgramHandle(), treeRendering.branchShadowMapShaderUniformBlockInfoMap["Tree"].index, 2+i);
 			treeRendering.branchShadowMapRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
+
+		// render grass
+		r_grassGeom.render();
+
 		// render regular compositing from GBuffer
 		r_gbufferComp.render();
 
