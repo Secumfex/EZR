@@ -31,6 +31,8 @@ glm::mat4 bezier_transposed = glm::transpose(bezier);
 static float s_wind_power = 0.25f;
 static float s_foliage_size = 0.4f;
 
+static int s_ssrRayStep = 0.0f;
+
 //////////////////// MISC /////////////////////////////////////
 std::map<aiTextureType, GLuint> textures;
 
@@ -206,6 +208,25 @@ int main()
 	r_gbufferComp.addRenderable(&quad);
 	DEBUGLOG->outdent();
 
+	//ssr render pass
+	ShaderProgram sh_ssr("/screenSpaceReflection/screenSpaceReflection.vert", "/screenSpaceReflection/screenSpaceReflection2.frag"); DEBUGLOG->outdent();
+	sh_ssr.update("screenWidth",getResolution(window).x);
+	sh_ssr.update("screenHeight",getResolution(window).y);
+	sh_ssr.update("camNearPlane",mainCamera.getProjectionMatrix()[15]);
+	sh_ssr.update("camFarPlane",mainCamera.getProjectionMatrix()[16]);
+	sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
+	sh_ssr.update("projection",mainCamera.getProjectionMatrix());
+	sh_ssr.bindTextureOnUse("vsPositionTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
+	sh_ssr.bindTextureOnUse("vsNormalTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
+	sh_ssr.bindTextureOnUse("ReflectanceTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT4));
+	sh_ssr.bindTextureOnUse("DepthTex",fbo_gbuffer.getDepthTextureHandle());
+	sh_ssr.bindTextureOnUse("DiffuseTex",fbo_gbufferComp.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));	//aus beleuchtung
+	//sh_ssr.bindTextureOnUse("DiffuseTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+	FrameBufferObject fbo_ssr(sh_ssr.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
+	RenderPass r_ssr(&sh_ssr, &fbo_ssr);
+	r_ssr.setClearColor(0.0,0.0,0.0,0.0);
+	r_ssr.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
 	// Post-Processing rendering
 	PostProcessing::DepthOfField r_depthOfField(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y, &quad);
 	PostProcessing::LensFlare 	 r_lensFlare(fbo_gbuffer.getWidth() / 2, fbo_gbuffer.getHeight() / 2);
@@ -224,6 +245,22 @@ int main()
 	r_showTex.addDisable(GL_DEPTH_TEST);
 	r_showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 
+<<<<<<< HEAD
+	//ssr stuff
+	r_ssr.addRenderable(&quad);
+=======
+	// arbitrary texture display shader
+	ShaderProgram sh_addTexShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessAddTexture.frag");
+	RenderPass r_addTex(&sh_addTexShader, &fbo_gbufferComp);
+	r_addTex.addRenderable(&quad);
+	r_addTex.addDisable(GL_DEPTH_TEST);
+	r_addTex.addDisable(GL_BLEND);
+	sh_addTexShader.bindTextureOnUse("tex", fbo_gbufferComp.getBuffer("fragmentColor"));
+	sh_addTexShader.bindTextureOnUse("addTex", r_volumetricLighting._raymarchingFBO->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));	
+	sh_addTexShader.update("strength", 0.5f);		
+	
+		//addTex.render();
+>>>>>>> origin/master
 
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////    GUI / USER INPUT   ////////////////////////////////
@@ -354,8 +391,12 @@ int main()
 		r_gbufferComp.render();
 
 		//TODO render water reflections 
+		r_ssr.render();
 		//TODO render god rays
 		r_volumetricLighting._raymarchingRenderPass->render();
+
+		// overlay volumetric lighting
+		r_addTex.render();
 
 		//////////// POST-PROCESSING ////////////////////
 

@@ -31,7 +31,7 @@ static glm::vec3 s_scale = glm::vec3(1.0f,1.0f,1.0f);
 float cameraNear = 0.1f;
 float cameraFar = 200.0f;	//200
 int rayStep = 0.0f;
-bool fadeEdges = true;
+//bool fadeEdges = true;	//in shader festgelegt
 
 static std::map<Renderable*, int> rendMatMap; 						//mapping a renderable to a material index
 static std::vector<std::map<aiTextureType, GLuint>> matTexHandles; 	//mapping material texture types to texture handles
@@ -194,7 +194,7 @@ int main(){
 	 ssrShader.update("camNearPlane",cameraNear);
 	 ssrShader.update("camFarPlane",cameraFar);
 	 ssrShader.update("user_pixelStepSize",rayStep);
-	 ssrShader.update("fadeToEdges",fadeEdges);
+	 //ssrShader.update("fadeToEdges",fadeEdges);	//in shader festgelegt
 	 ssrShader.update("projection",perspective);
 	 //ssrShader.bindTextureOnUse
 	 ssrShader.bindTextureOnUse("vsPositionTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
