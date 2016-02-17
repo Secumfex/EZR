@@ -145,7 +145,7 @@ int main()
 
 	// setup variables for shadowmapping
 	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
-	FrameBufferObject shadowMap(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
+	FrameBufferObject shadowMap(1024, 1024);
 	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
 
 	// setup shaderprogram
@@ -209,9 +209,7 @@ int main()
 	{
 		if (r == waterGrid)
 		{
-			shadowMapShader.update("materialType", 2.0f);
 			shadowMapShader.update("model", modelWater);
-			shadowMapShader.update("color", glm::vec4(0.2f,0.2f,0.8f,1.0f));
 		}
 	};
 	shadowMapRenderpass.setPerRenderableFunction(&r_shadowMap_perRenderableFunc);
@@ -237,8 +235,8 @@ int main()
 	ShaderProgram sh_ssr("/screenSpaceReflection/screenSpaceReflection.vert", "/screenSpaceReflection/screenSpaceReflection2.frag"); DEBUGLOG->outdent();
 	sh_ssr.update("screenWidth",getResolution(window).x);
 	sh_ssr.update("screenHeight",getResolution(window).y);
-	sh_ssr.update("camNearPlane",mainCamera.getProjectionMatrix()[15]);
-	sh_ssr.update("camFarPlane",mainCamera.getProjectionMatrix()[16]);
+	sh_ssr.update("camNearPlane", 0.5f);
+	sh_ssr.update("camFarPlane", 100.0f);
 	sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
 	sh_ssr.update("projection",mainCamera.getProjectionMatrix());
 	sh_ssr.bindTextureOnUse("vsPositionTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
@@ -418,7 +416,7 @@ int main()
 		r_gbufferComp.render();
 
 		//TODO render water reflections 
-		r_ssr.render();
+	//	r_ssr.render();
 		//TODO render god rays
 		r_volumetricLighting._raymarchingRenderPass->render();
 

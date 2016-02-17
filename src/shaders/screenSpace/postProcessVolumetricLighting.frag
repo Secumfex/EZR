@@ -21,8 +21,9 @@ void main()
 	vec4 vml = texture(addTex, passPosition.xy);
 	vec4 source = texture(tex, passPosition.xy);
 //	vec4 texColor = mix(source, vml, vml.x);
-	vec4 mixed = mix(vml, source, vml.r);
-	vec4 texColor = mix(source, mixed, strength);
+//	vec4 mixed = mix(vml, source, vml.r);
+	vec4 mixed = source * vml.r;
+	vec4 texColor = mix(source, mixed, 1);
 
 	//!< fragcolor gets transparency by uniform
     fragColor = texColor;
