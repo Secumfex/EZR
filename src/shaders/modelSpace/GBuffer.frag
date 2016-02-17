@@ -1,6 +1,7 @@
 #version 430
 
 //incoming data for the single textures
+in vec3 passWorldPosition;
 in vec3 passPosition;
 in vec2 passUVCoord;
 in vec3 passNormal;
@@ -18,6 +19,7 @@ layout(location = 0) out vec4 fragColor;
 layout(location = 1) out vec4 fragNormal;
 layout(location = 2) out vec4 fragPosition;
 layout(location = 3) out vec4 fragUVCoord;
+layout(location = 4) out vec4 fragWorldPos;
  
 void main(){
 	fragColor = color;
@@ -43,6 +45,7 @@ void main(){
 		normalView = tangentSpaceView * normalTangentSpace;
 	}
 
+	fragWorldPos = vec4(passWorldPosition, 1);
 	fragPosition = vec4(passPosition,1);
 	fragUVCoord = vec4(passUVCoord,0,0);
 	fragNormal = vec4(normalView,0);

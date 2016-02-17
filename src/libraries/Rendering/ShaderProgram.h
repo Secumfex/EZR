@@ -172,6 +172,15 @@ public:
 	ShaderProgram* update(std::string name, const glm::mat4& matrix);
 	/**
 	 * @brief Updates a list of 2D vector uniform variables
+	 *
+	 * @param name 	Name of the uniform variable in GLSL
+	 * @param value The vector which stores the values to update the unform with
+	 *
+	 * @return The shader program
+	 */
+	ShaderProgram* update(std::string name, const std::vector<int>& vector);
+	/**
+	 * @brief Updates a list of 2D vector uniform variables
 	 * 
 	 * @param name 	Name of the uniform variable in GLSL
 	 * @param value The vector which stores the values to update the unform with
