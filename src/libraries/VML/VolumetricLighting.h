@@ -25,12 +25,12 @@ public:
     FrameBufferObject* _raymarchingFBO;
 
     // other variables
-    float _width = 800;
-    float _height = 600;
-    float _blockSize = 64;
-    float _blockSide = 8;
-    int _radiocity = 10000000.0f;
-    float _scatterProbability = 0.02f;
+    float _width;
+	float _height;
+    float _blockSize;
+    float _blockSide;
+    int _radiocity;
+    float _scatterProbability;
 
     // rendering
     Quad _screenfillingQuad;

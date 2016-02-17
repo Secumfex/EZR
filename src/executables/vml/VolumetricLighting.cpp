@@ -5,7 +5,13 @@
 #include <Rendering/GLTools.h>
 #include "VolumetricLighting.h"
 
-VolumetricLighting::VolumetricLighting(int width, int height) {
+VolumetricLighting::VolumetricLighting(int width, int height) 
+:
+    _blockSize(64),
+    _blockSide(8),
+    _radiocity(10000000.0f),
+    _scatterProbability(0.02f)
+ {
     _width = width;
     _height = height;
 
