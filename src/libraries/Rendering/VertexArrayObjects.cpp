@@ -470,70 +470,70 @@ Terrain::Terrain()
     m_positions.m_vboHandle = positionBuffer;
     m_mode = GL_PATCHES;
  
-	 float width = 16;  
-	 float height = 16; 
+	 float width = 64;  
+	 float height = 64; 
 	 float positio[132224];
 
 	for (int i=0; i<height; i++) {
 		for (int j=0; j<width; j++) {
 
 			// i * width * value_num + j * value_num + {0..value_num-1}
-			//std::cout << positio[i*16*8 + j*8]<<endl;
+			//std::cout << positio[i*32*8 + j*8]<<endl;
 
 		// erste Reihe
 		//first corner === links unten
-		positio[i*16*32 + j * 32] = j / float(width);
-		positio[i*16*32 + j * 32 + 1] = i / float(height);
-
-		positio[i*16*32 + j * 32 + 2] = (j + 0.33f) / float(width);
-		positio[i*16*32 + j * 32 + 3] = (i + 0.0f) / float(width);
-
-		positio[i*16*32 + j * 32 + 4] = (j + 0.66f) / float(width);
-		positio[i*16*32 + j * 32 + 5] = (i + 0.0f)/ float(width);
-
-		positio[i*16*32 + j * 32 + 6] = (j + 1.0f) / float(width);
-		positio[i*16*32 + j * 32 + 7] = (i + 0.0f) / float(width);
+		positio[i*64*32 + j * 32] = j / float(width);
+		positio[i*64*32 + j * 32 + 1] = i / float(height);
+				  
+		positio[i*64*32 + j * 32 + 2] = (j + 0.33f) / float(width);
+		positio[i*64*32 + j * 32 + 3] = (i + 0.0f) / float(width);
+				  
+		positio[i*64*32 + j * 32 + 4] = (j + 0.66f) / float(width);
+		positio[i*64*32 + j * 32 + 5] = (i + 0.0f)/ float(width);
+				  
+		positio[i*64*32 + j * 32 + 6] = (j + 1.0f) / float(width);
+		positio[i*64*32 + j * 32 + 7] = (i + 0.0f) / float(width);
 
 		//zweite Reihe
-		positio[i*16*32 + j * 32 + 8] = (j + 0.0f) / float(width);
-		positio[i*16*32 + j * 32 + 9] = (i + 0.33f) / float(width);
+		positio[i*64*32 + j * 32 + 8] = (j + 0.0f) / float(width);
+		positio[i*64*32 + j * 32 + 9] = (i + 0.33f) / float(width);
 
-		positio[i*16*32 + j * 32 + 10] = (j + 0.33f) / float(width);
-		positio[i*16*32 + j * 32 + 11] = (i + 0.33f) / float(width);
+		positio[i*64*32 + j * 32 + 10] = (j + 0.33f) / float(width);
+		positio[i*64*32 + j * 32 + 11] = (i + 0.33f) / float(width);
 
-		positio[i*16*32 + j * 32 + 12] = (j + 0.66f) / float(width);
-		positio[i*16*32 + j * 32 + 13] = (i + 0.33f) / float(width);
+		positio[i*64*32 + j * 32 + 12] = (j + 0.66f) / float(width);
+		positio[i*64*32 + j * 32 + 13] = (i + 0.33f) / float(width);
 
-		positio[i*16*32 + j * 32 + 14] = (j + 1.0f) / float(width);
-		positio[i*16*32 + j * 32 + 15] = (i + 0.33f) / float(width);
+		positio[i*64*32 + j * 32 + 14] = (j + 1.0f) / float(width);
+		positio[i*64*32 + j * 32 + 15] = (i + 0.33f) / float(width);
 
 		//dritte Reihe
-		positio[i*16*32 + j * 32 + 16] = (j + 0.0f) / float(width);
-		positio[i*16*32 + j * 32 + 17] = (i + 0.66f) / float(width);
+		positio[i*64*32 + j * 32 + 16] = (j + 0.0f) / float(width);
+		positio[i*64*32 + j * 32 + 17] = (i + 0.66f) / float(width);
 
-		positio[i*16*32 + j * 32 + 18] = (j + 0.33f) / float(width);
-		positio[i*16*32 + j * 32 + 19] = (i + 0.66f) / float(width);
+		positio[i*64*32 + j * 32 + 18] = (j + 0.33f) / float(width);
+		positio[i*64*32 + j * 32 + 19] = (i + 0.66f) / float(width);
 
-		positio[i*16*32 + j * 32 + 20] = (j + 0.66f) / float(width);
-		positio[i*16*32 + j * 32 + 21] = (i + 0.66f) / float(width);
+		positio[i*64*32 + j * 32 + 20] = (j + 0.66f) / float(width);
+		positio[i*64*32 + j * 32 + 21] = (i + 0.66f) / float(width);
 
-		positio[i*16*32 + j * 32 + 22] = (j + 1.0f) / float(width);
-		positio[i*16*32 + j * 32 + 23] = (i + 0.66f) / float(width);
+		positio[i*64*32 + j * 32 + 22] = (j + 1.0f) / float(width);
+		positio[i*64*32 + j * 32 + 23] = (i + 0.66f) / float(width);
 
 		//vierte Reihe
 		//sescond corner === links oben
-		positio[i*16*32 + j * 32 + 24] = j/ float(width);
-		positio[i*16*32 + j * 32 + 25] = (i+1) / float(height);
+		positio[i*64*32 + j * 32 + 24] = j/ float(width);
+		positio[i*64*32 + j * 32 + 25] = (i+1) / float(height);
 
-		positio[i*16*32 + j * 32 + 26] = (j + 0.33f) / float(width);
-		positio[i*16*32 + j * 32 + 27] = (i + 1.0f) / float(width);
+		positio[i*64*32 + j * 32 + 26] = (j + 0.33f) / float(width);
+		positio[i*64*32 + j * 32 + 27] = (i + 1.0f) / float(width);
 
-		positio[i*16*32 + j * 32 + 28] = (j + 0.66f) / float(width);
-		positio[i*16*32 + j * 32 + 29] = (i + 1.0f) / float(width);
+		positio[i*64*32 + j * 32 + 28] = (j + 0.66f) / float(width);
+		positio[i*64*32 + j * 32 + 29] = (i + 1.0f) / float(width);
 
 		//third corner === oben rechts
-		positio[i*16*32 + j * 32 + 30] = (j+1)/ float(width);
-		positio[i*16*32 + j * 32 + 31] = (i+1) / float(height);
+		positio[i*64*32 + j * 32 + 30] = (j+1)/ float(width);
+		positio[i*64*32 + j * 32 + 31] = (i+1) / float(height);
 		}
 	}
 

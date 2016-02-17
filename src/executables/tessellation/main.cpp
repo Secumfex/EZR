@@ -72,7 +72,7 @@ int main()
 
 	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_height.png");
 	GLuint diffTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_grass.jpg");
-	GLuint rockTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_rock.jpg");
+	GLuint rockTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_snow.jpg");
 
 	DEBUGLOG->log("Setup: model matrices"); DEBUGLOG->indent();
 	std::vector<glm::mat4 > modelMatrices;

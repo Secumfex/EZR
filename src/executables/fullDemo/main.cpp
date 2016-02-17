@@ -74,10 +74,11 @@ int main()
 
 	//TODO load all (non-material) textures that are needed
 	// Tess
-	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_height.png");
+	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_height2.png");
 	GLuint diffTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_grass.jpg");
-	//GLuint rockTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_rock.jpg");
-
+	GLuint snowTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_snow.jpg");
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	/////////////////////    Import Stuff (Misc)    //////////////////////////
 
 	//TODO load whatever else is needed
@@ -99,7 +100,8 @@ int main()
 	// modelmartix for terrain
 	std::vector<glm::mat4 > modelMatrices;
 	modelMatrices.resize(1);
-	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,-0.5f,0.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) * glm::scale(glm::mat4(1.0), glm::vec3(60.0f, 7.0f, 60.0f));
+	// glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) *
+	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-50.0f, -3.0f, -50.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(130.0f, 12.0f, 130.0f));
 	glm::mat4 model = modelMatrices[0];
 	
 	//////////////////////////////////////////////////////////////////////////////
@@ -122,17 +124,23 @@ int main()
 	r_gbuffer.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 	// Terrainstuff
-	ShaderProgram shaderProgram("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag_lod.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te_bezier.te"); DEBUGLOG->outdent();//
-	shaderProgram.update("model", model);
-	//shaderProgram.update("view", view);
-	shaderProgram.update("view", mainCamera.getViewMatrix());
-	//shaderProgram.update("projection", perspective);
-	shaderProgram.update("projection", mainCamera.getProjectionMatrix());
-	shaderProgram.update("b", bezier);
-	shaderProgram.update("bt", bezier_transposed);
-	shaderProgram.bindTextureOnUse("terrain", distortionTex);
-	shaderProgram.bindTextureOnUse("diff", diffTex);
-	//shaderProgram.bindTextureOnUse("rock", rockTex);
+	ShaderProgram sh_tessellation("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag_lod.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te_bezier.te"); DEBUGLOG->outdent();//
+	sh_tessellation.update("model", model);
+	//sh_tessellation.update("view", view);
+	sh_tessellation.update("view", mainCamera.getViewMatrix());
+	//sh_tessellation.update("projection", perspective);
+	sh_tessellation.update("projection", mainCamera.getProjectionMatrix());
+	sh_tessellation.update("b", bezier);
+	sh_tessellation.update("bt", bezier_transposed);
+	sh_tessellation.bindTextureOnUse("terrain", distortionTex);
+	sh_tessellation.bindTextureOnUse("diff", diffTex);
+	sh_tessellation.bindTextureOnUse("snow", snowTex);
+
+	RenderPass r_terrain(&sh_tessellation, &fbo_gbuffer);
+	r_terrain.addEnable(GL_DEPTH_TEST);
+	//r_terrain.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	r_terrain.setClearColor(0.0, 0.0, 0.0,0.0);
+	for (auto r : objects){r_terrain.addRenderable(r);}
 
 	/************ trees / branches ************/
 	treeRendering.createAndConfigureShaders("/modelSpace/GBuffer_mat.frag", "/treeAnim/foliage.frag");
@@ -173,12 +181,7 @@ int main()
 
 	// TODO assign renderables to render passes that render geometry 
 	
-	// Terrainstuff
-	RenderPass renderPass(&shaderProgram, 0);
-	renderPass.addEnable(GL_DEPTH_TEST);
-	renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	renderPass.setClearColor(0.0, 0.0, 0.4,0.0);
-	for (auto r : objects){renderPass.addRenderable(r);}
+
 
 	// TODO assign all Renderables to gbuffer render pass that should be rendered by it
 
@@ -278,7 +281,7 @@ int main()
 		sh_gbufferComp.update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
 		treeRendering.foliageShader->update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
 
-		shaderProgram.update("view", mainCamera.getViewMatrix());
+		sh_tessellation.update("view", mainCamera.getViewMatrix());
 
 		treeRendering.foliageShader->update("view", mainCamera.getViewMatrix());
 		treeRendering.branchShader->update("view", mainCamera.getViewMatrix());
@@ -316,7 +319,7 @@ int main()
 
 		//TODO render grass
 		//TODO render tesselated mountains
-		//renderPass.render();
+		r_terrain.render();
 		//TODO render skybox
 		r_skybox.render(tex_cubeMap, &fbo_gbuffer);
 
