@@ -142,6 +142,22 @@ int main()
 	/******************************************/
 
 	// TODO shadow map (light source) renderpass
+	// setup variables for shadowmapping
+	glm::mat4 lightMVP = lightCamera.getProjectionMatrix() * lightCamera.getViewMatrix();
+	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
+	FrameBufferObject shadowMap(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
+	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
+
+	// setup shaderprogram
+	ShaderProgram shadowMapShader("/vml/shadowmap.vert", "/vml/shadowmap.frag");
+	shadowMapShader.update("lightMVP", lightMVP);
+	RenderPass shadowMapRenderpass(&shadowMapShader, &shadowMap);
+
+	// setup renderpass
+	shadowMapRenderpass.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	shadowMapRenderpass.addClearBit(GL_DEPTH_BUFFER_BIT);
+	shadowMapRenderpass.addEnable(GL_DEPTH_TEST);
+
 
 	// skybox rendering (gbuffer style)
 	PostProcessing::SkyboxRendering r_skybox;
@@ -288,11 +304,12 @@ int main()
 
 		//TODO render grass
 		//TODO render tesselated mountains
-		renderPass.render();
+		//renderPass.render();
 		//TODO render skybox
 		r_skybox.render(tex_cubeMap, &fbo_gbuffer);
 
 		//TODO render shadow map ( most of above again )
+		shadowMapRenderpass.render();
 
 		// render regular compositing from GBuffer
 		r_gbufferComp.render();
@@ -318,6 +335,11 @@ int main()
 
 		r_showTex.setViewport(WINDOW_RESOLUTION.x / 4,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
 		sh_showTex.updateAndBindTexture("tex", 0, fbo_gbuffer.getBuffer("fragMaterial"));
+		r_showTex.render();
+
+		// show shadowmap
+		r_showTex.setViewport(WINDOW_RESOLUTION.x / 2,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
+		sh_showTex.updateAndBindTexture("tex", 0, shadowMap.getDepthTextureHandle());
 		r_showTex.render();
 
 		glViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y); // reset
