@@ -3,14 +3,9 @@
  ****************************************/
 #include <iostream>
 #include <time.h>
-#include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
-#include <Importing/AssimpTools.h>
 
 #include <Rendering/VertexArrayObjects.h>
 #include <Rendering/PostProcessing.h>
-
-#include <Importing/TextureTools.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
@@ -50,18 +45,28 @@ int main()
 	//////////////////////////////////////////////////////////////////////////////
 
 	/////////////////////    Import Assets    ////////////////////////////////
-	DEBUGLOG->log("Setup: importing assets");
+	DEBUGLOG->log("Setup: importing assets"); DEBUGLOG->indent(); 
 	Assimp::Importer importer;
 
 	//TODO load all models that are needed
 
+	/************ trees / branches ************/
+	loadBranchModel();
+	loadFoliageMaterial();
+	TreeAnimation::TreeRendering treeRendering;
+	generateTrees(treeRendering);
+	TreeAnimation::WindField windField(64,64);
+	windField.updateVectorTexture(0.0f);
+	/******************************************/
+
 	//TODO load all material information aswell ( + textures)
 
 	/////////////////////    Import Textures    //////////////////////////////
-	DEBUGLOG->log("Setup: importing textures");
+	DEBUGLOG->outdent(); DEBUGLOG->log("Setup: importing textures"); DEBUGLOG->indent(); 
 	
 	// Skybox
 	GLuint tex_cubeMap = TextureTools::loadDefaultCubemap();
+
 
 	//TODO load all (non-material) textures that are needed
 	// Tess
@@ -73,7 +78,7 @@ int main()
 
 	//TODO load whatever else is needed
 
-	DEBUGLOG->log("Setup: Cameras / Views");
+	DEBUGLOG->outdent(); DEBUGLOG->log("Setup: Cameras / Views");DEBUGLOG->indent(); 
 
 	Camera mainCamera; // first person camera
 	mainCamera.setProjectionMatrix( glm::perspective(glm::radians(65.f), getRatio(window), 0.5f, 100.f) );
@@ -98,7 +103,7 @@ int main()
 	//////////////////////////////////////////////////////////////////////////////
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
-	DEBUGLOG->log("Rendering Setup: 'Geometry' Rendering");
+	DEBUGLOG->outdent(); DEBUGLOG->log("Rendering Setup: 'Geometry' Rendering"); DEBUGLOG->indent();
 
 	// regular GBuffer
 	ShaderProgram sh_gbuffer("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer_mat.frag");
@@ -125,6 +130,16 @@ int main()
 	shaderProgram.bindTextureOnUse("diff", diffTex);
 	shaderProgram.bindTextureOnUse("rock", rockTex);
 
+	/************ trees / branches ************/
+	treeRendering.createAndConfigureShaders("/modelSpace/GBuffer_mat.frag", "/treeAnim/foliage.frag");
+	treeRendering.branchShader->update("projection", mainCamera.getProjectionMatrix());
+	treeRendering.foliageShader->update("projection", mainCamera.getProjectionMatrix());
+	treeRendering.createAndConfigureUniformBlocksAndBuffers(1);
+	assignTreeMaterialTextures(treeRendering);
+	assignWindFieldUniforms(treeRendering, windField);
+	treeRendering.createAndConfigureRenderpasses( &fbo_gbuffer, &fbo_gbuffer );
+	/******************************************/
+
 	// TODO shadow map (light source) renderpass
 
 	// skybox rendering (gbuffer style)
@@ -134,7 +149,7 @@ int main()
 	// TODO construct all renderpasses, shaders and framebuffer objects
 
 	/////////////////////// 	Assign Renderables    ///////////////////////////
-	DEBUGLOG->log("Rendering Setup: assigning renderables");
+	DEBUGLOG->outdent(); DEBUGLOG->log("Rendering Setup: assigning renderables"); DEBUGLOG->indent();
 
 	// TODO assign renderables to render passes that render geometry 
 	
@@ -148,14 +163,14 @@ int main()
 	// TODO assign all Renderables to gbuffer render pass that should be rendered by it
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
-	DEBUGLOG->log("Rendering Setup: per-renderable functions");
+	DEBUGLOG->outdent(); DEBUGLOG->log("Rendering Setup: per-renderable functions"); DEBUGLOG->indent();
 
 	//TODO per-renderable function that automatically updates material information and textures for r_gbuffer
 
 	//TODO create and assign per-renderable functions to render passes (at least if it's already possible)
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
-	DEBUGLOG->log("Rendering Setup: 'Screen-Space' Rendering");
+	DEBUGLOG->outdent(); DEBUGLOG->log("Rendering Setup: 'Screen-Space' Rendering"); DEBUGLOG->indent();
 	Quad quad; // can be assigned to all screen-space render passes
 	
 	ShaderProgram sh_gbufferComp("/screenSpace/fullscreen.vert", "/screenSpace/finalCompositing.frag"); DEBUGLOG->outdent();
@@ -218,6 +233,10 @@ int main()
         ImGuiIO& io = ImGui::GetIO();
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
 			
+		
+		if (ImGui::CollapsingHeader("Tree Rendering")) 
+			treeRendering.imguiInterfaceSimulationProperties();
+
 		//TODO what you want to be able to modify, use multiple windows, collapsing headers, whatever 
 
         //////////////////////////////////////////////////////////////////////////////
@@ -225,7 +244,8 @@ int main()
 		///////////////////////////// VARIABLE UPDATING ///////////////////////////////
 		mainCamera.update(dt);
 		updateLightCamera(mainCamera, lightCamera);
-		
+		windField.updateVectorTexture(elapsedTime);
+	
 		//TODO update arbitrary variables that are dependent on time or other changes
 
 		//////////////////////////////////////////////////////////////////////////////
@@ -238,6 +258,8 @@ int main()
 
 		shaderProgram.update("view", mainCamera.getViewMatrix());
 
+		treeRendering.foliageShader->update("view", mainCamera.getViewMatrix());
+		treeRendering.branchShader->update("view", mainCamera.getViewMatrix());
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
@@ -251,6 +273,17 @@ int main()
 		
 		//TODO other rendering procedures that render into G-Buffer
 		//TODO render trees
+		for( unsigned int i = 0; i < treeRendering.branchRenderpasses.size(); i++){
+			glUniformBlockBinding(treeRendering.branchShader->getShaderProgramHandle(), treeRendering.branchShaderUniformBlockInfoMap["Tree"].index, 2+i);
+			treeRendering.branchRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
+		}
+		// copy depth buffer to comp fbo
+		for(unsigned int i = 0; i < treeRendering.foliageRenderpasses.size(); i++)
+		{
+			glUniformBlockBinding(treeRendering.foliageShader->getShaderProgramHandle(), treeRendering.foliageShaderUniformBlockInfoMap["Tree"].index, 2+i);
+			treeRendering.foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
+		}
+
 		//TODO render grass
 		//TODO render tesselated mountains
 		renderPass.render();

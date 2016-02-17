@@ -7,6 +7,16 @@
 #include <Core/Camera.h>
 #include <Rendering/GLTools.h>
 
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <Importing/AssimpTools.h>
+
+#include <Importing/TextureTools.h>
+
+#include <TreeAnimation/Tree.h>
+#include <TreeAnimation/TreeRendering.h>
+#include <TreeAnimation/WindField.h>
+
 /***********************************************/
 // This file is for arbitrary stuff to save some ugly Lines of Code
 /***********************************************/
@@ -89,6 +99,93 @@ namespace CallbackHelper
 	}
 }
 /***********************************************/
+
+/*****************TREE ANIMATION**********************/
+static const float TREE_HEIGHT = 4.0f;
+static const float TREE_WIDTH = TREE_HEIGHT / 10.0f;
+static const int NUM_MAIN_BRANCHES = 5;
+static const int NUM_SUB_BRANCHES  = 5;
+static const int NUM_TREE_VARIANTS = 3;
+static const int NUM_TREES_PER_VARIANT = 33;
+static const int NUM_FOLIAGE_QUADS_PER_BRANCH = 10;
+static Assimp::Importer branchImporter;
+static std::vector<std::map<aiTextureType, GLuint>> s_tree_materials_textures; //!< mapping material texture types to texture handles
+static const glm::vec4 FORESTED_AREA = glm::vec4(-15.0f,-15.0f, 15.0f,15.0f);
+inline void loadBranchModel()
+{
+	std::string branchModel = "branch_detailed.dae";
+	const aiScene* branchScene = AssimpTools::importAssetFromResourceFolder(branchModel, branchImporter);
+	std::map<aiTextureType, AssimpTools::MaterialTextureInfo> branchTexturesInfo;
+	if (branchScene != NULL) branchTexturesInfo = AssimpTools::getMaterialTexturesInfo(branchScene, 0);
+	if (branchScene != NULL) s_tree_materials_textures.resize(branchScene->mNumMaterials);
+
+	for (auto e : branchTexturesInfo)
+	{
+		GLuint texHandle = TextureTools::loadTextureFromResourceFolder(branchTexturesInfo[e.first].relativePath);
+		if (texHandle != -1){ s_tree_materials_textures[e.second.matIdx][e.first] = texHandle; }
+	}	
+}
+
+inline void loadFoliageMaterial()
+{
+	std::string foliageTexture = "foliage_texture.png";
+	auto foliageTexHandle = TextureTools::loadTextureFromResourceFolder(foliageTexture);
+	std::map<aiTextureType, GLuint > foliageMatTextures;
+	foliageMatTextures[aiTextureType_DIFFUSE] = foliageTexHandle;
+	s_tree_materials_textures.push_back(foliageMatTextures);
+	glBindTexture(GL_TEXTURE_2D, foliageTexHandle);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+inline void generateTrees(TreeAnimation::TreeRendering& treeRendering)
+{
+	DEBUGLOG->log("Setup: generating trees"); DEBUGLOG->indent();
+
+	// generate a forest randomly, including renderables
+	treeRendering.generateAndConfigureTreeEntities(
+		NUM_TREE_VARIANTS,
+		TREE_HEIGHT, TREE_WIDTH,
+		NUM_MAIN_BRANCHES, NUM_SUB_BRANCHES,
+		NUM_FOLIAGE_QUADS_PER_BRANCH,
+		branchImporter.GetScene());
+
+	treeRendering.generateModelMatrices(
+		NUM_TREES_PER_VARIANT,
+		FORESTED_AREA.x, FORESTED_AREA.z, FORESTED_AREA.y, FORESTED_AREA.w);
+
+	treeRendering.createInstanceMatrixAttributes();
+	DEBUGLOG->outdent();
+}
+inline void assignTreeMaterialTextures(TreeAnimation::TreeRendering& treeRendering)
+{
+	if (! s_tree_materials_textures.empty()){
+	auto difftex = s_tree_materials_textures[0].find(aiTextureType_DIFFUSE);
+	if ( difftex != s_tree_materials_textures[0].end())
+	{
+		treeRendering.branchShader->bindTextureOnUse("tex", difftex->second);
+		treeRendering.branchShader->update("mixTexture", 1.0f);
+	}
+	auto normaltex = s_tree_materials_textures[0].find(aiTextureType_NORMALS);
+	if (normaltex != s_tree_materials_textures[0].end())
+	{
+		treeRendering.branchShader->bindTextureOnUse("normalTex", normaltex->second);
+		treeRendering.branchShader->update("hasNormalTex", true);
+	}}
+
+	GLuint foliageTexHandle = s_tree_materials_textures[1].find(aiTextureType_DIFFUSE)->second;
+	treeRendering.foliageShader->bindTextureOnUse("tex", foliageTexHandle);
+}
+inline void assignWindFieldUniforms(TreeAnimation::TreeRendering& treeRendering, TreeAnimation::WindField& windField)
+{
+	// windfield
+	treeRendering.branchShader->bindTextureOnUse( "windField", windField.m_vectorTextureHandle);
+	treeRendering.foliageShader->bindTextureOnUse("windField", windField.m_vectorTextureHandle);
+	treeRendering.branchShader->update( "windFieldArea", FORESTED_AREA);
+	treeRendering.foliageShader->update("windFieldArea", FORESTED_AREA);
+}
+/***********************************************/
+
 
 inline void updateLightCamera(Camera& mainCamera, Camera& lightSourceCamera)
 {
