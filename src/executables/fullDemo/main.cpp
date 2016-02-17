@@ -12,6 +12,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "misc.cpp"
+#include <VML/VolumetricLighting.h>
+
 ////////////////////// PARAMETERS /////////////////////////////
 static const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 static const glm::vec4 WORLD_LIGHT_DIRECTION = glm::vec4(-glm::normalize(glm::vec3(-2.16f, 2.6f, 10.0f)), 0.0f);
@@ -206,6 +208,12 @@ int main()
 	PostProcessing::LensFlare 	 r_lensFlare(fbo_gbuffer.getWidth() / 2, fbo_gbuffer.getHeight() / 2);
 	//TODO Bloom //PostProcessing::BoxBlur boxBlur(fbo_gbuffer.getWidth(), fbo_gbuffer.getHeight(),&quad);
 
+	// volume light rendering
+	VolumetricLighting r_volumetricLighting(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
+	r_volumetricLighting.setupNoiseTexture();
+	r_volumetricLighting._raymarchingShader->bindTextureOnUse("shadowMap", shadowMap.getDepthTextureHandle());
+	r_volumetricLighting._raymarchingShader->bindTextureOnUse("worldPosMap", fbo_gbuffer.getBuffer("fragPosition"));
+
 	// for arbitrary texture display
 	ShaderProgram sh_showTex("/screenSpace/fullscreen.vert", "/screenSpace/simpleAlphaTexture.frag");
 	RenderPass r_showTex(&sh_showTex, 0);
@@ -262,6 +270,11 @@ int main()
 		mainCamera.update(dt);
 		updateLightCamera(mainCamera, lightCamera);
 		windField.updateVectorTexture(elapsedTime);
+		glm::mat4 cameraView = mainCamera.getViewMatrix();
+		glm::vec3 cameraPos = mainCamera.getPosition();
+		glm::mat4 lightView = lightCamera.getViewMatrix();
+		glm::mat4 lightProjection = lightCamera.getProjectionMatrix();
+		r_volumetricLighting.update(cameraView, cameraPos, lightView, lightProjection);
 	
 		//TODO update arbitrary variables that are dependent on time or other changes
 
@@ -315,7 +328,8 @@ int main()
 		r_gbufferComp.render();
 
 		//TODO render water reflections 
-		//TODO render god rays 
+		//TODO render god rays
+		r_volumetricLighting._raymarchingRenderPass->render();
 
 		//////////// POST-PROCESSING ////////////////////
 
@@ -340,6 +354,11 @@ int main()
 		// show shadowmap
 		r_showTex.setViewport(WINDOW_RESOLUTION.x / 2,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
 		sh_showTex.updateAndBindTexture("tex", 0, shadowMap.getDepthTextureHandle());
+		r_showTex.render();
+
+		// raymarching
+		r_showTex.setViewport(3 * WINDOW_RESOLUTION.x / 4,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
+		sh_showTex.updateAndBindTexture("tex", 0, r_volumetricLighting._raymarchingFBO->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 		r_showTex.render();
 
 		glViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y); // reset

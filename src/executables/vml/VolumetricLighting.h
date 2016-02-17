@@ -6,7 +6,6 @@
 #define EZR_VOLUMETRICLIGHTING_H
 
 #include <algorithm>
-
 #include <Rendering/RenderPass.h>
 
 class VolumetricLighting {

@@ -76,9 +76,9 @@ void VolumetricLighting::setupNoiseTexture() {
         }
     }
 
-    for (int i = 0; i < 64; i++) {
+/*    for (int i = 0; i < 64; i++) {
         std::cout << "[" << i << "] = " << values[i] << std::endl;
-    }
+    }*/
 
     // create a fbo to render to
     FrameBufferObject::s_internalFormat  = GL_R8;
@@ -96,3 +96,6 @@ void VolumetricLighting::setupNoiseTexture() {
     checkGLError(true);
 };
 
+void VolumetricLighting::updateView(glm::mat4 cameraView, glm::mat4 lightView) {
+
+}
