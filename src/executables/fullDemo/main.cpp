@@ -28,6 +28,9 @@ glm::mat4 bezier = glm::mat4(
 
 glm::mat4 bezier_transposed = glm::transpose(bezier);
 
+static float s_wind_power = 0.25f;
+static float s_foliage_size = 0.4f;
+
 //////////////////// MISC /////////////////////////////////////
 std::map<aiTextureType, GLuint> textures;
 
@@ -286,11 +289,20 @@ int main()
 		r_skybox.m_skyboxShader.update("view", glm::mat4(glm::mat3(mainCamera.getViewMatrix())));
 		r_lensFlare.updateLensStarMatrix(mainCamera.getViewMatrix());
 		sh_gbufferComp.update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
+		treeRendering.foliageShader->update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
 
 		shaderProgram.update("view", mainCamera.getViewMatrix());
 
 		treeRendering.foliageShader->update("view", mainCamera.getViewMatrix());
 		treeRendering.branchShader->update("view", mainCamera.getViewMatrix());
+
+		// wind related uniforms
+		treeRendering.branchShader->update( "windPower", s_wind_power);
+		treeRendering.foliageShader->update("windPower", s_wind_power);
+		treeRendering.foliageShader->update("foliageSize", s_foliage_size);
+		
+		treeRendering.updateActiveImguiInterfaces();
+
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
