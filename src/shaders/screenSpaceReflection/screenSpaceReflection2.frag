@@ -255,8 +255,8 @@ void main(void){
  //texture information from G-Buffer
  //float reflectance = texture(ReflectanceTex, vert_UV).a;	//
  //float reflectance = 0.0f;
- //float test1 = texture(ReflectanceTex, vert_UV).x;
- //if(test1 > 2.0f){	//gibt noch kein obj mit materialwert, doch gleich schon
+ float test1 = texture(ReflectanceTex, vert_UV).x;
+ if(test1 == 2.0f){	//gibt noch kein obj mit materialwert, doch gleich schon
  //	reflectance = texture(ReflectanceTex, vert_UV).z;
  //}
  float reflectance = texture(ReflectanceTex, vert_UV).z;
@@ -277,8 +277,9 @@ void main(void){
  //if(toggleSSR){ 
   vec4 color = ScreenSpaceReflections(vsPosition, vsNormal, vsReflectionVector); 
   //color = mix(color, texture(ReflectanceTex, vert_UV), 0.5); 
-  FragColor = reflectance * color; //* reflectance
+  FragColor = color; //* reflectance
+  }
  //} 
- //vec4 t = texture(DepthTex, vert_UV);
- //FragColor = vec4(vsReflectionVector,1.0f);
+ //vec4 t = texture(DiffuseTex, vert_UV);
+ //FragColor = t;
 }
