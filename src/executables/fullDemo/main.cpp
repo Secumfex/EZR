@@ -172,6 +172,19 @@ int main()
 	r_terrain.setClearColor(0.0, 0.0, 0.0,0.0);
 	for (auto r : objects){r_terrain.addRenderable(r);}
 
+	ShaderProgram sh_terrainShadowmap("/tessellation/test/test_vert.vert", "/vml/shadowmap.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te.te"); DEBUGLOG->outdent();	
+	sh_terrainShadowmap.update("model", modelTerrain);
+	sh_terrainShadowmap.update("view", mainCamera.getViewMatrix());
+	sh_terrainShadowmap.update("projection", mainCamera.getProjectionMatrix());
+	//sh_tessellation.update("b", bezier);
+	//sh_tessellation.update("bt", bezier_transposed);
+	sh_terrainShadowmap.bindTextureOnUse("terrain", distortionTex);
+	sh_terrainShadowmap.bindTextureOnUse("diff", diffTex);
+	sh_terrainShadowmap.bindTextureOnUse("snow", snowTex);
+	sh_terrainShadowmap.bindTextureOnUse("normal", terrainNormalTex);
+	
+
+
 	// setup variables for shadowmapping
 	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
 	FrameBufferObject shadowMap(1024, 1024);
@@ -186,6 +199,10 @@ int main()
 	shadowMapRenderpass.addClearBit(GL_DEPTH_BUFFER_BIT);
 	shadowMapRenderpass.addEnable(GL_DEPTH_TEST);
 	
+	RenderPass r_terrainShadowMap(&sh_terrainShadowmap, &shadowMap);
+	r_terrain.setClearColor(0.0, 0.0, 0.0,0.0);
+	for (auto r : objects){r_terrain.addRenderable(r);}
+
 	/************ trees / branches ************/
 	treeRendering.createAndConfigureShaders("/modelSpace/GBuffer_mat.frag", "/treeAnim/foliage.frag");
 	treeRendering.branchShader->update("projection", mainCamera.getProjectionMatrix());
@@ -512,6 +529,7 @@ int main()
 
 		//TODO render tesselated mountains
 		r_terrain.render();
+		r_terrainShadowMap;
 		//render skybox
 		r_skybox.render(tex_cubeMap, &fbo_gbuffer);
 
@@ -537,10 +555,10 @@ int main()
 		//TODO render water reflections 
 		r_ssr.render();
 		//TODO render god rays
-//		r_volumetricLighting._raymarchingRenderPass->render();
+		r_volumetricLighting._raymarchingRenderPass->render();
 
 		// overlay volumetric lighting
-//		r_addTex.render();
+		r_addTex.render();
 
 		//////////// POST-PROCESSING ////////////////////
 
