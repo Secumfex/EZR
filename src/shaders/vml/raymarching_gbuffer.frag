@@ -26,6 +26,9 @@ uniform float phi;
 uniform float tau;
 uniform float albedo;
 
+// clamping
+uniform float clampMax;
+
 // visibility function
 float v(vec3 rayPositionLightSpace) {
     vec4 rayCoordLightSpace = lightProjection * vec4(rayPositionLightSpace, 1.0);
@@ -106,7 +109,7 @@ void main() {
         vli += executeRaymarching(x, dl, l);
     }
     vli /= sampleNum;
-    vli = clamp(vli, 0.0f, 1.0f);
+    vli = clamp(vli, 0.0f, clampMax);
 
     gl_FragColor =  vec4(vec3(1,1,1) * vli, 1.0);
 }

@@ -21,9 +21,12 @@ void main()
 	vec4 vml = texture(addTex, passPosition.xy);
 	vec4 source = texture(tex, passPosition.xy);
 	float intensity = vml.x;
-	float weight = sqrt(intensity) - 0.1;
+	float weight = intensity * 0.7;
+	//float weight = sqrt(intensity) - 0.1;
+	//float weight = 1/(1-intensity) - 0.3;
+
 	vec4 white = vec4(1, 1, 1, 1);
-	vec4 texColor = mix(source, white, weight);
+	vec4 texColor = mix(source, vml, weight);
 
 	//!< fragcolor gets transparency by uniform
     fragColor = texColor;

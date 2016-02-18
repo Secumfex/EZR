@@ -35,6 +35,8 @@ public:
     float _scatterProbability;
     float _collisionProbability;
 
+    float _clamp;
+
     // rendering
     Quad _screenfillingQuad;
 
