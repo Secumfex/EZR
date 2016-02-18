@@ -32,8 +32,6 @@ static float s_foliage_size = 1.0f;
 
 static float s_grass_size = 0.4f;
 
-static int s_ssrRayStep = 0.0f;
-
 //////////////////// MISC /////////////////////////////////////
 std::map<aiTextureType, GLuint> textures;
 
@@ -45,6 +43,12 @@ static bool s_enableSSR = true;
 static bool s_enableVolumetricLighting = true;
 static bool s_enableDepthOfField = true;
 static bool s_enableLenseflare = true;
+
+static bool s_ssrCubeMap = true;
+static bool s_ssrFade = false;
+//static bool s_ssrGlossy = true;
+static int s_ssrLoops = 150;
+//static int s_ssrRayStep = 0.0;
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -321,9 +325,13 @@ int main()
 	sh_ssr.update("screenHeight",getResolution(window).y);
 	sh_ssr.update("camNearPlane", 0.5f);
 	sh_ssr.update("camFarPlane", 100.0f);
-	sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
+	//sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
 	sh_ssr.update("projection",mainCamera.getProjectionMatrix());
 	sh_ssr.update("view",mainCamera.getViewMatrix());
+	sh_ssr.update("toggleCM",s_ssrCubeMap);
+	sh_ssr.update("toggleFade",s_ssrFade);
+	//sh_ssr.update("toggleGlossy",s_ssrGlossy);
+	sh_ssr.update("loops",s_ssrLoops);
 	sh_ssr.bindTextureOnUse("vsPositionTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 	sh_ssr.bindTextureOnUse("vsNormalTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
 	sh_ssr.bindTextureOnUse("ReflectanceTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT4));
@@ -521,9 +529,15 @@ int main()
 			ImGui::TreePop();
 		}
 
+		//SSR
 		if ( ImGui::TreeNode("SSR"))
 		{
 			ImGui::Checkbox("enable", &s_enableSSR);
+			ImGui::SliderInt("Loops",&s_ssrLoops, 25, 250);
+			//ImGui::SliderInt("PixelStepSize",&s_ssrRayStep,0,20);
+			ImGui::Checkbox("toggle CubeMap", &s_ssrCubeMap);
+			ImGui::Checkbox("fade to edges", &s_ssrFade);
+			//ImGui::Checkbox("toggle glossy", &s_ssrGlossy);
 			ImGui::TreePop();
 		}
 
@@ -575,8 +589,8 @@ int main()
 		sh_gbufferComp.update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
 		treeRendering.foliageShader->update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
 
-		
 		sh_ssr.update("view",mainCamera.getViewMatrix());
+		
 		shadowMapShader.update("view", lightCamera.getViewMatrix());
 
 		sh_tessellation.update("view", mainCamera.getViewMatrix());
@@ -604,6 +618,12 @@ int main()
 		sh_addTexShader.update("mode", mode);
 
 		updateDynamicFieldOfView(r_depthOfField, fbo_gbuffer, dt);
+
+		sh_ssr.update("toggleCM",s_ssrCubeMap);
+		sh_ssr.update("toggleFade",s_ssrFade);
+		//sh_ssr.update("toggleGlossy",s_ssrGlossy);
+		sh_ssr.update("loops",s_ssrLoops);
+		//sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
