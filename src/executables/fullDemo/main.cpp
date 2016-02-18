@@ -565,7 +565,7 @@ int main()
 
 		//TODO render tesselated mountains
 		r_terrain.render();
-		r_terrainShadowMap.render();
+		
 
 
 		//render skybox
@@ -573,6 +573,7 @@ int main()
 
 		//TODO render shadow map ( most of above again )
 		shadowMapRenderpass.render();
+		r_terrainShadowMap.render();
 		if (s_enableTrees)
 		{
 		for(unsigned int i = 0; i < treeRendering.foliageShadowMapRenderpasses.size(); i++)
