@@ -15,6 +15,10 @@ VolumetricLighting::VolumetricLighting(int width, int height)
     _collisionProbability(0.1f),
     _clamp(1.0)
     {
+        // light color
+        _lightColor = glm::vec3(1.0,1.0,1.0);
+
+        // noise resolution
         _width = width;
         _height = height;
 
@@ -26,6 +30,7 @@ VolumetricLighting::VolumetricLighting(int width, int height)
         _raymarchingShader->update("tau", _collisionProbability);
         _raymarchingShader->update("albedo", _scatterProbability);
         _raymarchingShader->update("clampMax", _clamp);
+        _raymarchingShader->update("lightColor", _lightColor);
 
         // setup render pass
         _raymarchingRenderPass = new RenderPass(_raymarchingShader, _raymarchingFBO);
@@ -121,8 +126,10 @@ void VolumetricLighting::imguiInterfaceSimulationProperties()
     ImGui::SliderFloat("tau", &_collisionProbability, 0.0f, 1.0f);
     ImGui::SliderFloat("albedo", &_scatterProbability, 0.0f, 1.0f);
     ImGui::SliderFloat("clamp", &_clamp, 0.0f, 1.0f);
+    ImGui::SliderFloat3("light color", glm::value_ptr(_lightColor), 0.0f, 1.0f);
     _raymarchingShader->update("phi", _radiocity);
     _raymarchingShader->update("tau", _collisionProbability);
     _raymarchingShader->update("albedo", _scatterProbability);
     _raymarchingShader->update("clampMax", _clamp);
+    _raymarchingShader->update("lightColor", _lightColor);
 }

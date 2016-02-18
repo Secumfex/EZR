@@ -36,6 +36,7 @@ public:
     float _collisionProbability;
 
     float _clamp;
+    glm::vec3 _lightColor;
 
     // rendering
     Quad _screenfillingQuad;

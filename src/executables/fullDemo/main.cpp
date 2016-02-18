@@ -308,7 +308,13 @@ int main()
 	r_showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 
 	// arbitrary texture display shader
+	float weightMin = 0.0f;
+	float weightMax = 0.5f;
+	int mode = 0;
 	ShaderProgram sh_addTexShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessVolumetricLighting.frag");
+	sh_addTexShader.update("min", weightMin);
+	sh_addTexShader.update("max", weightMax);
+	sh_addTexShader.update("mode", mode);
 	RenderPass r_addTex(&sh_addTexShader, &fbo_gbufferComp);
 	r_addTex.addRenderable(&quad);
 	r_addTex.addDisable(GL_DEPTH_TEST);
@@ -374,6 +380,17 @@ int main()
 		// Volumetric Light
 		if (ImGui::CollapsingHeader("Volumetric Lighting"))
 			r_volumetricLighting.imguiInterfaceSimulationProperties();
+
+		if (ImGui::CollapsingHeader("VML Composition"))
+		{
+			ImGui::SliderFloat("min", &weightMin, 0.0f, 1.0f);
+			ImGui::SliderFloat("max", &weightMax, 0.0f, 1.0f);
+			//std::string values[5] = {"cos", "inverse", "sqrt", "quad", "ln"};
+			//const char* valuesChar = values->c_str();
+			//enum MODES {COS, INVERSE, SQRT, QUAD, LN} postProcessMode;
+			ImGui::Combo("mode", &mode, "cos\0sin\0inverse\0sqrt\0quad\0ln\0");
+			std::cout << "mode is " << mode << std::endl;
+		}
 		
 		// Grass
 		if ( ImGui::CollapsingHeader("Grass"))
@@ -445,6 +462,11 @@ int main()
 		treeRendering.foliageShadowMapShader->update("foliageSize", s_foliage_size);
 		
 		treeRendering.updateActiveImguiInterfaces();
+
+		// vml composition
+		sh_addTexShader.update("min", weightMin);
+		sh_addTexShader.update("max", weightMax);
+		sh_addTexShader.update("mode", mode);
 
 		//////////////////////////////////////////////////////////////////////////////
 		

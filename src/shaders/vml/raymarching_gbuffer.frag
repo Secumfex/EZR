@@ -26,6 +26,9 @@ uniform float phi;
 uniform float tau;
 uniform float albedo;
 
+// light color
+uniform vec3 lightColor;
+
 // clamping
 uniform float clampMax;
 
@@ -111,5 +114,5 @@ void main() {
     vli /= sampleNum;
     vli = clamp(vli, 0.0f, clampMax);
 
-    gl_FragColor =  vec4(vec3(1,1,1) * vli, 1.0);
+    gl_FragColor =  vec4(lightColor * vli, 1.0);
 }
