@@ -16,7 +16,6 @@ vec2 screen_size = vec2(800.0, 600.0);
 float lod_factor = 0.25f;
 
 vec4 project(vec4 vertex){
-    //vec4 result = mvp * vertex;
 	vec4 result = projection * view * model * vertex;
     result /= result.w;
     return result;
@@ -41,10 +40,11 @@ float level(vec2 v0, vec2 v1){
 }
 
 void main(){
+
      #define id gl_InvocationID
+	 
      //gl_out[id].gl_Position = gl_in[id].gl_Position;
 	 	tcPosition[gl_InvocationID] = gl_in[gl_InvocationID].gl_Position.xyz;
-	//vec4 position =  projection * view * model * gl_Position;
 	
      if(id == 0){
          vec4 v0 = project(gl_in[0].gl_Position);

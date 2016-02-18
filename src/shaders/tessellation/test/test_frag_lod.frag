@@ -6,12 +6,15 @@ layout(location = 2) out vec4 fragPosition;
 layout(location = 3) out vec4 fragUVCoord;
 layout(location = 4) out vec4 fragMaterial;
 
+in vec2 position;
 in vec3 tePosition;
 in vec4 passPosition;
 
+uniform mat4 model;
+uniform mat4 view;
 uniform sampler2D diff;
-uniform sampler2D normal;
 uniform sampler2D snow;
+uniform sampler2D normal;
 
 vec4 mixColor(vec4 col1, vec4 col2) {
 	if (tePosition.y < 0.5) {
@@ -29,9 +32,8 @@ void main(){
 	vec4 mixedColor = mixColor(color, snowColor);
 
 	fragColor = mixedColor;
-	fragNormal = texture(normal, tePosition.xz);
-	//fragNormal = vec4(0.0, 1.0, 0.0, 1.0);
-	//fragPosition = vec4(tePosition, 1.0);
+	vec4 passNormal = vec4(0.0,1.0, 0.0, 1.0);
+	fragNormal =  normalize(transpose(inverse(view * model)) * texture(normal, position));
 	fragPosition = passPosition;
 	fragUVCoord = vec4(tePosition, 1.0);
 	fragMaterial = vec4(0.0, 1.0, 0.2, 0.0);
