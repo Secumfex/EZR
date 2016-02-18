@@ -30,6 +30,7 @@ uniform vec4 heightMapRange; //!< x,y --> begin coords (XZ-plane) z,w --> end co
 
 #define HEIGHT_SCALE 17.0
 #define HEIGHT_BIAS 0.0
+#define SEA_LEVEL 1.0
 
 vec2 worldToHeightMapUV(vec4 worldPos)
 {
@@ -82,7 +83,7 @@ void main()
 	
 	// adjust y coord
 	centerWorld.y = texture(heightMap, worldToHeightMapUV(centerWorld)).x * HEIGHT_SCALE + HEIGHT_BIAS;
-	if (centerWorld.y < HEIGHT_BIAS - strength) // below sea level
+	if (centerWorld.y < SEA_LEVEL ) // below sea level
 	{
 		return;
 	}

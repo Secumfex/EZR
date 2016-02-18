@@ -244,12 +244,9 @@ inline void updateDynamicFieldOfView(PostProcessing::DepthOfField& r_depthOfFiel
 		// read center depth
 		gbufferFBO.bind();
 		glm::vec4 value;
-		// checkGLError();
 		glReadBuffer(GL_COLOR_ATTACHMENT2); // position buffer
 		glReadPixels(gbufferFBO.getWidth() / 2, gbufferFBO.getHeight() /2, 1, 1,
 			GL_RGBA ,GL_FLOAT, glm::value_ptr(value) );
-		// checkGLError();
-		// DEBUGLOG->log("center depth:", value);
 		float depth = glm::length(glm::vec3(value));
 
 		float diffNear = (depth / 2.0f) - r_depthOfField.m_focusPlaneDepths.y;

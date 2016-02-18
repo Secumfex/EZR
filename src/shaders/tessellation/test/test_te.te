@@ -29,7 +29,8 @@ void main() {
 	tePosition = mix(a, b, gl_TessCoord.y);
 	
 	//tePosition = normalize(p0 + p1 + p2);
-	gl_Position = projection * view * model * vec4(tePosition, 1);
-	passPosition = projection * view * model * vec4(tePosition.x, tePosition.z, -tePosition.z, 1);
-	
-}
+
+	passPosition = view * model * vec4(tePosition, 1);
+	gl_Position = projection * passPosition;
+ 	}
+
