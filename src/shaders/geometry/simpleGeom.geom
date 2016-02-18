@@ -22,8 +22,8 @@ uniform	float strength;
 // uniform float stiffness;
 uniform sampler2D vectorTexture;
 
-#define MAX_DISTANCE 15.0
-#define VARYING_SIZE_RANGE 5.0 // last 5 units
+#define MAX_DISTANCE 30.0
+#define VARYING_SIZE_RANGE 10.0
 
 uniform sampler2D heightMap;
 uniform vec4 heightMapRange; //!< x,y --> begin coords (XZ-plane) z,w --> end coords( XZ-plane )
@@ -89,7 +89,7 @@ void main()
 	vec4 centerView = (view * centerWorld); // center in view space
 
 	float distToCameraXZ = length(centerView.xz);
-	if (distToCameraXZ > 15.0)
+	if (distToCameraXZ > MAX_DISTANCE)
 	{
 		return;
 	}

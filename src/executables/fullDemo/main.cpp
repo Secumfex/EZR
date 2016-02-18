@@ -447,6 +447,7 @@ int main()
 		sh_gbuffer.update( "view", mainCamera.getViewMatrix());
 		r_skybox.m_skyboxShader.update("view", glm::mat4(glm::mat3(mainCamera.getViewMatrix())));
 		sh_grassGeom.update("view", mainCamera.getViewMatrix());
+
 		r_lensFlare.updateLensStarMatrix(mainCamera.getViewMatrix());
 		sh_gbufferComp.update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
 		treeRendering.foliageShader->update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
@@ -454,6 +455,8 @@ int main()
 		sh_tessellation.update("view", mainCamera.getViewMatrix());
 		
 		shadowMapShader.update("view", lightCamera.getViewMatrix());
+
+//		sh_grassGeom.update("model", glm::translate(glm::mat4(1.0f), mainCamera.getPosition()) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0) ));
 
 		treeRendering.foliageShader->update("view", mainCamera.getViewMatrix());
 		treeRendering.branchShader->update("view", mainCamera.getViewMatrix());
