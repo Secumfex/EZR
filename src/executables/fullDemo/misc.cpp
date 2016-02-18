@@ -17,6 +17,8 @@
 #include <TreeAnimation/TreeRendering.h>
 #include <TreeAnimation/WindField.h>
 
+#include <glm/gtc/type_ptr.hpp>
+#include <Rendering/PostProcessing.h>
 /***********************************************/
 // This file is for arbitrary stuff to save some ugly Lines of Code
 /***********************************************/
@@ -227,6 +229,38 @@ inline void updateLightCamera(Camera& mainCamera, Camera& lightSourceCamera, glm
 {
 	lightSourceCamera.setPosition( mainCamera.getPosition() + offset);
 	//TODO move lightSourceCamera according to mainCamera
+}
+
+static bool s_dynamicDoF = false;
+inline void imguiDynamicFieldOfView(PostProcessing::DepthOfField& r_depthOfField)
+{
+	ImGui::Checkbox("dynamic DoF", &s_dynamicDoF);
+}
+
+inline void updateDynamicFieldOfView(PostProcessing::DepthOfField& r_depthOfField, FrameBufferObject& gbufferFBO, float dt)
+{
+	if ( s_dynamicDoF )
+	{
+		// read center depth
+		gbufferFBO.bind();
+		glm::vec4 value;
+		// checkGLError();
+		glReadBuffer(GL_COLOR_ATTACHMENT2); // position buffer
+		glReadPixels(gbufferFBO.getWidth() / 2, gbufferFBO.getHeight() /2, 1, 1,
+			GL_RGBA ,GL_FLOAT, glm::value_ptr(value) );
+		// checkGLError();
+		// DEBUGLOG->log("center depth:", value);
+		float depth = glm::length(glm::vec3(value));
+
+		float diffNear = (depth / 2.0f) - r_depthOfField.m_focusPlaneDepths.y;
+		float diffFar = (depth + depth/2.0f) - r_depthOfField.m_focusPlaneDepths.z;
+		r_depthOfField.m_focusPlaneDepths.x = r_depthOfField.m_focusPlaneDepths.x + diffNear * dt;
+		r_depthOfField.m_focusPlaneDepths.y = r_depthOfField.m_focusPlaneDepths.y + diffNear * dt;
+		r_depthOfField.m_focusPlaneDepths.z = r_depthOfField.m_focusPlaneDepths.z + diffFar * dt;
+		r_depthOfField.m_focusPlaneDepths.w = r_depthOfField.m_focusPlaneDepths.w + diffFar * dt;
+
+		r_depthOfField.updateUniforms();
+	}
 }
 
 #endif

@@ -5,7 +5,6 @@
 #include <time.h>
 
 #include <Rendering/VertexArrayObjects.h>
-#include <Rendering/PostProcessing.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
@@ -360,6 +359,12 @@ int main()
 		 {
 			 s_show_debug_views = !s_show_debug_views;
 		 }
+
+		 if ( k == GLFW_KEY_O && a == GLFW_PRESS)
+		 {
+			 s_dynamicDoF = !s_dynamicDoF;
+		 }
+
 	 };
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -421,6 +426,7 @@ int main()
 			if (ImGui::TreeNode("Depth-Of-Field")){
 				r_depthOfField.imguiInterfaceEditParameters();
 				r_depthOfField.updateUniforms();
+				imguiDynamicFieldOfView(r_depthOfField);
 			 	ImGui::TreePop();
 			}
 		 	ImGui::TreePop();
@@ -481,6 +487,7 @@ int main()
 		sh_addTexShader.update("max", weightMax);
 		sh_addTexShader.update("mode", mode);
 
+		updateDynamicFieldOfView(r_depthOfField, fbo_gbuffer, dt);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
@@ -556,7 +563,7 @@ int main()
 
 		// show / debug view of some texture
 		r_showTex.setViewport(0,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
-		sh_showTex.updateAndBindTexture("tex", 0, fbo_gbuffer.getBuffer("fragNormal"));
+		sh_showTex.updateAndBindTexture("tex", 0, fbo_gbuffer.getBuffer("fragPosition"));
 		r_showTex.render();
 
 		r_showTex.setViewport(WINDOW_RESOLUTION.x / 4,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);

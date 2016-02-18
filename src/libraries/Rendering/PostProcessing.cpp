@@ -169,6 +169,8 @@ void PostProcessing::DepthOfField::execute(GLuint positionMap, GLuint colorMap)
 	m_quad->draw();
 } 
 
+static bool s_disable_near_field = false;
+static bool s_disable_far_field = false;
 void PostProcessing::DepthOfField::imguiInterfaceEditParameters()
 {
 	// ImGui interface
@@ -176,6 +178,8 @@ void PostProcessing::DepthOfField::imguiInterfaceEditParameters()
 	ImGui::SliderFloat2("near/far radi", glm::value_ptr(m_focusPlaneRadi), -10.0f, 10.0f);
 
 	ImGui::SliderFloat("far radius rescale", &m_farRadiusRescale, 0.0f, 5.0f);
+	ImGui::Checkbox("disable near field", &s_disable_near_field);
+	ImGui::Checkbox("disable far field", &s_disable_far_field);
 }
 
 void PostProcessing::DepthOfField::updateUniforms()
@@ -190,6 +194,9 @@ void PostProcessing::DepthOfField::updateUniforms()
 
 	m_dofCompShader.update("maxCoCRadiusPixels", m_focusPlaneRadi.x);
 	m_dofCompShader.update("farRadiusRescale" , m_farRadiusRescale);
+
+	m_dofCompShader.update("disableNearField", s_disable_near_field);
+	m_dofCompShader.update("disableFarField" , s_disable_far_field);
 }
 
 PostProcessing::SkyboxRendering::SkyboxRendering(std::string fShader, std::string vShader, Renderable* skybox)

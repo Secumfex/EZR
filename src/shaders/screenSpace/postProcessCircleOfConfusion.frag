@@ -9,7 +9,6 @@ uniform sampler2D positionMap;
 // near-blurry, near-sharp, far-sharp, far-blurry
 uniform vec4 focusPlaneDepths;
 uniform vec2 focusPlaneRadi; // radius of near-blurry and radius of far-blurry
-const vec2 sharpPlaneRadi = vec2(-0.5,0.5);
 
 out vec4 fragmentColor;
 
@@ -31,10 +30,12 @@ void main() {
 	float cocRadius = 0.0;
 	if (depth < nearSharpDepth)
 	{ 								// 10.0				0.5				d - 0.0 / nearSharp
-		cocRadius = min(mix(nearBlurryRadius, nearSharpRadius, (depth-nearBlurryDepth)/(nearSharpDepth-nearBlurryDepth)),nearBlurryRadius);
+		float t = clamp( (depth - nearBlurryDepth) / (nearSharpDepth - nearBlurryDepth), 0.0, 1.0);
+		cocRadius = mix(nearBlurryRadius, nearSharpRadius, t);
 	}
-	if (depth > nearSharpDepth && depth < farSharpDepth)
+	if (depth > nearSharpDepth && depth < farSharpDepth) // in sharp area
 	{ 
+
 		cocRadius = max(min(mix(nearSharpRadius, farSharpRadius, (depth-nearSharpDepth)/(farSharpDepth-nearSharpDepth)),nearSharpRadius),farSharpRadius);
 	}
 	if (depth > farSharpDepth)
