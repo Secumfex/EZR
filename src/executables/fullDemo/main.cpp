@@ -82,9 +82,11 @@ int main()
 
 	//TODO load all (non-material) textures that are needed
 	// Tess
-	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_height2.png");
+	//GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_height2.png");
+	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/heightmap.jpg");
+	GLuint terrainNormalTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_normal.png");
 
-	GLuint diffTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_grass.jpg");
+	GLuint diffTex = TextureTools::loadTexture( RESOURCES_PATH "/Rocks_Seamless_1_COLOR.png");
 	glBindTexture(GL_TEXTURE_2D, diffTex);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -116,10 +118,12 @@ int main()
 	objects.push_back(new Terrain());
 
 	// modelmartix for terrain
+	glm::vec4 terrainRange(-75.0f, -75.f, 75.0f, 75.0f);
 	std::vector<glm::mat4 > modelMatrices;
 	modelMatrices.resize(1);
 	// glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) *
-	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-50.0f, -3.0f, -50.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(130.0f, 12.0f, 130.0f));
+	//modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-50.0f, -1.5f, -50.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(130.0f, 15.0f, 130.0f));
+	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-75.0f, 0.0f, -75.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(150.0f, 17.0f, 150.0f));
 	glm::mat4 model = modelMatrices[0];
 	
 	// grid resembling water surface
@@ -149,7 +153,7 @@ int main()
 	r_gbuffer.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 	// Terrainstuff
-	ShaderProgram sh_tessellation("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag_lod.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te_bezier.te"); DEBUGLOG->outdent();//
+	ShaderProgram sh_tessellation("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag_lod.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te.te"); DEBUGLOG->outdent();//
 	sh_tessellation.update("model", model);
 	sh_tessellation.update("view", mainCamera.getViewMatrix());
 	sh_tessellation.update("projection", mainCamera.getProjectionMatrix());
@@ -158,6 +162,7 @@ int main()
 	sh_tessellation.bindTextureOnUse("terrain", distortionTex);
 	sh_tessellation.bindTextureOnUse("diff", diffTex);
 	sh_tessellation.bindTextureOnUse("snow", snowTex);
+	sh_tessellation.bindTextureOnUse("normal", terrainNormalTex);
 
 
 	RenderPass r_terrain(&sh_tessellation, &fbo_gbuffer);
@@ -189,6 +194,7 @@ int main()
 	treeRendering.createAndConfigureUniformBlocksAndBuffers(1);
 	assignTreeMaterialTextures(treeRendering);
 	assignWindFieldUniforms(treeRendering, windField);
+	assignHeightMapUniforms(treeRendering, distortionTex, terrainRange);
 	treeRendering.createAndConfigureRenderpasses( &fbo_gbuffer, &fbo_gbuffer, &shadowMap );
 	/******************************************/
 
@@ -212,6 +218,8 @@ int main()
 	sh_grassGeom.update("shininess", 3.0f);
 	sh_grassGeom.update("shininess_strength", 0.1f);
 	sh_grassGeom.update("strength", s_grass_size); // grass size
+	sh_grassGeom.bindTextureOnUse("heightMap", distortionTex);
+	sh_grassGeom.update("heightMapRange", terrainRange); // grass size
 	glAlphaFunc(GL_GREATER, 0);
 
 	// TODO construct all renderpasses, shaders and framebuffer objects
@@ -519,16 +527,16 @@ int main()
 		//TODO render water reflections 
 	//	r_ssr.render();
 		//TODO render god rays
-		r_volumetricLighting._raymarchingRenderPass->render();
+		//r_volumetricLighting._raymarchingRenderPass->render();
 
 		// overlay volumetric lighting
-		r_addTex.render();
+		//r_addTex.render();
 
 		//////////// POST-PROCESSING ////////////////////
 
 		// Depth of Field and Lens Flare
-		r_depthOfField.execute(fbo_gbuffer.getBuffer("fragPosition"), fbo_gbufferComp.getBuffer("fragmentColor"));
-		r_lensFlare.renderLensFlare(r_depthOfField.m_dofCompFBO->getBuffer("fragmentColor"), &fbo_gbufferComp);
+		//r_depthOfField.execute(fbo_gbuffer.getBuffer("fragPosition"), fbo_gbufferComp.getBuffer("fragmentColor"));
+		//r_lensFlare.renderLensFlare(r_depthOfField.m_dofCompFBO->getBuffer("fragmentColor"), &fbo_gbufferComp);
 
 		// quick debug
 		//copyFBOContent(r_depthOfField.m_dofCompFBO, &fbo_gbufferComp, GL_COLOR_BUFFER_BIT); 

@@ -25,6 +25,20 @@ uniform sampler2D vectorTexture;
 #define MAX_DISTANCE 15.0
 #define VARYING_SIZE_RANGE 5.0 // last 5 units
 
+uniform sampler2D heightMap;
+uniform vec4 heightMapRange; //!< x,y --> begin coords (XZ-plane) z,w --> end coords( XZ-plane )
+
+#define HEIGHT_SCALE 17.0
+#define HEIGHT_BIAS 0.0
+
+vec2 worldToHeightMapUV(vec4 worldPos)
+{
+	vec2 heightMapUV;
+	heightMapUV.x = (worldPos.x - heightMapRange.x) / (heightMapRange.z - heightMapRange.x );
+	heightMapUV.y = (worldPos.z - heightMapRange.y) / (heightMapRange.w - heightMapRange.y);
+	return heightMapUV; 
+}
+
 float mix3(float a, float b, float c, float t)
 {
 	return 
@@ -63,9 +77,17 @@ void main()
 	vec4 pos3 = vec4(gl_in[2].gl_Position.xyz, 1.0);
 
 	// center of triangle
-	float t = sin(1000.0 * pos1.x) + cos(500.0 * pos2.y);
-	vec4 center = mix3(pos1,pos2,pos3,t);
-	vec4 centerView = (view * model * center); // center in view space
+	float t = sin(1000.0 * pos1.x) + cos(500.0 * pos2.y); //some "noise"
+	vec4 centerWorld = model * mix3(pos1,pos2,pos3,t);
+	
+	// adjust y coord
+	centerWorld.y = texture(heightMap, worldToHeightMapUV(centerWorld)).x * HEIGHT_SCALE + HEIGHT_BIAS;
+	if (centerWorld.y < HEIGHT_BIAS - strength) // below sea level
+	{
+		return;
+	}
+	vec4 centerView = (view * centerWorld); // center in view space
+
 	float distToCameraXZ = length(centerView.xz);
 	if (distToCameraXZ > 15.0)
 	{

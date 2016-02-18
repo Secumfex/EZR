@@ -9,7 +9,7 @@ layout(location = 4) out vec4 fragMaterial;
 in vec3 tePosition;
 
 uniform sampler2D diff;
-uniform sampler2D terrain;
+uniform sampler2D normal;
 uniform sampler2D snow;
 
 
@@ -29,8 +29,8 @@ vec4 mixColor(vec4 col1, vec4 col2) {
 }
 
 void main(){
-	fragNormal = texture(terrain, tePosition.xz);
-	vec4 color = texture(diff, tePosition.xz * 12);
+	//fragNormal = texture(terrain, tePosition.xz);
+	vec4 color = texture(diff, tePosition.xz * 24);
 	vec4 snowColor = texture(snow, tePosition.xz * 12);
 	vec4 mixedColor = mixColor(color, snowColor);
 	//vec4 color = vec4(vec3(34.0f/255, 139.0f/255, 34.0f/255), 1.0);
@@ -39,6 +39,7 @@ void main(){
 	//fragColor = mix(color, color*0.5+vec4(0.5, 0.5, 0.5, 1.0), tePosition.z*2.0);
 	fragColor = mixedColor;
 	//fragColor = vec4(0.0, 0.66, 0.0, 1.0);
+	fragNormal = texture(normal, tePosition.xz);
 	fragPosition = vec4(tePosition, 1.0);
 	fragUVCoord = vec4(tePosition, 1.0);
 	fragMaterial = vec4(0.0, 1.0, 0.5, 0.0);
