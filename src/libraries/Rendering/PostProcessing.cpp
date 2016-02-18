@@ -468,14 +468,14 @@ glm::mat3 PostProcessing::LensFlare::updateLensStarMatrix(glm::mat4 view)
 
 void PostProcessing::LensFlare::imguiInterfaceEditParameters()
 {
-	ImGui::SliderFloat("bias",			 &m_bias, -2.0f, 2.0f);
-	ImGui::SliderFloat("scaling factor", &m_scale, -5.0f, 5.0f);
+	ImGui::SliderFloat("bias",			 &m_bias, -1.0f, 0.0f);
+	ImGui::SliderFloat("scaling factor", &m_scale, 0.0f, 20.0f);
 	ImGui::SliderFloat("halo width",	 &m_halo_width, 0.0f, 5.0f);
 	ImGui::SliderFloat("chrom. distort", &m_distortion, 0.0f, 10.0f);
 	ImGui::SliderInt("num ghosts",		 &m_num_ghosts, 0, 10);
 	ImGui::SliderInt("blur strength",	 &m_blur_strength, 0, 7);
-	ImGui::SliderFloat("ghost dispersal",&m_ghost_dispersal, 0.0f, 5.0f);
-	ImGui::SliderFloat("add strength",	 &m_strength, 0.0f, 5.0f);
+	ImGui::SliderFloat("ghost dispersal",&m_ghost_dispersal, 0.0f, 3.0f);
+	ImGui::SliderFloat("add strength",	 &m_strength, 0.0f, 10.0f);
 }
 
 void PostProcessing::LensFlare::updateUniforms()

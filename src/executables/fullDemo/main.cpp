@@ -376,8 +376,26 @@ int main()
 			ImGui::SliderFloat("grass size", &s_grass_size, 0.0f, 1.5f);
 			sh_grassGeom.update("strength", s_grass_size);
 		}
-		//TODO what you want to be able to modify, use multiple windows, collapsing headers, whatever
+		
+		// Post-Processing
+		if ( ImGui::TreeNode("Post-Processing"))
+		{	
+			if (ImGui::TreeNode("Lens-Flare"))
+			{
+				r_lensFlare.imguiInterfaceEditParameters();
+				r_lensFlare.updateUniforms();
+			 	ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Depth-Of-Field")){
+				r_depthOfField.imguiInterfaceEditParameters();
+				r_depthOfField.updateUniforms();
+			 	ImGui::TreePop();
+			}
+		 	ImGui::TreePop();
+		}
 
+		//TODO what you want to be able to modify, use multiple windows, collapsing headers, whatever
+		
         //////////////////////////////////////////////////////////////////////////////
 
 		///////////////////////////// VARIABLE UPDATING ///////////////////////////////
@@ -406,7 +424,6 @@ int main()
 		sh_tessellation.update("view", mainCamera.getViewMatrix());
 		
 		shadowMapShader.update("view", lightCamera.getViewMatrix());
-		shadowMapShader.update("view", mainCamera.getViewMatrix());
 
 		treeRendering.foliageShader->update("view", mainCamera.getViewMatrix());
 		treeRendering.branchShader->update("view", mainCamera.getViewMatrix());
@@ -450,7 +467,7 @@ int main()
 
 		//TODO render tesselated mountains
 		r_terrain.render();
-		//TODO render skybox
+		//render skybox
 		r_skybox.render(tex_cubeMap, &fbo_gbuffer);
 
 		//TODO render shadow map ( most of above again )
@@ -483,8 +500,8 @@ int main()
 		//////////// POST-PROCESSING ////////////////////
 
 		// Depth of Field and Lens Flare
-		//r_depthOfField.execute(fbo_gbuffer.getBuffer("fragPosition"), fbo_gbufferComp.getBuffer("fragmentColor"));
-		// r_lensFlare.renderLensFlare(depthOfField.m_dofCompFBO->getBuffer("fragmentColor"), &fbo_gbufferComp);
+		r_depthOfField.execute(fbo_gbuffer.getBuffer("fragPosition"), fbo_gbufferComp.getBuffer("fragmentColor"));
+		r_lensFlare.renderLensFlare(r_depthOfField.m_dofCompFBO->getBuffer("fragmentColor"), &fbo_gbufferComp);
 
 		// quick debug
 		//copyFBOContent(r_depthOfField.m_dofCompFBO, &fbo_gbufferComp, GL_COLOR_BUFFER_BIT); 
