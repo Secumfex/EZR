@@ -70,9 +70,15 @@ int main()
 	std::vector<Renderable* > objects;
 	objects.push_back(new Terrain());
 
-	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_height.png");
+	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_height2.png");
 	GLuint diffTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_grass.jpg");
+	glBindTexture(GL_TEXTURE_2D, diffTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	GLuint rockTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_snow.jpg");
+	glBindTexture(GL_TEXTURE_2D, rockTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	DEBUGLOG->log("Setup: model matrices"); DEBUGLOG->indent();
 	std::vector<glm::mat4 > modelMatrices;
