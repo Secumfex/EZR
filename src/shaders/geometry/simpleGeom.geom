@@ -31,7 +31,7 @@ uniform vec4 heightMapRange; //!< x,y --> begin coords (XZ-plane) z,w --> end co
 #define HEIGHT_SCALE 17.0
 #define HEIGHT_BIAS 0.0
 #define SEA_LEVEL 1.0
-#define MAX_HEIGHT 6.0
+#define MAX_HEIGHT 3.0
 
 vec2 worldToHeightMapUV(vec4 worldPos)
 {
@@ -100,7 +100,7 @@ void main()
 		return;
 	}
 	float sizeFactor = clamp( ( (MAX_DISTANCE - distToCameraXZ) / VARYING_SIZE_RANGE ), 0.0, 1.0) - (0.25 + (t * 0.25)) ; //noise
-	float heightFactor = (clamp(MAX_HEIGHT - centerWorld.y, 0.0, 1.0)) * clamp(centerWorld.y - SEA_LEVEL, 0.0, 1.0); 
+	float heightFactor = (clamp(MAX_HEIGHT - centerWorld.y, 0.0, 1.0)) * clamp((centerWorld.y - SEA_LEVEL) * 2.0, 0.0, 1.0); 
 
 	float size = heightFactor * sizeFactor * strength;
 
