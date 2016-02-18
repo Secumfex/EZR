@@ -32,12 +32,10 @@ static float s_foliage_size = 1.0f;
 
 static float s_grass_size = 0.4f;
 
-static int s_ssrRayStep = 0.0f;
-
 //////////////////// MISC /////////////////////////////////////
 std::map<aiTextureType, GLuint> textures;
 
-static bool s_show_debug_views = true;
+static bool s_show_debug_views = false;
 static bool s_enableLandscape = true;
 static bool s_enableTrees = true;
 static bool s_enableGrass = true;
@@ -46,6 +44,13 @@ static bool s_enableVolumetricLighting = true;
 static bool s_enableDepthOfField = true;
 static bool s_enableLenseflare = true;
 static bool s_animate_seasons = false;
+
+static bool s_ssrCubeMap = true;
+static bool s_ssrFade = false;
+//static bool s_ssrGlossy = true;
+static int s_ssrLoops = 150;
+//static int s_ssrRayStep = 0.0;
+static float s_ssrMix = 0.8;
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -112,6 +117,9 @@ int main()
 	glBindTexture(GL_TEXTURE_2D, tex_grassQuad);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	GLuint waterTextureHandle = TextureTools::loadTextureFromResourceFolder("water/07_DIFFUSE.jpg");
+	//GLuint waterNormalTextureHandle = TextureTools::loadTextureFromResourceFolder("water/07_NORMAL.jpg");
 
 	/////////////////////    Import Stuff (Misc)    //////////////////////////
 
@@ -286,7 +294,11 @@ int main()
 			sh_gbuffer.update("shininess", 15.0f);
 			sh_gbuffer.update("shininess_strength", 0.8f);
 			sh_gbuffer.update("model", modelWater);
-			sh_gbuffer.update("color", glm::vec4(0.2f,0.2f,0.7f,1.0f));
+			//sh_gbuffer.update("color", glm::vec4(0.2f,0.2f,0.7f,1.0f));
+			sh_gbuffer.update("mixTexture", 1.0f);
+			sh_gbuffer.updateAndBindTexture("tex", 1,waterTextureHandle);
+			sh_gbuffer.update("hasNormalTex", false);
+			//sh_gbuffer.updateAndBindTexture("normalTex", 2, waterNormalTextureHandle);
 		}
 	};
 	r_gbuffer.setPerRenderableFunction(&r_gbuffer_perRenderableFunc);
@@ -323,9 +335,14 @@ int main()
 	sh_ssr.update("screenHeight",getResolution(window).y);
 	sh_ssr.update("camNearPlane", 0.5f);
 	sh_ssr.update("camFarPlane", 100.0f);
-	sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
+	//sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
 	sh_ssr.update("projection",mainCamera.getProjectionMatrix());
 	sh_ssr.update("view",mainCamera.getViewMatrix());
+	sh_ssr.update("toggleCM",s_ssrCubeMap);
+	sh_ssr.update("toggleFade",s_ssrFade);
+	//sh_ssr.update("toggleGlossy",s_ssrGlossy);
+	sh_ssr.update("loops",s_ssrLoops);
+	sh_ssr.update("mixV",s_ssrMix);
 	sh_ssr.bindTextureOnUse("vsPositionTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 	sh_ssr.bindTextureOnUse("vsNormalTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
 	sh_ssr.bindTextureOnUse("ReflectanceTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT4));
@@ -355,9 +372,9 @@ int main()
 	r_showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 
 	// arbitrary texture display shader
-	float weightMin = 0.0f;
-	float weightMax = 0.65f;
-	int mode = 0;
+	float weightMin = 0.6f;
+	float weightMax = 0.7f;
+	int mode = 7;
 	ShaderProgram sh_addTexShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessVolumetricLighting.frag");
 	sh_addTexShader.update("min", weightMin);
 	sh_addTexShader.update("max", weightMax);
@@ -512,7 +529,7 @@ int main()
 			{
 				ImGui::SliderFloat("min", &weightMin, 0.0f, 1.0f);
 				ImGui::SliderFloat("max", &weightMax, 0.0f, 1.0f);
-				ImGui::Combo("mode", &mode, "cos\0sin\0inverse\0sqrt\0quad\0ln\0");
+				ImGui::Combo("mode", &mode, "const\0cos\0sin\0inverse\0sqrt\0quad\0ln\0x^4\0");
 				ImGui::TreePop();
 			}
 			ImGui::TreePop();
@@ -526,9 +543,16 @@ int main()
 			ImGui::TreePop();
 		}
 
+		//SSR
 		if ( ImGui::TreeNode("SSR"))
 		{
 			ImGui::Checkbox("enable", &s_enableSSR);
+			ImGui::SliderInt("Loops",&s_ssrLoops, 25, 250);
+			//ImGui::SliderInt("PixelStepSize",&s_ssrRayStep,0,20);
+			ImGui::Checkbox("toggle CubeMap", &s_ssrCubeMap);
+			ImGui::SliderFloat("mix water",&s_ssrMix, 0.0, 1.0);
+			ImGui::Checkbox("fade to edges", &s_ssrFade);
+			//ImGui::Checkbox("toggle glossy", &s_ssrGlossy);
 			ImGui::TreePop();
 		}
 
@@ -581,8 +605,9 @@ int main()
 		r_lensFlare.updateLensStarMatrix(mainCamera.getViewMatrix());
 		sh_gbufferComp.update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
 		treeRendering.foliageShader->update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
-		
+
 		sh_ssr.update("view",mainCamera.getViewMatrix());
+		
 		shadowMapShader.update("view", lightCamera.getViewMatrix());
 
 		sh_tessellation.update("view", mainCamera.getViewMatrix());
@@ -612,6 +637,13 @@ int main()
 		sh_grassGeom.update("strength", s_grass_size);
 
 		updateDynamicFieldOfView(r_depthOfField, fbo_gbuffer, dt);
+
+		sh_ssr.update("toggleCM",s_ssrCubeMap);
+		sh_ssr.update("toggleFade",s_ssrFade);
+		//sh_ssr.update("toggleGlossy",s_ssrGlossy);
+		sh_ssr.update("loops",s_ssrLoops);
+		//sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
+		sh_ssr.update("mixV",s_ssrMix);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////

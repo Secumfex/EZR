@@ -34,6 +34,9 @@ public:
     float _radiocity;
     float _scatterProbability;
     float _collisionProbability;
+    float _averageCosine;
+
+    bool _useAnisotropicScattering;
 
     float _clamp;
     glm::vec3 _lightColor;

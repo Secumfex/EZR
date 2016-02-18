@@ -12,10 +12,16 @@ uniform float screenWidth;
 uniform float screenHeight;
 uniform float camNearPlane; 
 uniform float camFarPlane; 
-uniform int user_pixelStepSize; 
-uniform bool fadeToEdges;
+//uniform int user_pixelStepSize; 
+//uniform bool fadeToEdges;
 uniform mat4 projection; 
 uniform mat4 view;
+
+uniform bool toggleCM;
+uniform bool toggleFade;
+//uniform bool toggleGlossy;
+uniform int loops;
+uniform float mixV;
 
 uniform sampler2D vsPositionTex; 
 uniform sampler2D vsNormalTex; 
@@ -96,7 +102,7 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
 
     while(count < sampleCount) {
     	//control loops
-        if(count > 150){
+        if(count > loops){	//150
 	//		reflectedColor = texture(CubeMapTex, vsReflectionVector);	
 			break;
 		}
@@ -162,10 +168,10 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
 		count++;
 	}
 
-	bool fadeToEdges = true; 	//da noch nicht als uniform
+	//bool fadeToEdges = true; 	//da noch nicht als uniform
     //fading to screen edges
     vec2 fadeToScreenEdge = vec2(1.0);
-    if(fadeToEdges){
+    if(toggleFade){
         fadeToScreenEdge.x = distance(lastSamplePosition.x , 1.0);
         fadeToScreenEdge.x *= distance(lastSamplePosition.x, 0.0) * 4.0;
         fadeToScreenEdge.y = distance(lastSamplePosition.y, 1.0);
@@ -203,11 +209,14 @@ void main(void){
  
  	//screen space reflections
   	vec4 color = ScreenSpaceReflections(vsPosition, vsNormal, vsReflectionVector); 
- 
- 	if(color.x == 0.0f && color.y == 0.0f && color.z == 0.0f && color.a == 0.0f){	
- 		color=CubeMapping(wsReflectionVector);
- 	} 
-  	FragColor = color; //* reflectance
+
+ 	if(color.x == 0.0f && color.y == 0.0f && color.z == 0.0f && color.a == 0.0f){
+ 		if(toggleCM){	
+ 			color=CubeMapping(wsReflectionVector);
+ 		}
+ 	}
+ 	vec4 temp = texture(DiffuseTex, vert_UV);
+  	FragColor = mix(color,temp,mixV);//color * temp; //* reflectance
 	}
   	else {
   		vec4 color = texture(DiffuseTex, vert_UV);
