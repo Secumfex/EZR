@@ -22,6 +22,9 @@ uniform	float strength;
 // uniform float stiffness;
 uniform sampler2D vectorTexture;
 
+#define MAX_DISTANCE 15.0
+#define VARYING_SIZE_RANGE 5.0 // last 5 units
+
 float mix3(float a, float b, float c, float t)
 {
 	return 
@@ -60,12 +63,18 @@ void main()
 	vec4 pos3 = vec4(gl_in[2].gl_Position.xyz, 1.0);
 
 	// center of triangle
-//	vec4 center = centerPos(pos1,pos2,pos3);
 	float t = sin(1000.0 * pos1.x) + cos(500.0 * pos2.y);
 	vec4 center = mix3(pos1,pos2,pos3,t);
 	vec4 centerView = (view * model * center); // center in view space
-	float sizeFactor = min( 1.0 / (length(centerView.xyz) * 0.5), 1.0);
+	float distToCameraXZ = length(centerView.xz);
+	if (distToCameraXZ > 15.0)
+	{
+		return;
+	}
+	float sizeFactor = clamp( (MAX_DISTANCE - distToCameraXZ) / VARYING_SIZE_RANGE, 0.0, 1.0);
+	
 	float size = sizeFactor * strength;
+	
 	vec4 upView = invTransMV * vec4(0.0,0.0, size * 2.0,0.0); // up vector in view space
 
 	// vec2 offset in xz-plane according to wind field
@@ -80,6 +89,7 @@ void main()
 	passPosition = point.xyz;
 	passNormal = normalize(	( invTransMV * vec4(VertexGeom[0].normal, 0.0) ).xyz );
 	passTangent = normalize(	( invTransMV * vec4(VertexGeom[0].tangent, 0.0) ).xyz );
+	point.w = 1.0;
 	gl_Position = projection * point;
 	EmitVertex();
 
@@ -89,6 +99,7 @@ void main()
 	passPosition = point.xyz;
 	passNormal = normalize(	( invTransMV * vec4(VertexGeom[0].normal + offset.xyz * 4.0, 0.0) ).xyz);
 	passTangent = normalize( ( invTransMV * vec4(VertexGeom[0].tangent + offset.xyz * 4.0, 0.0) ).xyz);
+	point.w = 1.0;
 	gl_Position = projection * point;
 	EmitVertex();
 	
@@ -97,6 +108,7 @@ void main()
 	passPosition = point.xyz;
 	passNormal = normalize( ( invTransMV * vec4(VertexGeom[0].normal, 0.0) ).xyz);
 	passTangent = normalize( ( invTransMV * vec4(VertexGeom[0].tangent, 0.0) ).xyz);
+	point.w = 1.0;
 	gl_Position = projection * point;
 	EmitVertex();
 	
@@ -106,6 +118,7 @@ void main()
 	passPosition = point.xyz;
 	passNormal = normalize( ( invTransMV * vec4(VertexGeom[0].normal + offset.xyz * 4.0, 0.0) ).xyz);
 	passTangent = normalize( ( invTransMV * vec4(VertexGeom[0].tangent + offset.xyz * 4.0, 0.0) ).xyz);
+	point.w = 1.0;
 	gl_Position = projection * point ;
 	EmitVertex();
 

@@ -31,6 +31,8 @@ glm::mat4 bezier_transposed = glm::transpose(bezier);
 static float s_wind_power = 0.25f;
 static float s_foliage_size = 0.4f;
 
+static float s_grass_size = 0.2f;
+
 static int s_ssrRayStep = 0.0f;
 
 //////////////////// MISC /////////////////////////////////////
@@ -201,12 +203,13 @@ int main()
 	//r_grassGeom.addEnable(GL_BLEND);
 	sh_grassGeom.update("projection", mainCamera.getProjectionMatrix());
 	sh_grassGeom.bindTextureOnUse("tex", tex_grassQuad);
+	sh_grassGeom.bindTextureOnUse("vectorTexture", windField.m_vectorTextureHandle);
 	sh_grassGeom.update("model", modelGrass);
 	sh_grassGeom.update("mixTexture", 1.0f);
 	sh_grassGeom.update("materialType", 0.0f);
 	sh_grassGeom.update("shininess", 3.0f);
 	sh_grassGeom.update("shininess_strength", 0.1f);
-	sh_grassGeom.update("strength", 0.5f); // grass size
+	sh_grassGeom.update("strength", s_grass_size); // grass size
 	glAlphaFunc(GL_GREATER, 0);
 
 	// TODO construct all renderpasses, shaders and framebuffer objects
@@ -352,13 +355,28 @@ int main()
 		////////////////////////////////     GUI      ////////////////////////////////
         ImGuiIO& io = ImGui::GetIO();
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
-			
-		if (ImGui::CollapsingHeader("Tree Rendering")) 
+		
+		// Tree Rendering
+		bool active_interface_treeRendering = ImGui::CollapsingHeader("Tree Rendering");
+		if (active_interface_treeRendering) 
+		{
 			treeRendering.imguiInterfaceSimulationProperties();
+
+			ImGui::SliderFloat("foliage size", &s_foliage_size, 0.0f, 3.0f);
+			ImGui::SliderFloat("wind power", &s_wind_power, 0.0f, 3.0f); 
+		}
+		
+		// Volumetric Light
 		if (ImGui::CollapsingHeader("Volumetric Lighting"))
 			r_volumetricLighting.imguiInterfaceSimulationProperties();
-
-			//TODO what you want to be able to modify, use multiple windows, collapsing headers, whatever
+		
+		// Grass
+		if ( ImGui::CollapsingHeader("Grass"))
+		{	
+			ImGui::SliderFloat("grass size", &s_grass_size, 0.0f, 1.5f);
+			sh_grassGeom.update("strength", s_grass_size);
+		}
+		//TODO what you want to be able to modify, use multiple windows, collapsing headers, whatever
 
         //////////////////////////////////////////////////////////////////////////////
 
@@ -400,7 +418,7 @@ int main()
 		treeRendering.foliageShader->update("windPower", s_wind_power);
 		treeRendering.branchShadowMapShader->update("windPower", s_wind_power);
 		treeRendering.foliageShadowMapShader->update("windPower", s_wind_power);
-		
+
 		treeRendering.foliageShader->update("foliageSize", s_foliage_size);
 		treeRendering.foliageShadowMapShader->update("foliageSize", s_foliage_size);
 		
@@ -429,7 +447,7 @@ int main()
 			glUniformBlockBinding(treeRendering.foliageShader->getShaderProgramHandle(), treeRendering.foliageShaderUniformBlockInfoMap["Tree"].index, 2+i);
 			treeRendering.foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
-		//TODO render grass
+
 		//TODO render tesselated mountains
 		r_terrain.render();
 		//TODO render skybox
@@ -465,8 +483,11 @@ int main()
 		//////////// POST-PROCESSING ////////////////////
 
 		// Depth of Field and Lens Flare
-		// r_depthOfField.execute(fbo_gbuffer.getBuffer("fragPosition"), fbo_gbufferComp.getBuffer("fragmentColor"));
-		// r_lensFlare.renderLensFlare(depthOfField.m_dofCompFBO->getBuffer("fragmentColor"), 0);
+		//r_depthOfField.execute(fbo_gbuffer.getBuffer("fragPosition"), fbo_gbufferComp.getBuffer("fragmentColor"));
+		// r_lensFlare.renderLensFlare(depthOfField.m_dofCompFBO->getBuffer("fragmentColor"), &fbo_gbufferComp);
+
+		// quick debug
+		//copyFBOContent(r_depthOfField.m_dofCompFBO, &fbo_gbufferComp, GL_COLOR_BUFFER_BIT); 
 
 		/////////// DEBUGGING ////////////////////////////
 		r_showTex.setViewport(0,0, WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y );
