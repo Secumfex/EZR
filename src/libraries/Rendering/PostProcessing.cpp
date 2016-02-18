@@ -172,7 +172,7 @@ void PostProcessing::DepthOfField::execute(GLuint positionMap, GLuint colorMap)
 void PostProcessing::DepthOfField::imguiInterfaceEditParameters()
 {
 	// ImGui interface
-	ImGui::SliderFloat4("depths", glm::value_ptr(m_focusPlaneDepths), 0.0f, 10.0f);
+	ImGui::DragFloat4("depths", glm::value_ptr(m_focusPlaneDepths),0.1f,0.0f);
 	ImGui::SliderFloat2("near/far radi", glm::value_ptr(m_focusPlaneRadi), -10.0f, 10.0f);
 
 	ImGui::SliderFloat("far radius rescale", &m_farRadiusRescale, 0.0f, 5.0f);
