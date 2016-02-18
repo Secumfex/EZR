@@ -45,6 +45,7 @@ static bool s_enableSSR = true;
 static bool s_enableVolumetricLighting = true;
 static bool s_enableDepthOfField = true;
 static bool s_enableLenseflare = true;
+static bool s_animate_seasons = false;
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -172,6 +173,7 @@ int main()
 	sh_tessellation.update("model", modelTerrain);
 	sh_tessellation.update("view", mainCamera.getViewMatrix());
 	sh_tessellation.update("projection", mainCamera.getProjectionMatrix());
+	sh_tessellation.update("heightZones", glm::vec4(0.1f, 0.2f, 0.5f, 0.6f)); // grassEnd stoneBegin stoneEnd SnowBegin 
 	//sh_tessellation.update("b", bezier);
 	//sh_tessellation.update("bt", bezier_transposed);
 	sh_tessellation.bindTextureOnUse("terrain", distortionTex);
@@ -458,6 +460,10 @@ int main()
 			 s_enableLenseflare = false;
 		 }
 
+		 if ( k == GLFW_KEY_I && a == GLFW_PRESS )
+		 {
+			s_animate_seasons = !s_animate_seasons;
+		 }
 	 };
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -517,7 +523,6 @@ int main()
 		{
 			ImGui::Checkbox("enable", &s_enableGrass);
 			ImGui::SliderFloat("grass size", &s_grass_size, 0.0f, 1.5f);
-			sh_grassGeom.update("strength", s_grass_size);
 			ImGui::TreePop();
 		}
 
@@ -560,9 +565,11 @@ int main()
 		glm::mat4 lightView = lightCamera.getViewMatrix();
 		glm::mat4 lightProjection = lightCamera.getProjectionMatrix();
 		r_volumetricLighting.update(cameraView, cameraPos, lightView, lightProjection);
-	
-		//TODO update arbitrary variables that are dependent on time or other changes
-
+		
+		if ( s_animate_seasons )
+		{
+			animateSeasons(treeRendering, sh_grassGeom, elapsedTime / 2.0f, s_grass_size, s_wind_power, s_foliage_size, sh_tessellation);
+		}
 		//////////////////////////////////////////////////////////////////////////////
 
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
@@ -574,7 +581,6 @@ int main()
 		r_lensFlare.updateLensStarMatrix(mainCamera.getViewMatrix());
 		sh_gbufferComp.update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
 		treeRendering.foliageShader->update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
-
 		
 		sh_ssr.update("view",mainCamera.getViewMatrix());
 		shadowMapShader.update("view", lightCamera.getViewMatrix());
@@ -602,6 +608,8 @@ int main()
 		sh_addTexShader.update("min", weightMin);
 		sh_addTexShader.update("max", weightMax);
 		sh_addTexShader.update("mode", mode);
+		
+		sh_grassGeom.update("strength", s_grass_size);
 
 		updateDynamicFieldOfView(r_depthOfField, fbo_gbuffer, dt);
 		//////////////////////////////////////////////////////////////////////////////

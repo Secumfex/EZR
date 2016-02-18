@@ -16,11 +16,13 @@ uniform sampler2D snow;
 uniform sampler2D normal;
 uniform sampler2D grass;
 
+uniform vec4 heightZones;
+
 vec4 mixTextures(vec4 col1, vec4 col2, vec4 col3) {
-	if (tePosition.y < 0.1) return col1;
-	if (tePosition.y < 0.2) return mix(col1, col2, (tePosition.y - 0.1) / (0.2 - 0.1) );
-	if (tePosition.y < 0.4) return col2;
-	if (tePosition.y < 0.5) return mix(col2, col3, (tePosition.y - 0.4) / (0.5 - 0.4));
+	if (tePosition.y < heightZones.x) return col1;
+	if (tePosition.y < heightZones.y) return mix(col1, col2, (tePosition.y - heightZones.x) / (heightZones.y - heightZones.x) );
+	if (tePosition.y < heightZones.z) return col2;
+	if (tePosition.y < heightZones.w) return mix(col2, col3, (tePosition.y - heightZones.z) / (heightZones.w - heightZones.z));
 	else return col3;
 }
 void main(){

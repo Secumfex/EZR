@@ -108,13 +108,13 @@ static const float TREE_WIDTH = TREE_HEIGHT / 10.0f;
 static const int NUM_MAIN_BRANCHES = 5;
 static const int NUM_SUB_BRANCHES  = 3;
 static const int NUM_TREE_VARIANTS = 3;
-static const int NUM_TREES_PER_VARIANT = 10;
+static const int NUM_TREES_PER_VARIANT = 20;
 static const int NUM_FOLIAGE_QUADS_PER_BRANCH = 5;
 static Assimp::Importer branchImporter;
 static Assimp::Importer trunkImporter;
 static std::vector<std::map<aiTextureType, GLuint>> s_tree_materials_textures; //!< mapping material texture types to texture handles
 static std::vector<AssimpTools::MaterialInfo> s_tree_material_infos; //!< mapping material texture types to texture handles
-static const glm::vec4 FORESTED_AREA = glm::vec4(-15.0f,-15.0f, 15.0f,15.0f);
+static const glm::vec4 FORESTED_AREA = glm::vec4(-20.0f,-20.0f, 20.0f,20.0f);
 inline void loadBranchModel()
 {
 	std::string trunkModel = "branch_detailed.dae";
@@ -227,6 +227,18 @@ inline void assignHeightMapUniforms(TreeAnimation::TreeRendering& treeRendering,
 	treeRendering.foliageShadowMapShader->bindTextureOnUse("heightMap", distortionTex);
 	treeRendering.foliageShadowMapShader->update("heightMapRange", terrainRange); // grass size
 }
+inline void animateSeasons(TreeAnimation::TreeRendering& treeRendering, ShaderProgram& sh_grassGeom, float t, float& grassSize, float& windPower, float& foliageSize,ShaderProgram& sh_tessellation )
+{
+	foliageSize = max<float>( 0.0f, sin(t - glm::half_pi<float>())) * 0.5f; // 0.0 for most of the time, begins to grow at 0.5 pi, goes away at 1.5pi
+	grassSize = foliageSize + 0.2f - abs(sin((t + glm::half_pi<float>())) * 0.2f);
+	windPower = 0.5f + 0.3f*(cos( t + glm::quarter_pi<float>())); // always > 0 , becomes angry at 1.5 pi
+	float snowBegin = 0.6 + (min(1.0f,foliageSize) - 1.0f ) * 0.35f;
+	float stonesEnd = 0.5 + (min(1.0f,foliageSize) - 1.0f ) * 0.35f;
+	float grassEnd = 0.2 + (min(1.0f,foliageSize) - 1.0f ) * 0.1f;
+	float grassBegin = 0.1+ (min(1.0f,foliageSize) - 1.0f ) * 0.1f;
+	sh_tessellation.update("heightZones", glm::vec4(grassBegin,grassEnd, stonesEnd, snowBegin));
+}
+
 /***********************************************/
 
 

@@ -693,7 +693,7 @@ void TreeAnimation::TreeRendering::imguiInterfaceSimulationProperties()
 
 
 	if (ImGui::CollapsingHeader("Frequencies"))
-	{   ImGui::SliderFloat3("fFrequencies", glm::value_ptr( simulationProperties.frequencies), 0.0f, 3.0f);
+	{   ImGui::SliderFloat3("fFrequencies", glm::value_ptr( simulationProperties.frequencies), 0.0f, 10.0f);
 		updateFrequencies = true;
 	}else{ updateFrequencies =false; }
 }
