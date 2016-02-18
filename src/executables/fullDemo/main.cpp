@@ -560,12 +560,12 @@ int main()
 		// render regular compositing from GBuffer
 		r_gbufferComp.render();
 
-		//TODO render water reflections
+		// ssr
 		if (s_enableSSR) {
 			r_ssr.render();
 		}
-		//TODO render god rays
 
+		// volumetric lighting
 		if (s_enableVolumetricLighting) {
 			r_volumetricLighting._raymarchingRenderPass->render();
 
