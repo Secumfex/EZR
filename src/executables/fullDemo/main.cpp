@@ -287,11 +287,13 @@ int main()
 	sh_ssr.update("camFarPlane", 100.0f);
 	sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
 	sh_ssr.update("projection",mainCamera.getProjectionMatrix());
+	sh_ssr.update("view",mainCamera.getViewMatrix());
 	sh_ssr.bindTextureOnUse("vsPositionTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 	sh_ssr.bindTextureOnUse("vsNormalTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
 	sh_ssr.bindTextureOnUse("ReflectanceTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT4));
 	sh_ssr.bindTextureOnUse("DepthTex",fbo_gbuffer.getDepthTextureHandle());
-	sh_ssr.bindTextureOnUse("DiffuseTex",fbo_gbufferComp.getBuffer("fragmentColor"));	//aus beleuchtung
+	sh_ssr.bindTextureOnUse("DiffuseTex",fbo_gbufferComp.getBuffer("fragmentColor"));
+	sh_ssr.bindTextureOnUse("CubeMapTex",tex_cubeMap);
 	//sh_ssr.bindTextureOnUse("DiffuseTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	FrameBufferObject fbo_ssr(sh_ssr.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
 	RenderPass r_ssr(&sh_ssr, &fbo_gbufferComp);
@@ -461,6 +463,8 @@ int main()
 		sh_tessellation.update("view", mainCamera.getViewMatrix());
 		
 		shadowMapShader.update("view", lightCamera.getViewMatrix());
+
+		sh_ssr.update("view",mainCamera.getViewMatrix());
 
 //		sh_grassGeom.update("model", glm::translate(glm::mat4(1.0f), mainCamera.getPosition()) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0) ));
 

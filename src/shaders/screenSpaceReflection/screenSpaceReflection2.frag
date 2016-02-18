@@ -15,12 +15,14 @@ uniform float camFarPlane;
 uniform int user_pixelStepSize; 
 uniform bool fadeToEdges;
 uniform mat4 projection; 
+uniform mat4 view;
 
 uniform sampler2D vsPositionTex; 
 uniform sampler2D vsNormalTex; 
 uniform sampler2D ReflectanceTex; 
 uniform sampler2D DepthTex; 
 uniform sampler2D DiffuseTex; 
+uniform samplerCube CubeMapTex;
 
 //for otimized ssr
 const float pi = 3.14159265f;
@@ -59,17 +61,16 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
     
     float factor = dot(vsReflectionVector, vsNormal);
 
-    // Variables
+    //vars
     vec4 reflectedColor = vec4(0.0);
     vec2 pixelsize = 1.0/vec2(screenWidth, screenHeight);
-    //vec2 pixelsize = textureSize(DiffuseTex,0);
 
-    // Get texture informations
+    //get texture informations
     vec4 csPosition = projection * vec4(vsPosition, 1.0);
     vec3 ndcsPosition = csPosition.xyz / csPosition.w;
     vec3 ssPosition = 0.5 * ndcsPosition + 0.5;
 
-    // Project reflected vector into screen space
+    //project reflected vector into screen space
     vsReflectionVector += vsPosition;
     vec4 csReflectionVector = projection * vec4(vsReflectionVector, 1.0);
     vec3 ndcsReflectionVector = csReflectionVector.xyz / csReflectionVector.w;
@@ -81,165 +82,88 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
 
     float initalStep;
     float pixelStepSize;
-
-   // int sampleCount = max(int(screenWidth), int(screenHeight));
-  //  int count = 0;
     
-    //optimized ssr
-//    if(optimizedSSR)
-//    {
-        // Ray trace
-        initalStep = 1.0/screenHeight;
-        ssReflectionVector = normalize(ssReflectionVector) * initalStep;
-
-        lastSamplePosition = ssPosition + ssReflectionVector;
-        currentSamplePosition = lastSamplePosition + ssReflectionVector;
-
-        float bigStep = 12 * factor;
-        int sampleCount = max(int(screenHeight), int(screenWidth))/int(bigStep);
-        int count = 0;
-
-        while(count < sampleCount) {
-        //control loops
-        	if(count > 150){
-				break;
-			}
-          // Out of screen space --> break
-            if(currentSamplePosition.x < 0.0 || currentSamplePosition.x > 1.0 ||
-               currentSamplePosition.y < 0.0 || currentSamplePosition.y > 1.0 ||
-               currentSamplePosition.z < 0.0 || currentSamplePosition.z > 1.0)
-            {
-                break;
-            }
-            
-            vec2 samplingPosition = currentSamplePosition.xy;
-            float sampledDepth = linearizeDepth( texture(DepthTex, samplingPosition).z );
-                  //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[0] * 0.001f).z );
-                  //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[1] * 0.001f).z );
-                  //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[2] * 0.001f).z );
-                  //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[3] * 0.001f).z );
-                  //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[4] * 0.001f).z );
-                  //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[5] * 0.001f).z );
-                  //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[6] * 0.001f).z );
-                  //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[7] * 0.001f).z );
-                  //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[8] * 0.001f).z );
-                  //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[9] * 0.001f).z );
-                  //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[10] * 0.001f).z );
-                  //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[11] * 0.001f).z );
-                  //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[12] * 0.001f).z );
-                  //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[13] * 0.001f).z );
-                  //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[14] * 0.001f).z );
-                  //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[15] * 0.001f).z );
-                  //sampledDepth /= 16;
-
-           float currentDepth = linearizeDepth(currentSamplePosition.z);
-            
-            float delta = abs(currentDepth - sampledDepth);
-
-            // Step ray
-            if(currentDepth < sampledDepth)
-           {
-                lastSamplePosition = currentSamplePosition;
-                currentSamplePosition = lastSamplePosition + ssReflectionVector * bigStep;
-            }
-           else{
-                if(currentDepth > sampledDepth)
-                {
-                  for(float i=0; i < bigStep; i += 1.0 * factor)
-                    {
-                       lastSamplePosition = currentSamplePosition;
-                        currentSamplePosition = lastSamplePosition - ssReflectionVector * 0.05 * i * factor;
-                    }
-
-                }
-                if(delta < 0.015)
-                {
-               bool toggleGlossy = true;	//da nicht als uniform
-                    if(toggleGlossy)
-                    {
-                        float diskSize = 0.00001f;
-
-                        reflectedColor = texture2D(DiffuseTex, samplingPosition);
-                       reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 0] * diskSize);
-                        reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 1] * diskSize);
-                        reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 2] * diskSize);
-                        reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 3] * diskSize);
-                        reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 4] * diskSize);
-                        reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 5] * diskSize);
-                        reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 6] * diskSize);
-                        reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 7] * diskSize);
-                        reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 8] * diskSize);
-                        reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 9] * diskSize);
-                        reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[10] * diskSize);
-                        reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[11] * diskSize);
-                        reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[12] * diskSize);
-                        reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[13] * diskSize);
-                        reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[14] * diskSize);
-                       reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[15] * diskSize);
-
-                        reflectedColor /= 17;
-                    }
-                    else
-                    {
-                        reflectedColor = texture2D(DiffuseTex, samplingPosition);
-                    }
-
-                    break;
-                }
-           }           
-            
-            count++;
-        }
-//    }
-    
-    //nichtotimiert
-//    else
-//    {
     // Ray trace
-//    initalStep = max(pixelsize.x, pixelsize.y);
-//    pixelStepSize = user_pixelStepSize;
-//    ssReflectionVector *= initalStep;
+    initalStep = 1.0/screenHeight;
+    ssReflectionVector = normalize(ssReflectionVector) * initalStep;
 
-//    lastSamplePosition = ssPosition + ssReflectionVector;
-//    currentSamplePosition = lastSamplePosition + ssReflectionVector;
-//
- //   while(count < sampleCount){
- //   	// Out of screen space --> break
-//       if(currentSamplePosition.x < 0.0 || currentSamplePosition.x > 1.0 ||
- //          currentSamplePosition.y < 0.0 || currentSamplePosition.y > 1.0 ||
-//           currentSamplePosition.z < 0.0 || currentSamplePosition.z > 1.0){
- //       	break;
- //       }           
- //       vec2 samplingPosition = currentSamplePosition.xy;
- //       float sampledDepth = linearizeDepth( texture(DepthTex, samplingPosition).z );
-//        float currentDepth = linearizeDepth(currentSamplePosition.z);
-//
- //       if(currentDepth > sampledDepth){   
-//            float delta = abs(currentDepth - sampledDepth);
- //           if(delta <= 0.001f){
- //               float f = currentDepth;
- //               float blurSize = 30 * f; 
- //               reflectedColor = texture2D(DiffuseTex, vec2(samplingPosition.x, samplingPosition.y));
-//
- //               for(float i= - blurSize/2.0; i < blurSize/2.0; i+= 1.0){
-  //                  reflectedColor += texture2D(DiffuseTex, vec2(samplingPosition.x, samplingPosition.y + i * pixelsize.y));
-  //              }
-//                reflectedColor /= blurSize;
- //               break;  
-//            }
- //       }
-//        else{
-//            // Step ray
-//            lastSamplePosition = currentSamplePosition;
-//            currentSamplePosition = lastSamplePosition + ssReflectionVector * pixelStepSize;    
-//        }
-//        count++;
-//    }
+    lastSamplePosition = ssPosition + ssReflectionVector;
+    currentSamplePosition = lastSamplePosition + ssReflectionVector;
 
-//    }
+    float bigStep = 12 * factor;
+    int sampleCount = max(int(screenHeight), int(screenWidth))/int(bigStep);
+    int count = 0;
 
-bool fadeToEdges = true; 	//da nicht als uniform
-    // Fading to screen edges
+    while(count < sampleCount) {
+    	//control loops
+        if(count > 150){
+	//		reflectedColor = texture(CubeMapTex, vsReflectionVector);	
+			break;
+		}
+        // Out of screen space --> break
+        if(currentSamplePosition.x < 0.0 || currentSamplePosition.x > 1.0 ||
+           currentSamplePosition.y < 0.0 || currentSamplePosition.y > 1.0 ||
+           currentSamplePosition.z < 0.0 || currentSamplePosition.z > 1.0)
+        {
+       		break;
+        }
+            
+        vec2 samplingPosition = currentSamplePosition.xy;
+        float sampledDepth = linearizeDepth( texture(DepthTex, samplingPosition).z );
+                  
+        float currentDepth = linearizeDepth(currentSamplePosition.z);
+            
+        float delta = abs(currentDepth - sampledDepth);
+
+        // Step ray
+        if(currentDepth < sampledDepth){
+            lastSamplePosition = currentSamplePosition;
+            currentSamplePosition = lastSamplePosition + ssReflectionVector * bigStep;
+        }
+        else{
+        	if(currentDepth > sampledDepth){
+ 				for(float i=0; i < bigStep; i += 1.0 * factor){
+                       lastSamplePosition = currentSamplePosition;
+                       currentSamplePosition = lastSamplePosition - ssReflectionVector * 0.05 * i * factor;
+                }
+         	}
+            if(delta < 0.015){
+               bool toggleGlossy = true;	//da noch nicht als uniform
+               if(toggleGlossy){
+					float diskSize = 0.00001f;
+
+                    reflectedColor = texture2D(DiffuseTex, samplingPosition);
+                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 0] * diskSize);
+                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 1] * diskSize);
+                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 2] * diskSize);
+                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 3] * diskSize);
+                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 4] * diskSize);
+                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 5] * diskSize);
+                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 6] * diskSize);
+                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 7] * diskSize);
+                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 8] * diskSize);
+                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 9] * diskSize);
+                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[10] * diskSize);
+                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[11] * diskSize);
+                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[12] * diskSize);
+                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[13] * diskSize);
+                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[14] * diskSize);
+                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[15] * diskSize);
+
+                    reflectedColor /= 17;
+               }
+				else {
+                	reflectedColor = texture2D(DiffuseTex, samplingPosition);
+                }
+
+                break;
+ 			}
+		}                    
+		count++;
+	}
+
+	bool fadeToEdges = true; 	//da noch nicht als uniform
+    //fading to screen edges
     vec2 fadeToScreenEdge = vec2(1.0);
     if(fadeToEdges){
         fadeToScreenEdge.x = distance(lastSamplePosition.x , 1.0);
@@ -250,41 +174,43 @@ bool fadeToEdges = true; 	//da nicht als uniform
     return (reflectedColor * fadeToScreenEdge.x * fadeToScreenEdge.y);
 }
 
+//cubemap function
+vec4 CubeMapping(in vec3 wsReflectionVector){
+	vec4 reflectedColor = vec4(0.0);
+	vec3 temp = texture(CubeMapTex, wsReflectionVector).rgb;
+	reflectedColor = vec4(temp,1.0f);	
+	return reflectedColor;
+}
+
+
 //main
 void main(void){
- //texture information from G-Buffer
- //float reflectance = texture(ReflectanceTex, vert_UV).a;	//
- //float reflectance = 0.0f;
+
  float test1 = texture(ReflectanceTex, vert_UV).x;
- if(test1 == 2.0f){	//gibt noch kein obj mit materialwert, doch gleich schon
- //	reflectance = texture(ReflectanceTex, vert_UV).z;
- //}
- float reflectance = texture(ReflectanceTex, vert_UV).z;
- //vec4 test2 = texture(vsPositionTex, vert_UV);
- vec3 vsPosition = texture(vsPositionTex, vert_UV).xyz; 
- //if(test2.a == 0){
- //discard;
-// }
- vec3 vsNormal = texture(vsNormalTex, vert_UV).xyz; 
+ if(test1 == 2.0f){	
+ 	float reflectance = texture(ReflectanceTex, vert_UV).z;
  
- //reflection vector calculation
- //view space calculations 
- vec3 vsEyeVector        = normalize(vsPosition); 
- vec3 vsReflectionVector = normalize(reflect(vsEyeVector, vsNormal));             
+	vec3 vsPosition = texture(vsPositionTex, vert_UV).xyz; 
+
+ 	vec3 vsNormal = texture(vsNormalTex, vert_UV).xyz; 
  
- //bool toggleSSR = true;
- //screen space reflections
- //if(toggleSSR){ 
-  vec4 color = ScreenSpaceReflections(vsPosition, vsNormal, vsReflectionVector); 
-  //color = mix(color, texture(ReflectanceTex, vert_UV), 0.5); 
-  FragColor = color; //* reflectance
-  //FragColor = vec4(vsReflectionVector,1.0f);
-  }
-  else{
-  	vec4 color = texture(DiffuseTex, vert_UV);
-  	FragColor = color;
-  }
- //} 
- //vec4 t = texture(DiffuseTex, vert_UV);
- //FragColor = (reflectance,1.0f);
+ 	//reflection vector calculation
+ 	//view space calculations 
+ 	vec3 vsEyeVector        = normalize(vsPosition); 
+ 	vec3 vsReflectionVector = normalize(reflect(vsEyeVector, vsNormal));        
+ 
+ 	vec3 wsReflectionVector = inverse(mat3(view)) * vsReflectionVector;
+ 
+ 	//screen space reflections
+  	vec4 color = ScreenSpaceReflections(vsPosition, vsNormal, vsReflectionVector); 
+ 
+ 	if(color.x == 0.0f && color.y == 0.0f && color.z == 0.0f && color.a == 0.0f){	
+ 		color=CubeMapping(wsReflectionVector);
+ 	} 
+  	FragColor = color; //* reflectance
+	}
+  	else {
+  		vec4 color = texture(DiffuseTex, vert_UV);
+  		FragColor = color;
+  	}
 }
