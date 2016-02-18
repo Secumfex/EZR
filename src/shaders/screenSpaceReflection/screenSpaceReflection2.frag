@@ -278,8 +278,13 @@ void main(void){
   vec4 color = ScreenSpaceReflections(vsPosition, vsNormal, vsReflectionVector); 
   //color = mix(color, texture(ReflectanceTex, vert_UV), 0.5); 
   FragColor = color; //* reflectance
+  //FragColor = vec4(vsReflectionVector,1.0f);
+  }
+  else{
+  	vec4 color = texture(DiffuseTex, vert_UV);
+  	FragColor = color;
   }
  //} 
  //vec4 t = texture(DiffuseTex, vert_UV);
- //FragColor = t;
+ //FragColor = (reflectance,1.0f);
 }

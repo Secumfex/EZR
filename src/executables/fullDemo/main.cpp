@@ -291,12 +291,10 @@ int main()
 	sh_ssr.bindTextureOnUse("vsNormalTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
 	sh_ssr.bindTextureOnUse("ReflectanceTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT4));
 	sh_ssr.bindTextureOnUse("DepthTex",fbo_gbuffer.getDepthTextureHandle());
-	sh_ssr.bindTextureOnUse("DiffuseTex",fbo_gbufferComp.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));	//aus beleuchtung
+	sh_ssr.bindTextureOnUse("DiffuseTex",fbo_gbufferComp.getBuffer("fragmentColor"));	//aus beleuchtung
 	//sh_ssr.bindTextureOnUse("DiffuseTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	FrameBufferObject fbo_ssr(sh_ssr.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
 	RenderPass r_ssr(&sh_ssr, &fbo_gbufferComp);
-	r_ssr.setClearColor(0.0,0.0,0.0,0.0);
-	r_ssr.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 	// Post-Processing rendering
 	PostProcessing::DepthOfField r_depthOfField(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y, &quad);
@@ -539,10 +537,10 @@ int main()
 		//TODO render water reflections 
 		r_ssr.render();
 		//TODO render god rays
-		r_volumetricLighting._raymarchingRenderPass->render();
+//		r_volumetricLighting._raymarchingRenderPass->render();
 
 		// overlay volumetric lighting
-		r_addTex.render();
+//		r_addTex.render();
 
 		//////////// POST-PROCESSING ////////////////////
 
