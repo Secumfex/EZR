@@ -38,6 +38,7 @@ static int s_ssrRayStep = 0.0f;
 std::map<aiTextureType, GLuint> textures;
 
 static bool s_show_debug_views = true;
+static bool s_enableLandscape = true;
 static bool s_enableTrees = true;
 static bool s_enableGrass = true;
 static bool s_enableSSR = true;
@@ -396,6 +397,63 @@ int main()
 			 s_dynamicDoF = !s_dynamicDoF;
 		 }
 
+		 if ( k == GLFW_KEY_1 && a == GLFW_PRESS)
+		 {
+			 s_enableLandscape = !s_enableLandscape;
+		 }
+
+		 if ( k == GLFW_KEY_2 && a == GLFW_PRESS)
+		 {
+			 s_enableGrass = !s_enableGrass;
+		 }
+
+		 if ( k == GLFW_KEY_3 && a == GLFW_PRESS)
+		 {
+			 s_enableTrees = !s_enableTrees;
+		 }
+
+		 if ( k == GLFW_KEY_4 && a == GLFW_PRESS)
+		 {
+			 s_enableSSR = !s_enableSSR;
+		 }
+
+		 if ( k == GLFW_KEY_5 && a == GLFW_PRESS)
+		 {
+			 s_enableVolumetricLighting = !s_enableVolumetricLighting;
+		 }
+
+		 if ( k == GLFW_KEY_6 && a == GLFW_PRESS)
+		 {
+			 s_enableDepthOfField = !s_enableDepthOfField;
+		 }
+
+		 if ( k == GLFW_KEY_7 && a == GLFW_PRESS)
+		 {
+			 s_enableLenseflare = !s_enableLenseflare;
+		 }
+
+		 if ( k == GLFW_KEY_9 && a == GLFW_PRESS)
+		 {
+			 s_enableLandscape = true;
+			 s_enableGrass = true;
+			 s_enableTrees = true;
+			 s_enableSSR = true;
+			 s_enableVolumetricLighting = true;
+			 s_enableDepthOfField = true;
+			 s_enableLenseflare = true;
+		 }
+
+		 if ( k == GLFW_KEY_0 && a == GLFW_PRESS)
+		 {
+			 s_enableLandscape = false;
+			 s_enableGrass = false;
+			 s_enableTrees = false;
+			 s_enableSSR = false;
+			 s_enableVolumetricLighting = false;
+			 s_enableDepthOfField = false;
+			 s_enableLenseflare = false;
+		 }
+
 	 };
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -412,7 +470,14 @@ int main()
 		////////////////////////////////     GUI      ////////////////////////////////
         ImGuiIO& io = ImGui::GetIO();
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
-		
+
+		// Landscape
+		if (ImGui::TreeNode("Tesselation"))
+		{
+			ImGui::Checkbox("enable", &s_enableLandscape);
+			ImGui::TreePop();
+		}
+
 		// Tree Rendering
 		if (ImGui::TreeNode("Tree Rendering"))
 		{
@@ -564,9 +629,10 @@ int main()
 
 
 		//TODO render tesselated mountains
-		r_terrain.render();
-		
-
+		if (s_enableLandscape)
+		{
+			r_terrain.render();
+		}
 
 		//render skybox
 		r_skybox.render(tex_cubeMap, &fbo_gbuffer);
