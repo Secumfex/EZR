@@ -1,10 +1,13 @@
+//gBuffer vertex shader
 #version 430
  
+ //in-vars
 layout(location = 0) in vec4 positionAttribute;
 layout(location = 1) in vec2 uvCoordAttribute;
 layout(location = 2) in vec4 normalAttribute;
 layout(location = 3) in vec4 tangentAttribute;
 
+//out-vars
 out vec3 passWorldPosition;
 out vec3 passPosition;
 out vec2 passUVCoord;
@@ -13,14 +16,12 @@ out vec3 passNormal;
 out vec3 passWorldTangent;
 out vec3 passTangent;
 
-//out vec3 vert_vsEyeVector;
-//out vec3 vert_wsEyePosition;
-//out vec3 vert_wsEyeVector;
-
+//uniforms
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
+//main
 void main(){
     passUVCoord = uvCoordAttribute;
     vec4 worldPos = (model * positionAttribute);
@@ -37,8 +38,4 @@ void main(){
 
     passWorldTangent = normalize( (normalMatWorld * tangentAttribute).xyz);
 	passTangent = normalize( (normalMat * tangentAttribute ).xyz);
-	
-	//vert_vsEyeVector = vert_vsPosition;
-	//vert_wsEyePosition = camPosition;
-	//vert_wsEyeVector = vert_wsPosition - camPosition;
 }

@@ -15,20 +15,29 @@ public:
     ~VolumetricLighting();
 
     void setupNoiseTexture();
+    void update(glm::mat4 &cameraView, glm::vec3 &cameraPos, glm::mat4 &lightView, glm::mat4 &lightProjection);
+    void imguiInterfaceSimulationProperties();
 
+    // shader variables
     ShaderProgram* _raymarchingShader;
     RenderPass* _raymarchingRenderPass;
 
+    // sampler
     FrameBufferObject* _raymarchingFBO;
 
-    Quad _screenfillingQuad;
-
+    // other variables
     float _width;
-    float _height;
+	float _height;
     float _blockSize;
     float _blockSide;
-    int _radiocity;
+
+    float _radiocity;
     float _scatterProbability;
+    float _collisionProbability;
+
+    // rendering
+    Quad _screenfillingQuad;
+
 };
 
 

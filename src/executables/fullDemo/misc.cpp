@@ -198,12 +198,18 @@ inline void assignWindFieldUniforms(TreeAnimation::TreeRendering& treeRendering,
 	treeRendering.foliageShader->bindTextureOnUse("windField", windField.m_vectorTextureHandle);
 	treeRendering.branchShader->update( "windFieldArea", FORESTED_AREA);
 	treeRendering.foliageShader->update("windFieldArea", FORESTED_AREA);
+
+	treeRendering.branchShadowMapShader->bindTextureOnUse( "windField", windField.m_vectorTextureHandle);
+	treeRendering.foliageShadowMapShader->bindTextureOnUse("windField", windField.m_vectorTextureHandle);
+	treeRendering.branchShadowMapShader->update( "windFieldArea", FORESTED_AREA);
+	treeRendering.foliageShadowMapShader->update("windFieldArea", FORESTED_AREA);
 }
 /***********************************************/
 
 
-inline void updateLightCamera(Camera& mainCamera, Camera& lightSourceCamera)
+inline void updateLightCamera(Camera& mainCamera, Camera& lightSourceCamera, glm::vec3 offset)
 {
+	lightSourceCamera.setPosition( mainCamera.getPosition() + offset);
 	//TODO move lightSourceCamera according to mainCamera
 }
 

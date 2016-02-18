@@ -35,11 +35,11 @@ void main(){
 	vec4 mixedColor = mixColor(color, snowColor);
 	//vec4 color = vec4(vec3(34.0f/255, 139.0f/255, 34.0f/255), 1.0);
 	float dot_surface_incident = max(0, dot(fragNormal.xyz, incident));
-	color = color * light * (max(0.1, dot_surface_incident)+0.05)*1.5;
+	//color = color * light * (max(0.1, dot_surface_incident)+0.05)*1.5;
 	//fragColor = mix(color, color*0.5+vec4(0.5, 0.5, 0.5, 1.0), tePosition.z*2.0);
 	fragColor = mixedColor;
 	//fragColor = vec4(0.0, 0.66, 0.0, 1.0);
 	fragPosition = vec4(tePosition, 1.0);
 	fragUVCoord = vec4(tePosition, 1.0);
-	fragMaterial = vec4(1.0);
+	fragMaterial = vec4(0.0, 1.0, 0.5, 0.0);
 }
