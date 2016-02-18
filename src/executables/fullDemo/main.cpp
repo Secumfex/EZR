@@ -86,7 +86,7 @@ int main()
 	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/heightmap.jpg");
 	GLuint terrainNormalTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_normal.png");
 
-	GLuint diffTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_grass.jpg");
+	GLuint diffTex = TextureTools::loadTexture( RESOURCES_PATH "/Rocks_Seamless_1_COLOR.png");
 	glBindTexture(GL_TEXTURE_2D, diffTex);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
