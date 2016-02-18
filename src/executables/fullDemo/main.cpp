@@ -49,6 +49,7 @@ static bool s_ssrFade = false;
 //static bool s_ssrGlossy = true;
 static int s_ssrLoops = 150;
 //static int s_ssrRayStep = 0.0;
+static float s_ssrMix = 0.8;
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -115,6 +116,9 @@ int main()
 	glBindTexture(GL_TEXTURE_2D, tex_grassQuad);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	GLuint waterTextureHandle = TextureTools::loadTextureFromResourceFolder("water/07_DIFFUSE.jpg");
+	//GLuint waterNormalTextureHandle = TextureTools::loadTextureFromResourceFolder("water/07_NORMAL.jpg");
 
 	/////////////////////    Import Stuff (Misc)    //////////////////////////
 
@@ -288,7 +292,11 @@ int main()
 			sh_gbuffer.update("shininess", 15.0f);
 			sh_gbuffer.update("shininess_strength", 0.8f);
 			sh_gbuffer.update("model", modelWater);
-			sh_gbuffer.update("color", glm::vec4(0.2f,0.2f,0.7f,1.0f));
+			//sh_gbuffer.update("color", glm::vec4(0.2f,0.2f,0.7f,1.0f));
+			sh_gbuffer.update("mixTexture", 1.0f);
+			sh_gbuffer.updateAndBindTexture("tex", 1,waterTextureHandle);
+			sh_gbuffer.update("hasNormalTex", false);
+			//sh_gbuffer.updateAndBindTexture("normalTex", 2, waterNormalTextureHandle);
 		}
 	};
 	r_gbuffer.setPerRenderableFunction(&r_gbuffer_perRenderableFunc);
@@ -332,6 +340,7 @@ int main()
 	sh_ssr.update("toggleFade",s_ssrFade);
 	//sh_ssr.update("toggleGlossy",s_ssrGlossy);
 	sh_ssr.update("loops",s_ssrLoops);
+	sh_ssr.update("mixV",s_ssrMix);
 	sh_ssr.bindTextureOnUse("vsPositionTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 	sh_ssr.bindTextureOnUse("vsNormalTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
 	sh_ssr.bindTextureOnUse("ReflectanceTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT4));
@@ -536,6 +545,7 @@ int main()
 			ImGui::SliderInt("Loops",&s_ssrLoops, 25, 250);
 			//ImGui::SliderInt("PixelStepSize",&s_ssrRayStep,0,20);
 			ImGui::Checkbox("toggle CubeMap", &s_ssrCubeMap);
+			ImGui::SliderFloat("mix water",&s_ssrMix, 0.0, 1.0);
 			ImGui::Checkbox("fade to edges", &s_ssrFade);
 			//ImGui::Checkbox("toggle glossy", &s_ssrGlossy);
 			ImGui::TreePop();
@@ -624,6 +634,7 @@ int main()
 		//sh_ssr.update("toggleGlossy",s_ssrGlossy);
 		sh_ssr.update("loops",s_ssrLoops);
 		//sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
+		sh_ssr.update("mixV",s_ssrMix);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////

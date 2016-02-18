@@ -21,6 +21,7 @@ uniform bool toggleCM;
 uniform bool toggleFade;
 //uniform bool toggleGlossy;
 uniform int loops;
+uniform float mixV;
 
 uniform sampler2D vsPositionTex; 
 uniform sampler2D vsNormalTex; 
@@ -208,13 +209,14 @@ void main(void){
  
  	//screen space reflections
   	vec4 color = ScreenSpaceReflections(vsPosition, vsNormal, vsReflectionVector); 
- 
+
  	if(color.x == 0.0f && color.y == 0.0f && color.z == 0.0f && color.a == 0.0f){
  		if(toggleCM){	
  			color=CubeMapping(wsReflectionVector);
  		}
- 	} 
-  	FragColor = color; //* reflectance
+ 	}
+ 	vec4 temp = texture(DiffuseTex, vert_UV);
+  	FragColor = mix(color,temp,mixV);//color * temp; //* reflectance
 	}
   	else {
   		vec4 color = texture(DiffuseTex, vert_UV);
