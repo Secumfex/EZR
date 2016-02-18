@@ -11,12 +11,12 @@ VolumetricLighting::VolumetricLighting(int width, int height)
  :   _blockSize(64),
     _blockSide(8),
     _radiocity(10000000.0f),
-    _scatterProbability(0.3f),
-    _collisionProbability(0.1f),
+    _scatterProbability(0.018f),
+    _collisionProbability(0.15f),
     _clamp(1.0)
     {
         // light color
-        _lightColor = glm::vec3(1.0,1.0,1.0);
+        _lightColor = glm::vec3(1.0,0.95,0.74);
 
         // noise resolution
         _width = width;

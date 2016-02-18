@@ -41,7 +41,8 @@ void main()
 
 	float weight = (intensity * (max-min)) + min;
 
-	vec4 texColor = mix(source, vml, weight);
+	//vec4 texColor = mix(source, vml, weight);
+	vec4 texColor = (source * (1-weight)) + (vml * weight);
 
 	//!< fragcolor gets transparency by uniform
     fragColor = texColor;

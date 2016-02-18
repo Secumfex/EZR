@@ -7,7 +7,7 @@
 #define BIAS 0.00005
 #define PHI 10000000.0
 #define TAU 0.0001
-#define LIMIT 100.0
+#define LIMIT 30.0
 
 in vec2 passUV;
 
@@ -67,7 +67,7 @@ float executeRaymarching(vec3 x, float dl, float l) {
     float p = p();
 
     // calculate the final light contribution for the sample on the way
-    float radiantFluxAttenuation = phi * PI_RCP * 0.25 * dRcp * dRcp;
+    float radiantFluxAttenuation = phi * PI_RCP * 0.25;
     float Li = tau * albedo * radiantFluxAttenuation * v * p;
     float intens = Li * exp(-tau * d)* exp(-tau * l) * dl;
     

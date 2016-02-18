@@ -29,9 +29,9 @@ glm::mat4 bezier = glm::mat4(
 glm::mat4 bezier_transposed = glm::transpose(bezier);
 
 static float s_wind_power = 0.25f;
-static float s_foliage_size = 0.4f;
+static float s_foliage_size = 1.0f;
 
-static float s_grass_size = 0.2f;
+static float s_grass_size = 0.4f;
 
 static int s_ssrRayStep = 0.0f;
 
@@ -106,6 +106,8 @@ int main()
 	DEBUGLOG->outdent(); DEBUGLOG->log("Setup: Cameras / Views");DEBUGLOG->indent(); 
 
 	Camera mainCamera; // first person camera
+	mainCamera.setPosition(0.0f, 2.0f, 0.0f);
+	mainCamera.setDirection(glm::vec3(0.0f, 0.2f, 1.0f));
 	mainCamera.setProjectionMatrix( glm::perspective(glm::radians(65.f), getRatio(window), 0.5f, 100.f) );
 
 	Camera lightCamera; // used for shadow mapping
@@ -317,7 +319,7 @@ int main()
 
 	// arbitrary texture display shader
 	float weightMin = 0.0f;
-	float weightMax = 0.5f;
+	float weightMax = 0.65f;
 	int mode = 0;
 	ShaderProgram sh_addTexShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessVolumetricLighting.frag");
 	sh_addTexShader.update("min", weightMin);
@@ -530,16 +532,16 @@ int main()
 		//TODO render water reflections 
 	//	r_ssr.render();
 		//TODO render god rays
-		//r_volumetricLighting._raymarchingRenderPass->render();
+		r_volumetricLighting._raymarchingRenderPass->render();
 
 		// overlay volumetric lighting
-		//r_addTex.render();
+		r_addTex.render();
 
 		//////////// POST-PROCESSING ////////////////////
 
 		// Depth of Field and Lens Flare
-		//r_depthOfField.execute(fbo_gbuffer.getBuffer("fragPosition"), fbo_gbufferComp.getBuffer("fragmentColor"));
-		//r_lensFlare.renderLensFlare(r_depthOfField.m_dofCompFBO->getBuffer("fragmentColor"), &fbo_gbufferComp);
+		r_depthOfField.execute(fbo_gbuffer.getBuffer("fragPosition"), fbo_gbufferComp.getBuffer("fragmentColor"));
+		r_lensFlare.renderLensFlare(r_depthOfField.m_dofCompFBO->getBuffer("fragmentColor"), &fbo_gbufferComp);
 
 		// quick debug
 		//copyFBOContent(r_depthOfField.m_dofCompFBO, &fbo_gbufferComp, GL_COLOR_BUFFER_BIT); 
