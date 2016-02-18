@@ -6,7 +6,6 @@ layout(location = 2) out vec4 fragPosition;
 layout(location = 3) out vec4 fragUVCoord;
 layout(location = 4) out vec4 fragMaterial;
 
-in vec2 position;
 in vec3 tePosition;
 in vec4 passPosition;
 
@@ -33,7 +32,7 @@ void main(){
 
 	fragColor = mixedColor;
 	vec4 passNormal = vec4(0.0,1.0, 0.0, 1.0);
-	fragNormal =  normalize(transpose(inverse(view * model)) * texture(normal, position));
+	fragNormal =  normalize(transpose(inverse(view * model)) * texture(normal, tePosition.xz));
 	fragPosition = passPosition;
 	fragUVCoord = vec4(tePosition, 1.0);
 	fragMaterial = vec4(0.0, 1.0, 0.2, 0.0);
