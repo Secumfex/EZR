@@ -14,6 +14,7 @@ uniform mat4 view;
 uniform sampler2D diff;
 uniform sampler2D snow;
 uniform sampler2D normal;
+//uniform sampler2D grass;
 
 vec4 mixColor(vec4 col1, vec4 col2) {
 	if (tePosition.y < 0.5) {
@@ -29,6 +30,7 @@ void main(){
 	vec4 color = texture(diff, tePosition.xz * 24);
 	vec4 snowColor = texture(snow, tePosition.xz * 24);
 	vec4 mixedColor = mixColor(color, snowColor);
+	//vec4 grassColor = texture(grass, tePosition *24);
 
 	fragColor = mixedColor;
 	vec4 passNormal = vec4(0.0,1.0, 0.0, 1.0);

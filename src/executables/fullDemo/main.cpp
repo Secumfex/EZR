@@ -100,6 +100,11 @@ int main()
 	glBindTexture(GL_TEXTURE_2D, snowTex);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	//GLuint grassTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_grass.jpg");
+	//glBindTexture(GL_TEXTURE_2D, snowTex);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	
 	GLuint tex_grassQuad = TextureTools::loadTextureFromResourceFolder("grass.png");
 
@@ -180,14 +185,14 @@ int main()
 
 	ShaderProgram sh_terrainShadowmap("/tessellation/test/test_vert.vert", "/vml/shadowmap.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te.te"); DEBUGLOG->outdent();	
 	sh_terrainShadowmap.update("model", modelTerrain);
-	sh_terrainShadowmap.update("view", mainCamera.getViewMatrix());
-	sh_terrainShadowmap.update("projection", mainCamera.getProjectionMatrix());
+	sh_terrainShadowmap.update("view", lightCamera.getViewMatrix());
+	sh_terrainShadowmap.update("projection", lightCamera.getProjectionMatrix());
 	//sh_tessellation.update("b", bezier);
 	//sh_tessellation.update("bt", bezier_transposed);
-	sh_terrainShadowmap.bindTextureOnUse("terrain", distortionTex);
-	sh_terrainShadowmap.bindTextureOnUse("diff", diffTex);
-	sh_terrainShadowmap.bindTextureOnUse("snow", snowTex);
-	sh_terrainShadowmap.bindTextureOnUse("normal", terrainNormalTex);
+	//sh_terrainShadowmap.bindTextureOnUse("terrain", distortionTex);
+	//sh_terrainShadowmap.bindTextureOnUse("diff", diffTex);
+	//sh_terrainShadowmap.bindTextureOnUse("snow", snowTex);
+	//sh_terrainShadowmap.bindTextureOnUse("normal", terrainNormalTex);
 	
 
 
@@ -204,10 +209,12 @@ int main()
 	// setup renderpass
 	shadowMapRenderpass.addClearBit(GL_DEPTH_BUFFER_BIT);
 	shadowMapRenderpass.addEnable(GL_DEPTH_TEST);
-	
+
+	// setup renderpass for terrain shadowmap
 	RenderPass r_terrainShadowMap(&sh_terrainShadowmap, &shadowMap);
-	r_terrain.setClearColor(0.0, 0.0, 0.0,0.0);
-	for (auto r : objects){r_terrain.addRenderable(r);}
+	r_terrainShadowMap.addEnable(GL_DEPTH_TEST);
+	//r_terrainShadowMap.setClearColor(0.0, 0.0, 0.0,0.0);
+	for (auto r : objects){r_terrainShadowMap.addRenderable(r);}
 
 	/************ trees / branches ************/
 	treeRendering.createAndConfigureShaders("/modelSpace/GBuffer_mat.frag", "/treeAnim/foliage.frag");
@@ -499,9 +506,12 @@ int main()
 		sh_gbufferComp.update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
 		treeRendering.foliageShader->update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
 
-		sh_tessellation.update("view", mainCamera.getViewMatrix());
+		
 		
 		shadowMapShader.update("view", lightCamera.getViewMatrix());
+
+		sh_tessellation.update("view", mainCamera.getViewMatrix());
+		sh_terrainShadowmap.update("view", lightCamera.getViewMatrix());
 
 		treeRendering.foliageShader->update("view", mainCamera.getViewMatrix());
 		treeRendering.branchShader->update("view", mainCamera.getViewMatrix());
@@ -555,7 +565,8 @@ int main()
 
 		//TODO render tesselated mountains
 		r_terrain.render();
-		r_terrainShadowMap;
+		r_terrainShadowMap.render();
+
 
 		//render skybox
 		r_skybox.render(tex_cubeMap, &fbo_gbuffer);
