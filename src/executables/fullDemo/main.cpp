@@ -297,12 +297,10 @@ int main()
 	sh_ssr.bindTextureOnUse("vsNormalTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
 	sh_ssr.bindTextureOnUse("ReflectanceTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT4));
 	sh_ssr.bindTextureOnUse("DepthTex",fbo_gbuffer.getDepthTextureHandle());
-	sh_ssr.bindTextureOnUse("DiffuseTex",fbo_gbufferComp.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));	//aus beleuchtung
+	sh_ssr.bindTextureOnUse("DiffuseTex",fbo_gbufferComp.getBuffer("fragmentColor"));	//aus beleuchtung
 	//sh_ssr.bindTextureOnUse("DiffuseTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	FrameBufferObject fbo_ssr(sh_ssr.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
 	RenderPass r_ssr(&sh_ssr, &fbo_gbufferComp);
-	r_ssr.setClearColor(0.0,0.0,0.0,0.0);
-	r_ssr.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 	// Post-Processing rendering
 	PostProcessing::DepthOfField r_depthOfField(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y, &quad);
@@ -521,15 +519,19 @@ int main()
 		//TODO other rendering procedures that render into G-Buffer
 		
 		// render trees
-		for( unsigned int i = 0; i < treeRendering.branchRenderpasses.size(); i++){
-			glUniformBlockBinding(treeRendering.branchShader->getShaderProgramHandle(), treeRendering.branchShaderUniformBlockInfoMap["Tree"].index, 2+i);
-			treeRendering.branchRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
-		}
-		for(unsigned int i = 0; i < treeRendering.foliageRenderpasses.size(); i++)
+		if (s_enableTrees)
 		{
-			glUniformBlockBinding(treeRendering.foliageShader->getShaderProgramHandle(), treeRendering.foliageShaderUniformBlockInfoMap["Tree"].index, 2+i);
-			treeRendering.foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
+			for( unsigned int i = 0; i < treeRendering.branchRenderpasses.size(); i++){
+				glUniformBlockBinding(treeRendering.branchShader->getShaderProgramHandle(), treeRendering.branchShaderUniformBlockInfoMap["Tree"].index, 2+i);
+				treeRendering.branchRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
+			}
+			for(unsigned int i = 0; i < treeRendering.foliageRenderpasses.size(); i++)
+			{
+				glUniformBlockBinding(treeRendering.foliageShader->getShaderProgramHandle(), treeRendering.foliageShaderUniformBlockInfoMap["Tree"].index, 2+i);
+				treeRendering.foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
+			}
 		}
+
 
 		//TODO render tesselated mountains
 		r_terrain.render();
@@ -563,13 +565,13 @@ int main()
 			r_ssr.render();
 		}
 		//TODO render god rays
+
 		if (s_enableVolumetricLighting) {
 			r_volumetricLighting._raymarchingRenderPass->render();
 
 			// overlay volumetric lighting
 			r_addTex.render();
 		}
-
 
 		//////////// POST-PROCESSING ////////////////////
 
