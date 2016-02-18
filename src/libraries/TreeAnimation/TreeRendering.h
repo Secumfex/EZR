@@ -104,7 +104,7 @@ public:
 
 	TreeRendering();
 	~TreeRendering();
-	void generateAndConfigureTreeEntities(int numTreeVariants, float treeHeight, float treeWidth, int numMainBranches, int numSubBranches, int numFoliageQuadsPerBranch, const aiScene* branchModel = NULL);
+	void generateAndConfigureTreeEntities(int numTreeVariants, float treeHeight, float treeWidth, int numMainBranches, int numSubBranches, int numFoliageQuadsPerBranch,  const aiScene* trunkModel, const aiScene* branchModel);
 	void generateModelMatrices(int numTreesPerTreeVariant, float xMin, float xMax, float zMin, float zMax);
 	void createInstanceMatrixAttributes(int attributeLocation = 5);
 	void createAndConfigureShaders(std::string branchFragmentShader = "/modelSpace/GBuffer.frag", std::string foliageFragmentShader = "/treeAnim/foliage.frag");

@@ -111,18 +111,21 @@ static const int NUM_TREE_VARIANTS = 3;
 static const int NUM_TREES_PER_VARIANT = 10;
 static const int NUM_FOLIAGE_QUADS_PER_BRANCH = 5;
 static Assimp::Importer branchImporter;
+static Assimp::Importer trunkImporter;
 static std::vector<std::map<aiTextureType, GLuint>> s_tree_materials_textures; //!< mapping material texture types to texture handles
 static std::vector<AssimpTools::MaterialInfo> s_tree_material_infos; //!< mapping material texture types to texture handles
 static const glm::vec4 FORESTED_AREA = glm::vec4(-15.0f,-15.0f, 15.0f,15.0f);
 inline void loadBranchModel()
 {
-	std::string branchModel = "branch_detailed.dae";
+	std::string trunkModel = "branch_detailed.dae";
+	std::string branchModel = "branch_simple.dae";
+	const aiScene* trunkScene = AssimpTools::importAssetFromResourceFolder(trunkModel, trunkImporter);
 	const aiScene* branchScene = AssimpTools::importAssetFromResourceFolder(branchModel, branchImporter);
 	std::map<aiTextureType, AssimpTools::MaterialTextureInfo> branchTexturesInfo;
-	AssimpTools::MaterialInfo branchMaterialInfo = AssimpTools::getMaterialInfo(branchScene, 0);
+	AssimpTools::MaterialInfo branchMaterialInfo = AssimpTools::getMaterialInfo(trunkScene, 0);
 	s_tree_material_infos.push_back(branchMaterialInfo);
-	if (branchScene != NULL) branchTexturesInfo = AssimpTools::getMaterialTexturesInfo(branchScene, 0);
-	if (branchScene != NULL) s_tree_materials_textures.resize(branchScene->mNumMaterials);
+	if (trunkScene != NULL) branchTexturesInfo = AssimpTools::getMaterialTexturesInfo(trunkScene, 0);
+	if (trunkScene != NULL) s_tree_materials_textures.resize(trunkScene->mNumMaterials);
 
 	for (auto e : branchTexturesInfo)
 	{
@@ -154,7 +157,9 @@ inline void generateTrees(TreeAnimation::TreeRendering& treeRendering)
 		TREE_HEIGHT, TREE_WIDTH,
 		NUM_MAIN_BRANCHES, NUM_SUB_BRANCHES,
 		NUM_FOLIAGE_QUADS_PER_BRANCH,
-		branchImporter.GetScene());
+		trunkImporter.GetScene(),
+		branchImporter.GetScene()
+		);
 
 	treeRendering.generateModelMatrices(
 		NUM_TREES_PER_VARIANT,

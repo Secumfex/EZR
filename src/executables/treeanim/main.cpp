@@ -127,6 +127,7 @@ int main()
 		TREE_HEIGHT, TREE_WIDTH,
 		NUM_MAIN_BRANCHES, NUM_SUB_BRANCHES,
 		NUM_FOLIAGE_QUADS_PER_BRANCH,
+		scene,
 		scene);
 
 	treeRendering.generateModelMatrices(

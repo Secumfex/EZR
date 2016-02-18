@@ -450,7 +450,7 @@ TreeAnimation::TreeRendering::~TreeRendering()
 	delete branchShadowMapShader;
 }
 
-void TreeAnimation::TreeRendering::generateAndConfigureTreeEntities(int numTreeVariants, float treeHeight, float treeWidth, int numMainBranches, int numSubBranches, int numFoliageQuadsPerBranch, const aiScene* branchModel)
+void TreeAnimation::TreeRendering::generateAndConfigureTreeEntities(int numTreeVariants, float treeHeight, float treeWidth, int numMainBranches, int numSubBranches, int numFoliageQuadsPerBranch, const aiScene* trunkModel, const aiScene* branchModel)
 {
 	treeEntities.resize(numTreeVariants);
 	for (int i = 0; i < numTreeVariants; i++)
@@ -464,7 +464,7 @@ void TreeAnimation::TreeRendering::generateAndConfigureTreeEntities(int numTreeV
 		TreeAnimation::FoliageVertexData fData;
 		TreeAnimation::BranchesVertexData bData;
 		
-		TreeAnimation::generateBranchVertexData(&tree->m_trunk, bData, branchModel);
+		TreeAnimation::generateBranchVertexData(&tree->m_trunk, bData, trunkModel);
 		for (auto b : tree->m_trunk.children)
 		{
 			TreeAnimation::generateBranchVertexData(b, bData, branchModel);
