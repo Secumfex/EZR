@@ -569,7 +569,7 @@ Terrain::~Terrain()
 void Terrain::draw()
 {
     glBindVertexArray(m_vao);
-    glDrawArrays(GL_PATCHES, 0, 4500);
+    glDrawArrays(GL_PATCHES, 0, 4190);
 }
 
 
