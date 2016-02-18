@@ -37,7 +37,7 @@ static int s_ssrRayStep = 0.0f;
 //////////////////// MISC /////////////////////////////////////
 std::map<aiTextureType, GLuint> textures;
 
-static bool s_show_debug_views = true;
+static bool s_show_debug_views = false;
 static bool s_enableLandscape = true;
 static bool s_enableTrees = true;
 static bool s_enableGrass = true;
@@ -351,9 +351,9 @@ int main()
 	r_showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 
 	// arbitrary texture display shader
-	float weightMin = 0.0f;
-	float weightMax = 0.65f;
-	int mode = 0;
+	float weightMin = 0.6f;
+	float weightMax = 0.7f;
+	int mode = 7;
 	ShaderProgram sh_addTexShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessVolumetricLighting.frag");
 	sh_addTexShader.update("min", weightMin);
 	sh_addTexShader.update("max", weightMax);
@@ -504,7 +504,7 @@ int main()
 			{
 				ImGui::SliderFloat("min", &weightMin, 0.0f, 1.0f);
 				ImGui::SliderFloat("max", &weightMax, 0.0f, 1.0f);
-				ImGui::Combo("mode", &mode, "cos\0sin\0inverse\0sqrt\0quad\0ln\0");
+				ImGui::Combo("mode", &mode, "const\0cos\0sin\0inverse\0sqrt\0quad\0ln\0x^4\0");
 				ImGui::TreePop();
 			}
 			ImGui::TreePop();

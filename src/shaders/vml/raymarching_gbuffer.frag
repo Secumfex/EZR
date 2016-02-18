@@ -25,6 +25,9 @@ uniform vec4 cameraPosLightSpace;
 uniform float phi;
 uniform float tau;
 uniform float albedo;
+uniform float g;
+
+uniform bool useALS;
 
 // light color
 uniform vec3 lightColor;
@@ -51,12 +54,17 @@ float v(vec3 rayPositionLightSpace) {
 }
 
 // phase function for anisotropic scattering
-float p() {
-    return 1.0f;
+float p(vec3 w, vec3 wl) {
+    float theta = acos(dot(w,wl));
+    float k = 1.55 * g - (0.55 * g * g * g);
+    float cosVal = 1 + k * cos(theta);
+    float quad = cosVal * cosVal;
+    float p = (1 - k) * 0.25 * PI_RCP / quad;
+    return p;
 }
 
 // calculate the lightintensity of the current sample at position rayPositionLightSpace
-float executeRaymarching(vec3 x, float dl, float l) {
+float executeRaymarching(vec3 x, float dl, float l, vec3 w, vec3 wl) {
     // fetch whether the current position on the ray is visible form the light's perspective or not
     float v = v(x);
     // get distance of current ray postition to the light source in light view-space
@@ -64,7 +72,8 @@ float executeRaymarching(vec3 x, float dl, float l) {
     float dRcp = 1.0/d;
 
     // calculate anisotropic scattering
-    float p = p();
+    float p = p(w, wl);
+    if (!useALS) p = 1;
 
     // calculate the final light contribution for the sample on the way
     float radiantFluxAttenuation = phi * PI_RCP * 0.25;
@@ -97,11 +106,11 @@ void main() {
     float dlb = blockSize * dl;
 
     // calculate the stepsize of the ray
-    vec3 viewDirNormal = normalize(invViewDir);
-    vec3 viewDir = viewDirNormal * dlb;
+    vec3 w = normalize(invViewDir);
+    vec3 viewDir = w * dlb;
 
     // offset starting position
-    vec3 offset = viewDirNormal * index * dl;
+    vec3 offset = w * index * dl;
     float o = length(offset);
     vec3 x = startPosLightSpace.xyz + offset;
 
@@ -109,7 +118,8 @@ void main() {
     float vli = 0.0f;
     for (float l = s - o - dl; l >= 0;  l -= dlb) {
         x +=  viewDir;
-        vli += executeRaymarching(x, dl, l);
+        vec3 wl = -normalize(x);
+        vli += executeRaymarching(x, dl, l, w, wl);
     }
     vli /= sampleNum;
     vli = clamp(vli, 0.0f, clampMax);
