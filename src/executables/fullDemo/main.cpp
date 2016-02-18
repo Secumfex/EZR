@@ -75,10 +75,17 @@ int main()
 	//TODO load all (non-material) textures that are needed
 	// Tess
 	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_height2.png");
+
 	GLuint diffTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_grass.jpg");
+	glBindTexture(GL_TEXTURE_2D, diffTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
 	GLuint snowTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_snow.jpg");
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glBindTexture(GL_TEXTURE_2D, snowTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	
 	/////////////////////    Import Stuff (Misc)    //////////////////////////
 
 	//TODO load whatever else is needed
@@ -126,15 +133,16 @@ int main()
 	// Terrainstuff
 	ShaderProgram sh_tessellation("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag_lod.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te_bezier.te"); DEBUGLOG->outdent();//
 	sh_tessellation.update("model", model);
-	//sh_tessellation.update("view", view);
 	sh_tessellation.update("view", mainCamera.getViewMatrix());
-	//sh_tessellation.update("projection", perspective);
 	sh_tessellation.update("projection", mainCamera.getProjectionMatrix());
 	sh_tessellation.update("b", bezier);
 	sh_tessellation.update("bt", bezier_transposed);
 	sh_tessellation.bindTextureOnUse("terrain", distortionTex);
 	sh_tessellation.bindTextureOnUse("diff", diffTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	sh_tessellation.bindTextureOnUse("snow", snowTex);
+
 
 	RenderPass r_terrain(&sh_tessellation, &fbo_gbuffer);
 	r_terrain.addEnable(GL_DEPTH_TEST);
