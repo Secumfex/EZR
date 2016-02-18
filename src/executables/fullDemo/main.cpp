@@ -39,6 +39,12 @@ static int s_ssrRayStep = 0.0f;
 std::map<aiTextureType, GLuint> textures;
 
 static bool s_show_debug_views = true;
+static bool s_enableTrees = true;
+static bool s_enableGrass = true;
+static bool s_enableSSR = true;
+static bool s_enableVolumetricLighting = true;
+static bool s_enableDepthOfField = true;
+static bool s_enableLenseflare = true;
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -378,47 +384,62 @@ int main()
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
 		
 		// Tree Rendering
-		bool active_interface_treeRendering = ImGui::CollapsingHeader("Tree Rendering");
-		if (active_interface_treeRendering) 
+		if (ImGui::TreeNode("Tree Rendering"))
 		{
+			ImGui::Checkbox("enable", &s_enableTrees);
 			treeRendering.imguiInterfaceSimulationProperties();
 
 			ImGui::SliderFloat("foliage size", &s_foliage_size, 0.0f, 3.0f);
-			ImGui::SliderFloat("wind power", &s_wind_power, 0.0f, 3.0f); 
+			ImGui::SliderFloat("wind power", &s_wind_power, 0.0f, 3.0f);
+			ImGui::TreePop();
 		}
 		
 		// Volumetric Light
-		if (ImGui::CollapsingHeader("Volumetric Lighting"))
-			r_volumetricLighting.imguiInterfaceSimulationProperties();
-
-		if (ImGui::CollapsingHeader("VML Composition"))
+		if (ImGui::TreeNode("Volumetric Lighting"))
 		{
-			ImGui::SliderFloat("min", &weightMin, 0.0f, 1.0f);
-			ImGui::SliderFloat("max", &weightMax, 0.0f, 1.0f);
-			//std::string values[5] = {"cos", "inverse", "sqrt", "quad", "ln"};
-			//const char* valuesChar = values->c_str();
-			//enum MODES {COS, INVERSE, SQRT, QUAD, LN} postProcessMode;
-			ImGui::Combo("mode", &mode, "cos\0sin\0inverse\0sqrt\0quad\0ln\0");
-			std::cout << "mode is " << mode << std::endl;
+			ImGui::Checkbox("enable", &s_enableVolumetricLighting);
+			if (ImGui::TreeNode("Simulation"))
+			{
+				r_volumetricLighting.imguiInterfaceSimulationProperties();
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Composition"))
+			{
+				ImGui::SliderFloat("min", &weightMin, 0.0f, 1.0f);
+				ImGui::SliderFloat("max", &weightMax, 0.0f, 1.0f);
+				ImGui::Combo("mode", &mode, "cos\0sin\0inverse\0sqrt\0quad\0ln\0");
+				ImGui::TreePop();
+			}
+			ImGui::TreePop();
 		}
 		
 		// Grass
-		if ( ImGui::CollapsingHeader("Grass"))
-		{	
+		if ( ImGui::TreeNode("Grass"))
+		{
+			ImGui::Checkbox("enable", &s_enableGrass);
 			ImGui::SliderFloat("grass size", &s_grass_size, 0.0f, 1.5f);
 			sh_grassGeom.update("strength", s_grass_size);
+			ImGui::TreePop();
 		}
-		
+
+		if ( ImGui::TreeNode("SSR"))
+		{
+			ImGui::Checkbox("enable", &s_enableSSR);
+			ImGui::TreePop();
+		}
+
 		// Post-Processing
 		if ( ImGui::TreeNode("Post-Processing"))
 		{	
 			if (ImGui::TreeNode("Lens-Flare"))
 			{
+				ImGui::Checkbox("enable", &s_enableLenseflare);
 				r_lensFlare.imguiInterfaceEditParameters();
 				r_lensFlare.updateUniforms();
 			 	ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Depth-Of-Field")){
+				ImGui::Checkbox("enable", &s_enableDepthOfField);
 				r_depthOfField.imguiInterfaceEditParameters();
 				r_depthOfField.updateUniforms();
 			 	ImGui::TreePop();
@@ -524,18 +545,26 @@ int main()
 		}
 
 		// render grass
-		r_grassGeom.render();
+		if (s_enableGrass) {
+			r_grassGeom.render();
+		}
 
 		// render regular compositing from GBuffer
 		r_gbufferComp.render();
 
-		//TODO render water reflections 
-	//	r_ssr.render();
-		//TODO render god rays
-		r_volumetricLighting._raymarchingRenderPass->render();
+		//TODO render water reflections
+		if (s_enableSSR) {
+			r_ssr.render();
+		}
 
-		// overlay volumetric lighting
-		r_addTex.render();
+		//TODO render god rays
+		if (s_enableVolumetricLighting) {
+			r_volumetricLighting._raymarchingRenderPass->render();
+
+			// overlay volumetric lighting
+			r_addTex.render();
+		}
+
 
 		//////////// POST-PROCESSING ////////////////////
 
