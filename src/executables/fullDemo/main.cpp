@@ -319,6 +319,7 @@ int main()
 	sh_ssr.update("camFarPlane", 100.0f);
 	sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
 	sh_ssr.update("projection",mainCamera.getProjectionMatrix());
+	sh_ssr.update("view",mainCamera.getViewMatrix());
 	sh_ssr.bindTextureOnUse("vsPositionTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 	sh_ssr.bindTextureOnUse("vsNormalTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
 	sh_ssr.bindTextureOnUse("ReflectanceTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT4));
@@ -507,7 +508,7 @@ int main()
 		treeRendering.foliageShader->update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
 
 		
-		
+		sh_ssr.update("view",mainCamera.getViewMatrix());
 		shadowMapShader.update("view", lightCamera.getViewMatrix());
 
 		sh_tessellation.update("view", mainCamera.getViewMatrix());
