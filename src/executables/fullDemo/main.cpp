@@ -270,6 +270,8 @@ int main()
 		if (r == waterGrid)
 		{
 			sh_gbuffer.update("materialType", 2.0f);
+			sh_gbuffer.update("shininess", 15.0f);
+			sh_gbuffer.update("shininess_strength", 0.8f);
 			sh_gbuffer.update("model", modelWater);
 			sh_gbuffer.update("color", glm::vec4(0.2f,0.2f,0.7f,1.0f));
 		}
