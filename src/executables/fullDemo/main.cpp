@@ -121,7 +121,7 @@ int main()
 	mainCamera.setProjectionMatrix( glm::perspective(glm::radians(65.f), getRatio(window), 0.5f, 100.f) );
 
 	Camera lightCamera; // used for shadow mapping
-	lightCamera.setProjectionMatrix( glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, -15.0f, 70.0f) );
+	lightCamera.setProjectionMatrix( glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, -50.0f, 70.0f) );
 	lightCamera.setPosition(- glm::vec3(WORLD_LIGHT_DIRECTION) * 15.0f);
 	lightCamera.setCenter( glm::vec3( 0.0f,0.0f,0.0f) );
 
@@ -189,7 +189,7 @@ int main()
 	sh_terrainShadowmap.update("projection", lightCamera.getProjectionMatrix());
 	//sh_tessellation.update("b", bezier);
 	//sh_tessellation.update("bt", bezier_transposed);
-	//sh_terrainShadowmap.bindTextureOnUse("terrain", distortionTex);
+	sh_terrainShadowmap.bindTextureOnUse("terrain", distortionTex);
 	//sh_terrainShadowmap.bindTextureOnUse("diff", diffTex);
 	//sh_terrainShadowmap.bindTextureOnUse("snow", snowTex);
 	//sh_terrainShadowmap.bindTextureOnUse("normal", terrainNormalTex);
