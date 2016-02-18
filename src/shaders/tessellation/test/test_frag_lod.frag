@@ -14,26 +14,22 @@ uniform mat4 view;
 uniform sampler2D diff;
 uniform sampler2D snow;
 uniform sampler2D normal;
-//uniform sampler2D grass;
+uniform sampler2D grass;
 
-vec4 mixColor(vec4 col1, vec4 col2) {
-	if (tePosition.y < 0.5) {
-		return col1;
-	}
-	else if (tePosition.y > 0.6) {
-		return col2;
-	}
-	else return mix(col1, col2, (tePosition.y - 0.5) / (0.6 - 0.5));
+vec4 mixTextures(vec4 col1, vec4 col2, vec4 col3) {
+	if (tePosition.y < 0.1) return col1;
+	if (tePosition.y < 0.2) return mix(col1, col2, (tePosition.y - 0.1) / (0.2 - 0.1) );
+	if (tePosition.y < 0.4) return col2;
+	if (tePosition.y < 0.5) return mix(col2, col3, (tePosition.y - 0.4) / (0.5 - 0.4));
+	else return col3;
 }
-
 void main(){
-	vec4 color = texture(diff, tePosition.xz * 24);
+	vec4 rockColor = texture(diff, tePosition.xz * 24);
 	vec4 snowColor = texture(snow, tePosition.xz * 24);
-	vec4 mixedColor = mixColor(color, snowColor);
-	//vec4 grassColor = texture(grass, tePosition *24);
+	vec4 grassColor = texture(grass, tePosition.xz *24);
+	vec4 mixedColor = mixTextures(grassColor, rockColor, snowColor);
 
 	fragColor = mixedColor;
-	vec4 passNormal = vec4(0.0,1.0, 0.0, 1.0);
 	fragNormal = vec4(normalize((transpose(inverse(view * model )) * texture(normal, tePosition.xz)).xyz),0.0);
 	fragPosition = passPosition;
 	fragUVCoord = vec4(tePosition, 1.0);

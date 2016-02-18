@@ -101,10 +101,10 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-	//GLuint grassTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_grass.jpg");
-	//glBindTexture(GL_TEXTURE_2D, snowTex);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	GLuint grassTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_grass.jpg");
+	glBindTexture(GL_TEXTURE_2D, grassTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	
 	GLuint tex_grassQuad = TextureTools::loadTextureFromResourceFolder("grass.png");
 
@@ -175,6 +175,7 @@ int main()
 	sh_tessellation.bindTextureOnUse("diff", diffTex);
 	sh_tessellation.bindTextureOnUse("snow", snowTex);
 	sh_tessellation.bindTextureOnUse("normal", terrainNormalTex);
+	sh_tessellation.bindTextureOnUse("grass", grassTex);
 
 
 	RenderPass r_terrain(&sh_tessellation, &fbo_gbuffer);
