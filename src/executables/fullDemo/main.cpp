@@ -5,7 +5,6 @@
 #include <time.h>
 
 #include <Rendering/VertexArrayObjects.h>
-#include <Rendering/PostProcessing.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
@@ -132,11 +131,11 @@ int main()
 	// glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) *
 	//modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-50.0f, -1.5f, -50.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(130.0f, 15.0f, 130.0f));
 	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-75.0f, 0.0f, -75.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(150.0f, 17.0f, 150.0f));
-	glm::mat4 model = modelMatrices[0];
+	glm::mat4 modelTerrain = modelMatrices[0];
 	
 	// grid resembling water surface
-	Renderable* waterGrid = new Grid(32,32,1.0f,1.0f,true);
-	glm::mat4 modelWater = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
+	Renderable* waterGrid = new Grid(32,32,2.0f,2.0f,true);
+	glm::mat4 modelWater = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
 	// grid resembling grass spawning area
 	Renderable* grassGrid = new Grid(64,64,0.5f,0.5f,true);
 	glm::mat4 modelGrass = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
@@ -162,11 +161,11 @@ int main()
 
 	// Terrainstuff
 	ShaderProgram sh_tessellation("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag_lod.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te.te"); DEBUGLOG->outdent();//
-	sh_tessellation.update("model", model);
+	sh_tessellation.update("model", modelTerrain);
 	sh_tessellation.update("view", mainCamera.getViewMatrix());
 	sh_tessellation.update("projection", mainCamera.getProjectionMatrix());
-	sh_tessellation.update("b", bezier);
-	sh_tessellation.update("bt", bezier_transposed);
+	//sh_tessellation.update("b", bezier);
+	//sh_tessellation.update("bt", bezier_transposed);
 	sh_tessellation.bindTextureOnUse("terrain", distortionTex);
 	sh_tessellation.bindTextureOnUse("diff", diffTex);
 	sh_tessellation.bindTextureOnUse("snow", snowTex);
@@ -301,7 +300,7 @@ int main()
 	sh_ssr.bindTextureOnUse("DiffuseTex",fbo_gbufferComp.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));	//aus beleuchtung
 	//sh_ssr.bindTextureOnUse("DiffuseTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	FrameBufferObject fbo_ssr(sh_ssr.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
-	RenderPass r_ssr(&sh_ssr, &fbo_ssr);
+	RenderPass r_ssr(&sh_ssr, &fbo_gbufferComp);
 	r_ssr.setClearColor(0.0,0.0,0.0,0.0);
 	r_ssr.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
@@ -366,6 +365,12 @@ int main()
 		 {
 			 s_show_debug_views = !s_show_debug_views;
 		 }
+
+		 if ( k == GLFW_KEY_O && a == GLFW_PRESS)
+		 {
+			 s_dynamicDoF = !s_dynamicDoF;
+		 }
+
 	 };
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -442,6 +447,7 @@ int main()
 				ImGui::Checkbox("enable", &s_enableDepthOfField);
 				r_depthOfField.imguiInterfaceEditParameters();
 				r_depthOfField.updateUniforms();
+				imguiDynamicFieldOfView(r_depthOfField);
 			 	ImGui::TreePop();
 			}
 		 	ImGui::TreePop();
@@ -479,8 +485,6 @@ int main()
 		
 		shadowMapShader.update("view", lightCamera.getViewMatrix());
 
-//		sh_grassGeom.update("model", glm::translate(glm::mat4(1.0f), mainCamera.getPosition()) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0) ));
-
 		treeRendering.foliageShader->update("view", mainCamera.getViewMatrix());
 		treeRendering.branchShader->update("view", mainCamera.getViewMatrix());
 		treeRendering.branchShadowMapShader->update("view", lightCamera.getViewMatrix());
@@ -502,6 +506,7 @@ int main()
 		sh_addTexShader.update("max", weightMax);
 		sh_addTexShader.update("mode", mode);
 
+		updateDynamicFieldOfView(r_depthOfField, fbo_gbuffer, dt);
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
@@ -528,6 +533,7 @@ int main()
 
 		//TODO render tesselated mountains
 		r_terrain.render();
+
 		//render skybox
 		r_skybox.render(tex_cubeMap, &fbo_gbuffer);
 
@@ -556,7 +562,6 @@ int main()
 		if (s_enableSSR) {
 			r_ssr.render();
 		}
-
 		//TODO render god rays
 		if (s_enableVolumetricLighting) {
 			r_volumetricLighting._raymarchingRenderPass->render();
@@ -569,11 +574,16 @@ int main()
 		//////////// POST-PROCESSING ////////////////////
 
 		// Depth of Field and Lens Flare
-		r_depthOfField.execute(fbo_gbuffer.getBuffer("fragPosition"), fbo_gbufferComp.getBuffer("fragmentColor"));
-		r_lensFlare.renderLensFlare(r_depthOfField.m_dofCompFBO->getBuffer("fragmentColor"), &fbo_gbufferComp);
+		if (s_enableDepthOfField)
+		{
+			r_depthOfField.execute(fbo_gbuffer.getBuffer("fragPosition"), fbo_gbufferComp.getBuffer("fragmentColor"));
+			copyFBOContent(r_depthOfField.m_dofCompFBO, &fbo_gbufferComp, GL_COLOR_BUFFER_BIT);
+		}
 
-		// quick debug
-		//copyFBOContent(r_depthOfField.m_dofCompFBO, &fbo_gbufferComp, GL_COLOR_BUFFER_BIT); 
+		if(s_enableLenseflare)
+		{
+			r_lensFlare.renderLensFlare( fbo_gbufferComp.getBuffer("fragmentColor"), &fbo_gbufferComp );
+		}
 
 		/////////// DEBUGGING ////////////////////////////
 		r_showTex.setViewport(0,0, WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y );
@@ -585,7 +595,7 @@ int main()
 
 		// show / debug view of some texture
 		r_showTex.setViewport(0,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
-		sh_showTex.updateAndBindTexture("tex", 0, fbo_gbuffer.getBuffer("fragNormal"));
+		sh_showTex.updateAndBindTexture("tex", 0, fbo_gbuffer.getBuffer("fragPosition"));
 		r_showTex.render();
 
 		r_showTex.setViewport(WINDOW_RESOLUTION.x / 4,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
@@ -598,9 +608,13 @@ int main()
 		r_showTex.render();
 
 		// raymarching
-		r_showTex.setViewport(3 * WINDOW_RESOLUTION.x / 4,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
-		sh_showTex.updateAndBindTexture("tex", 0, r_volumetricLighting._raymarchingFBO->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
-		r_showTex.render();
+		if (s_enableVolumetricLighting)
+		{
+			r_showTex.setViewport(3 * WINDOW_RESOLUTION.x / 4,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
+			sh_showTex.updateAndBindTexture("tex", 0, r_volumetricLighting._raymarchingFBO->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+			r_showTex.render();
+		}
+
 
 		glViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y); // reset
 		}

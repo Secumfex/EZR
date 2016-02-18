@@ -9,6 +9,8 @@ uniform sampler2D  blurryFarField;  // quarter res
 uniform float maxCoCRadiusPixels;
 uniform float farRadiusRescale;
 
+uniform bool disableFarField;
+uniform bool disableNearField;
 
 out vec4 fragmentColor;
 
@@ -31,7 +33,6 @@ void main() {
     vec4 blurryNearColor = texture(blurryNearField, passUV);
     vec4 blurryFarColor = texture(blurryFarField, passUV);
 
-    vec3 sharp = sharpColor.rgb;
     vec3 blurred = blurryFarColor.rgb;
 
     float normRadius = sharpColor.a / maxCoCRadiusPixels;
@@ -50,7 +51,15 @@ void main() {
         normRadius = min(normRadius * 1.5, 1.0);
     }
 
-    sharp = mix(sharp, blurred, abs(normRadius)) * (1.0 - blurryNearColor.a) + blurryNearColor.rgb;    
+    vec3 sharp = sharpColor.rgb;
+    if (!disableFarField)
+    {
+        sharp = mix(sharp, blurred, abs(normRadius));         
+    }
+    if (!disableNearField)
+    {
+        sharp = sharp * (1.0 - blurryNearColor.a) + blurryNearColor.rgb;
+    }
 
     fragmentColor = vec4(sharp,1.0) ;
 }
