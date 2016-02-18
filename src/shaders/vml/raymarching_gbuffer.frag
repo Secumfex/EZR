@@ -36,7 +36,7 @@ uniform float clampMax;
 float v(vec3 rayPositionLightSpace) {
     vec4 rayCoordLightSpace = lightProjection * vec4(rayPositionLightSpace, 1.0);
     rayCoordLightSpace.xyz /= rayCoordLightSpace.w;
-    rayCoordLightSpace.xyz /= 2;
+    rayCoordLightSpace.xyz *= 0.5;
     rayCoordLightSpace.xyz += 0.5;
 
     float v = 1;

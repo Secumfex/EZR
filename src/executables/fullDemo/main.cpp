@@ -38,6 +38,12 @@ static int s_ssrRayStep = 0.0f;
 std::map<aiTextureType, GLuint> textures;
 
 static bool s_show_debug_views = true;
+static bool s_enableTrees = true;
+static bool s_enableGrass = true;
+static bool s_enableSSR = true;
+static bool s_enableVolumetricLighting = true;
+static bool s_enableDepthOfField = true;
+static bool s_enableLenseflare = true;
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -131,7 +137,7 @@ int main()
 	Renderable* waterGrid = new Grid(32,32,2.0f,2.0f,true);
 	glm::mat4 modelWater = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
 	// grid resembling grass spawning area
-	Renderable* grassGrid = new Grid(64,64,0.5f,0.5f,true);
+	Renderable* grassGrid = new Grid(128,128,0.75f,0.75f,true);
 	glm::mat4 modelGrass = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -398,47 +404,62 @@ int main()
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
 		
 		// Tree Rendering
-		bool active_interface_treeRendering = ImGui::CollapsingHeader("Tree Rendering");
-		if (active_interface_treeRendering) 
+		if (ImGui::TreeNode("Tree Rendering"))
 		{
+			ImGui::Checkbox("enable", &s_enableTrees);
 			treeRendering.imguiInterfaceSimulationProperties();
 
 			ImGui::SliderFloat("foliage size", &s_foliage_size, 0.0f, 3.0f);
-			ImGui::SliderFloat("wind power", &s_wind_power, 0.0f, 3.0f); 
+			ImGui::SliderFloat("wind power", &s_wind_power, 0.0f, 3.0f);
+			ImGui::TreePop();
 		}
 		
 		// Volumetric Light
-		if (ImGui::CollapsingHeader("Volumetric Lighting"))
-			r_volumetricLighting.imguiInterfaceSimulationProperties();
-
-		if (ImGui::CollapsingHeader("VML Composition"))
+		if (ImGui::TreeNode("Volumetric Lighting"))
 		{
-			ImGui::SliderFloat("min", &weightMin, 0.0f, 1.0f);
-			ImGui::SliderFloat("max", &weightMax, 0.0f, 1.0f);
-			//std::string values[5] = {"cos", "inverse", "sqrt", "quad", "ln"};
-			//const char* valuesChar = values->c_str();
-			//enum MODES {COS, INVERSE, SQRT, QUAD, LN} postProcessMode;
-			ImGui::Combo("mode", &mode, "cos\0sin\0inverse\0sqrt\0quad\0ln\0");
-			std::cout << "mode is " << mode << std::endl;
+			ImGui::Checkbox("enable", &s_enableVolumetricLighting);
+			if (ImGui::TreeNode("Simulation"))
+			{
+				r_volumetricLighting.imguiInterfaceSimulationProperties();
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Composition"))
+			{
+				ImGui::SliderFloat("min", &weightMin, 0.0f, 1.0f);
+				ImGui::SliderFloat("max", &weightMax, 0.0f, 1.0f);
+				ImGui::Combo("mode", &mode, "cos\0sin\0inverse\0sqrt\0quad\0ln\0");
+				ImGui::TreePop();
+			}
+			ImGui::TreePop();
 		}
 		
 		// Grass
-		if ( ImGui::CollapsingHeader("Grass"))
-		{	
+		if ( ImGui::TreeNode("Grass"))
+		{
+			ImGui::Checkbox("enable", &s_enableGrass);
 			ImGui::SliderFloat("grass size", &s_grass_size, 0.0f, 1.5f);
 			sh_grassGeom.update("strength", s_grass_size);
+			ImGui::TreePop();
 		}
-		
+
+		if ( ImGui::TreeNode("SSR"))
+		{
+			ImGui::Checkbox("enable", &s_enableSSR);
+			ImGui::TreePop();
+		}
+
 		// Post-Processing
 		if ( ImGui::TreeNode("Post-Processing"))
 		{	
 			if (ImGui::TreeNode("Lens-Flare"))
 			{
+				ImGui::Checkbox("enable", &s_enableLenseflare);
 				r_lensFlare.imguiInterfaceEditParameters();
 				r_lensFlare.updateUniforms();
 			 	ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Depth-Of-Field")){
+				ImGui::Checkbox("enable", &s_enableDepthOfField);
 				r_depthOfField.imguiInterfaceEditParameters();
 				r_depthOfField.updateUniforms();
 				imguiDynamicFieldOfView(r_depthOfField);
@@ -479,8 +500,6 @@ int main()
 		
 		shadowMapShader.update("view", lightCamera.getViewMatrix());
 
-//		sh_grassGeom.update("model", glm::translate(glm::mat4(1.0f), mainCamera.getPosition()) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0) ));
-
 		treeRendering.foliageShader->update("view", mainCamera.getViewMatrix());
 		treeRendering.branchShader->update("view", mainCamera.getViewMatrix());
 		treeRendering.branchShadowMapShader->update("view", lightCamera.getViewMatrix());
@@ -517,24 +536,31 @@ int main()
 		//TODO other rendering procedures that render into G-Buffer
 		
 		// render trees
-		for( unsigned int i = 0; i < treeRendering.branchRenderpasses.size(); i++){
-			glUniformBlockBinding(treeRendering.branchShader->getShaderProgramHandle(), treeRendering.branchShaderUniformBlockInfoMap["Tree"].index, 2+i);
-			treeRendering.branchRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
-		}
-		for(unsigned int i = 0; i < treeRendering.foliageRenderpasses.size(); i++)
+		if (s_enableTrees)
 		{
-			glUniformBlockBinding(treeRendering.foliageShader->getShaderProgramHandle(), treeRendering.foliageShaderUniformBlockInfoMap["Tree"].index, 2+i);
-			treeRendering.foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
+			for( unsigned int i = 0; i < treeRendering.branchRenderpasses.size(); i++){
+				glUniformBlockBinding(treeRendering.branchShader->getShaderProgramHandle(), treeRendering.branchShaderUniformBlockInfoMap["Tree"].index, 2+i);
+				treeRendering.branchRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
+			}
+			for(unsigned int i = 0; i < treeRendering.foliageRenderpasses.size(); i++)
+			{
+				glUniformBlockBinding(treeRendering.foliageShader->getShaderProgramHandle(), treeRendering.foliageShaderUniformBlockInfoMap["Tree"].index, 2+i);
+				treeRendering.foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
+			}
 		}
+
 
 		//TODO render tesselated mountains
 		r_terrain.render();
 		r_terrainShadowMap;
+
 		//render skybox
 		r_skybox.render(tex_cubeMap, &fbo_gbuffer);
 
 		//TODO render shadow map ( most of above again )
 		shadowMapRenderpass.render();
+		if (s_enableTrees)
+		{
 		for(unsigned int i = 0; i < treeRendering.foliageShadowMapRenderpasses.size(); i++)
 		{
 			glUniformBlockBinding(treeRendering.foliageShadowMapShader->getShaderProgramHandle(), treeRendering.foliageShadowMapShaderUniformBlockInfoMap["Tree"].index, 2+i);
@@ -545,28 +571,42 @@ int main()
 			glUniformBlockBinding(treeRendering.branchShadowMapShader->getShaderProgramHandle(), treeRendering.branchShadowMapShaderUniformBlockInfoMap["Tree"].index, 2+i);
 			treeRendering.branchShadowMapRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
-
+		}
 		// render grass
-		r_grassGeom.render();
+		if (s_enableGrass) {
+			r_grassGeom.render();
+		}
 
 		// render regular compositing from GBuffer
 		r_gbufferComp.render();
 
-		//TODO render water reflections 
-		r_ssr.render();
-		//TODO render god rays
-		r_volumetricLighting._raymarchingRenderPass->render();
+		// ssr
+		if (s_enableSSR) {
+			r_ssr.render();
+		}
 
-		// overlay volumetric lighting
-		r_addTex.render();
+		// volumetric lighting
+		if (s_enableVolumetricLighting) {
+			r_volumetricLighting._raymarchingRenderPass->render();
+
+			// overlay volumetric lighting
+			r_addTex.render();
+		}
+
 
 		//////////// POST-PROCESSING ////////////////////
 
 		// Depth of Field and Lens Flare
-		r_depthOfField.execute(fbo_gbuffer.getBuffer("fragPosition"), fbo_gbufferComp.getBuffer("fragmentColor"));
-		copyFBOContent(r_depthOfField.m_dofCompFBO, &fbo_gbufferComp, GL_COLOR_BUFFER_BIT); 
+		if (s_enableDepthOfField)
+		{
+			r_depthOfField.execute(fbo_gbuffer.getBuffer("fragPosition"), fbo_gbufferComp.getBuffer("fragmentColor"));
+			copyFBOContent(r_depthOfField.m_dofCompFBO, &fbo_gbufferComp, GL_COLOR_BUFFER_BIT);
+		}
 
-		r_lensFlare.renderLensFlare( fbo_gbufferComp.getBuffer("fragmentColor"), &fbo_gbufferComp );
+		if(s_enableLenseflare)
+		{
+			r_lensFlare.renderLensFlare( fbo_gbufferComp.getBuffer("fragmentColor"), &fbo_gbufferComp );
+		}
 
 		/////////// DEBUGGING ////////////////////////////
 		r_showTex.setViewport(0,0, WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y );
@@ -591,9 +631,13 @@ int main()
 		r_showTex.render();
 
 		// raymarching
-		r_showTex.setViewport(3 * WINDOW_RESOLUTION.x / 4,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
-		sh_showTex.updateAndBindTexture("tex", 0, r_volumetricLighting._raymarchingFBO->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
-		r_showTex.render();
+		if (s_enableVolumetricLighting)
+		{
+			r_showTex.setViewport(3 * WINDOW_RESOLUTION.x / 4,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
+			sh_showTex.updateAndBindTexture("tex", 0, r_volumetricLighting._raymarchingFBO->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+			r_showTex.render();
+		}
+
 
 		glViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y); // reset
 		}

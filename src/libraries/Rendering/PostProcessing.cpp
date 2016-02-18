@@ -342,14 +342,14 @@ PostProcessing::LensFlare::LensFlare(int width, int height)
 	: m_downSampleShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessLFDownSampling.frag")
 	, m_ghostingShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessLFGhosting.frag")
 	, m_upscaleBlendShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessLFUpscaleBlend.frag")
-	,m_scale(5.0f)
-	,m_bias(-0.9f)
+	,m_scale(1.1f)
+	,m_bias(-0.58f)
 	,m_num_ghosts(3)
 	,m_blur_strength(3)
 	,m_ghost_dispersal(0.6f)
 	,m_halo_width(0.25f)
 	,m_distortion(5.0f)
-	,m_strength(1.5f)
+	,m_strength(1.6f)
 {
 	m_downSampleFBO = new FrameBufferObject(m_downSampleShader.getOutputInfoMap(),width,height);
 	m_featuresFBO = new FrameBufferObject(m_ghostingShader.getOutputInfoMap(),width,height);
