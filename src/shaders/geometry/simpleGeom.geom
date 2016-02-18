@@ -79,7 +79,7 @@ void main()
 	vec4 pos3 = vec4(gl_in[2].gl_Position.xyz, 1.0);
 
 	// center of triangle
-	float t = sin(1000.0 * pos1.x) + cos(500.0 * pos2.y); //some "noise"
+	float t = clamp(sin(1000.0 * pos1.x) + cos(500.0 * pos2.y), -1.0, 1.0); //some "noise"
 	vec4 centerWorld = model * mix3(pos1,pos2,pos3,t);
 	
 	// adjust y coord
@@ -99,11 +99,11 @@ void main()
 	{
 		return;
 	}
-	float sizeFactor = clamp( (MAX_DISTANCE - distToCameraXZ) / VARYING_SIZE_RANGE, 0.0, 1.0);
+	float sizeFactor = clamp( ( (MAX_DISTANCE - distToCameraXZ) / VARYING_SIZE_RANGE ), 0.0, 1.0) - (0.25 + (t * 0.25)) ; //noise
 	float heightFactor = (clamp(MAX_HEIGHT - centerWorld.y, 0.0, 1.0)) * clamp(centerWorld.y - SEA_LEVEL, 0.0, 1.0); 
-	
+
 	float size = heightFactor * sizeFactor * strength;
-	
+
 	vec4 upView = invTransMV * vec4(0.0,0.0, size * 2.0,0.0); // up vector in view space
 
 	// vec2 offset in xz-plane according to wind field
@@ -126,8 +126,8 @@ void main()
 	point += offset;
 	passUVCoord = vec2(0.0,1.0);
 	passPosition = point.xyz;
-	passNormal = normalize(	( invTransMV * vec4(VertexGeom[0].normal + offset.xyz * 4.0, 0.0) ).xyz);
-	passTangent = normalize( ( invTransMV * vec4(VertexGeom[0].tangent + offset.xyz * 4.0, 0.0) ).xyz);
+	passNormal = normalize(	( invTransMV * vec4(VertexGeom[0].normal + offset.xyz * 1.0, 0.0) ).xyz);
+	passTangent = normalize( ( invTransMV * vec4(VertexGeom[0].tangent + offset.xyz * 1.0, 0.0) ).xyz);
 	point.w = 1.0;
 	gl_Position = projection * point;
 	EmitVertex();
@@ -145,8 +145,8 @@ void main()
 	point += offset;
 	passUVCoord = vec2(1.0,1.0);
 	passPosition = point.xyz;
-	passNormal = normalize( ( invTransMV * vec4(VertexGeom[0].normal + offset.xyz * 4.0, 0.0) ).xyz);
-	passTangent = normalize( ( invTransMV * vec4(VertexGeom[0].tangent + offset.xyz * 4.0, 0.0) ).xyz);
+	passNormal = normalize( ( invTransMV * vec4(VertexGeom[0].normal + offset.xyz * 1.0, 0.0) ).xyz);
+	passTangent = normalize( ( invTransMV * vec4(VertexGeom[0].tangent + offset.xyz * 1.0, 0.0) ).xyz);
 	point.w = 1.0;
 	gl_Position = projection * point ;
 	EmitVertex();

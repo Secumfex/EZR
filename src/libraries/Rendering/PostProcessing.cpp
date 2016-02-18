@@ -349,7 +349,7 @@ PostProcessing::LensFlare::LensFlare(int width, int height)
 	,m_ghost_dispersal(0.6f)
 	,m_halo_width(0.25f)
 	,m_distortion(5.0f)
-	,m_strength(1.6f)
+	,m_strength(2.5f)
 {
 	m_downSampleFBO = new FrameBufferObject(m_downSampleShader.getOutputInfoMap(),width,height);
 	m_featuresFBO = new FrameBufferObject(m_ghostingShader.getOutputInfoMap(),width,height);
