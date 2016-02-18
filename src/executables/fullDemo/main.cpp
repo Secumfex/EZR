@@ -31,6 +31,8 @@ glm::mat4 bezier_transposed = glm::transpose(bezier);
 static float s_wind_power = 0.25f;
 static float s_foliage_size = 0.4f;
 
+static float s_grass_size = 0.2f;
+
 static int s_ssrRayStep = 0.0f;
 
 //////////////////// MISC /////////////////////////////////////
@@ -78,9 +80,20 @@ int main()
 
 	//TODO load all (non-material) textures that are needed
 	// Tess
-	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_height.png");
+	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_height2.png");
+
 	GLuint diffTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_grass.jpg");
-	//GLuint rockTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_rock.jpg");
+	glBindTexture(GL_TEXTURE_2D, diffTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	GLuint snowTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_snow.jpg");
+	glBindTexture(GL_TEXTURE_2D, snowTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	
+	GLuint tex_grassQuad = TextureTools::loadTextureFromResourceFolder("grass.png");
+
 
 	/////////////////////    Import Stuff (Misc)    //////////////////////////
 
@@ -92,7 +105,7 @@ int main()
 	mainCamera.setProjectionMatrix( glm::perspective(glm::radians(65.f), getRatio(window), 0.5f, 100.f) );
 
 	Camera lightCamera; // used for shadow mapping
-	lightCamera.setProjectionMatrix( glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 30.0f) );
+	lightCamera.setProjectionMatrix( glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, -15.0f, 30.0f) );
 	lightCamera.setPosition(- glm::vec3(WORLD_LIGHT_DIRECTION) * 15.0f);
 	lightCamera.setCenter( glm::vec3( 0.0f,0.0f,0.0f) );
 
@@ -103,12 +116,16 @@ int main()
 	// modelmartix for terrain
 	std::vector<glm::mat4 > modelMatrices;
 	modelMatrices.resize(1);
-	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,-0.5f,0.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) * glm::scale(glm::mat4(1.0), glm::vec3(60.0f, 7.0f, 60.0f));
+	// glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) *
+	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-50.0f, -3.0f, -50.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(130.0f, 12.0f, 130.0f));
 	glm::mat4 model = modelMatrices[0];
 	
 	// grid resembling water surface
 	Renderable* waterGrid = new Grid(32,32,1.0f,1.0f,true);
 	glm::mat4 modelWater = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
+	// grid resembling grass spawning area
+	Renderable* grassGrid = new Grid(64,64,0.5f,0.5f,true);
+	glm::mat4 modelGrass = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
 
 	//////////////////////////////////////////////////////////////////////////////
 	////////////////////////// RENDERING SETUP  //////////////////////////////////
@@ -128,20 +145,24 @@ int main()
 	r_gbuffer.addEnable(GL_DEPTH_TEST);	
 	r_gbuffer.setClearColor(0.0,0.0,0.0,0.0);
 	r_gbuffer.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	r_gbuffer.addRenderable(waterGrid); // render water grid
 
 	// Terrainstuff
-	ShaderProgram shaderProgram("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag_lod.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te_bezier.te"); DEBUGLOG->outdent();//
-	shaderProgram.update("model", model);
-	//shaderProgram.update("view", view);
-	shaderProgram.update("view", mainCamera.getViewMatrix());
-	//shaderProgram.update("projection", perspective);
-	shaderProgram.update("projection", mainCamera.getProjectionMatrix());
-	shaderProgram.update("b", bezier);
-	shaderProgram.update("bt", bezier_transposed);
-	shaderProgram.bindTextureOnUse("terrain", distortionTex);
-	shaderProgram.bindTextureOnUse("diff", diffTex);
-	//shaderProgram.bindTextureOnUse("rock", rockTex);
+	ShaderProgram sh_tessellation("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag_lod.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te_bezier.te"); DEBUGLOG->outdent();//
+	sh_tessellation.update("model", model);
+	sh_tessellation.update("view", mainCamera.getViewMatrix());
+	sh_tessellation.update("projection", mainCamera.getProjectionMatrix());
+	sh_tessellation.update("b", bezier);
+	sh_tessellation.update("bt", bezier_transposed);
+	sh_tessellation.bindTextureOnUse("terrain", distortionTex);
+	sh_tessellation.bindTextureOnUse("diff", diffTex);
+	sh_tessellation.bindTextureOnUse("snow", snowTex);
+
+
+	RenderPass r_terrain(&sh_tessellation, &fbo_gbuffer);
+	r_terrain.addEnable(GL_DEPTH_TEST);
+	//r_terrain.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	r_terrain.setClearColor(0.0, 0.0, 0.0,0.0);
+	for (auto r : objects){r_terrain.addRenderable(r);}
 
 	// setup variables for shadowmapping
 	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
@@ -156,8 +177,7 @@ int main()
 	// setup renderpass
 	shadowMapRenderpass.addClearBit(GL_DEPTH_BUFFER_BIT);
 	shadowMapRenderpass.addEnable(GL_DEPTH_TEST);
-	shadowMapRenderpass.addRenderable(waterGrid);
-
+	
 	/************ trees / branches ************/
 	treeRendering.createAndConfigureShaders("/modelSpace/GBuffer_mat.frag", "/treeAnim/foliage.frag");
 	treeRendering.branchShader->update("projection", mainCamera.getProjectionMatrix());
@@ -174,6 +194,24 @@ int main()
 	PostProcessing::SkyboxRendering r_skybox;
 	r_skybox.m_skyboxShader.update("projection", mainCamera.getProjectionMatrix());
 
+	ShaderProgram sh_grassGeom("/modelSpace/geometry.vert", "/modelSpace/GBuffer_mat.frag", "/geometry/simpleGeom.geom");
+	RenderPass r_grassGeom(&sh_grassGeom, &fbo_gbuffer);
+	// geom.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	r_grassGeom.addRenderable(grassGrid);
+	r_grassGeom.addEnable(GL_DEPTH_TEST);
+	r_grassGeom.addEnable(GL_ALPHA_TEST);
+	//r_grassGeom.addEnable(GL_BLEND);
+	sh_grassGeom.update("projection", mainCamera.getProjectionMatrix());
+	sh_grassGeom.bindTextureOnUse("tex", tex_grassQuad);
+	sh_grassGeom.bindTextureOnUse("vectorTexture", windField.m_vectorTextureHandle);
+	sh_grassGeom.update("model", modelGrass);
+	sh_grassGeom.update("mixTexture", 1.0f);
+	sh_grassGeom.update("materialType", 0.0f);
+	sh_grassGeom.update("shininess", 3.0f);
+	sh_grassGeom.update("shininess_strength", 0.1f);
+	sh_grassGeom.update("strength", s_grass_size); // grass size
+	glAlphaFunc(GL_GREATER, 0);
+
 	// TODO construct all renderpasses, shaders and framebuffer objects
 
 	/////////////////////// 	Assign Renderables    ///////////////////////////
@@ -181,14 +219,13 @@ int main()
 
 	// TODO assign renderables to render passes that render geometry 
 	
-	// Terrainstuff
-	RenderPass renderPass(&shaderProgram, 0);
-	renderPass.addEnable(GL_DEPTH_TEST);
-	renderPass.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	renderPass.setClearColor(0.0, 0.0, 0.4,0.0);
-	for (auto r : objects){renderPass.addRenderable(r);}
 
-	// TODO assign all Renderables to gbuffer render pass that should be rendered by it
+
+	// assign all Renderables to gbuffer render pass that should be rendered by it
+	r_gbuffer.addRenderable(waterGrid);
+
+	// assign all Renderables to shadow map render pass that should and can be rendered by it
+	shadowMapRenderpass.addRenderable(waterGrid);
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
 	DEBUGLOG->outdent(); DEBUGLOG->log("Rendering Setup: per-renderable functions"); DEBUGLOG->indent();
@@ -277,8 +314,6 @@ int main()
 	sh_addTexShader.bindTextureOnUse("tex", fbo_gbufferComp.getBuffer("fragmentColor"));
 	sh_addTexShader.bindTextureOnUse("addTex", r_volumetricLighting._raymarchingFBO->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));	
 	sh_addTexShader.update("strength", 0.5f);		
-	
-	//addTex.render();
 
 	//ssr stuff
 	r_ssr.addRenderable(&quad);
@@ -320,13 +355,28 @@ int main()
 		////////////////////////////////     GUI      ////////////////////////////////
         ImGuiIO& io = ImGui::GetIO();
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
-			
-		if (ImGui::CollapsingHeader("Tree Rendering")) 
+		
+		// Tree Rendering
+		bool active_interface_treeRendering = ImGui::CollapsingHeader("Tree Rendering");
+		if (active_interface_treeRendering) 
+		{
 			treeRendering.imguiInterfaceSimulationProperties();
+
+			ImGui::SliderFloat("foliage size", &s_foliage_size, 0.0f, 3.0f);
+			ImGui::SliderFloat("wind power", &s_wind_power, 0.0f, 3.0f); 
+		}
+		
+		// Volumetric Light
 		if (ImGui::CollapsingHeader("Volumetric Lighting"))
 			r_volumetricLighting.imguiInterfaceSimulationProperties();
-
-			//TODO what you want to be able to modify, use multiple windows, collapsing headers, whatever
+		
+		// Grass
+		if ( ImGui::CollapsingHeader("Grass"))
+		{	
+			ImGui::SliderFloat("grass size", &s_grass_size, 0.0f, 1.5f);
+			sh_grassGeom.update("strength", s_grass_size);
+		}
+		//TODO what you want to be able to modify, use multiple windows, collapsing headers, whatever
 
         //////////////////////////////////////////////////////////////////////////////
 
@@ -348,12 +398,15 @@ int main()
 		// update view dependent uniforms
 		sh_gbuffer.update( "view", mainCamera.getViewMatrix());
 		r_skybox.m_skyboxShader.update("view", glm::mat4(glm::mat3(mainCamera.getViewMatrix())));
+		sh_grassGeom.update("view", mainCamera.getViewMatrix());
 		r_lensFlare.updateLensStarMatrix(mainCamera.getViewMatrix());
 		sh_gbufferComp.update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
 		treeRendering.foliageShader->update("vLightDir", mainCamera.getViewMatrix() * WORLD_LIGHT_DIRECTION);
+
+		sh_tessellation.update("view", mainCamera.getViewMatrix());
 		
 		shadowMapShader.update("view", lightCamera.getViewMatrix());
-		shaderProgram.update("view", mainCamera.getViewMatrix());
+		shadowMapShader.update("view", mainCamera.getViewMatrix());
 
 		treeRendering.foliageShader->update("view", mainCamera.getViewMatrix());
 		treeRendering.branchShader->update("view", mainCamera.getViewMatrix());
@@ -365,7 +418,7 @@ int main()
 		treeRendering.foliageShader->update("windPower", s_wind_power);
 		treeRendering.branchShadowMapShader->update("windPower", s_wind_power);
 		treeRendering.foliageShadowMapShader->update("windPower", s_wind_power);
-		
+
 		treeRendering.foliageShader->update("foliageSize", s_foliage_size);
 		treeRendering.foliageShadowMapShader->update("foliageSize", s_foliage_size);
 		
@@ -394,9 +447,9 @@ int main()
 			glUniformBlockBinding(treeRendering.foliageShader->getShaderProgramHandle(), treeRendering.foliageShaderUniformBlockInfoMap["Tree"].index, 2+i);
 			treeRendering.foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
-		//TODO render grass
+
 		//TODO render tesselated mountains
-		//renderPass.render();
+		r_terrain.render();
 		//TODO render skybox
 		r_skybox.render(tex_cubeMap, &fbo_gbuffer);
 
@@ -412,6 +465,10 @@ int main()
 			glUniformBlockBinding(treeRendering.branchShadowMapShader->getShaderProgramHandle(), treeRendering.branchShadowMapShaderUniformBlockInfoMap["Tree"].index, 2+i);
 			treeRendering.branchShadowMapRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
+
+		// render grass
+		r_grassGeom.render();
+
 		// render regular compositing from GBuffer
 		r_gbufferComp.render();
 
@@ -426,8 +483,11 @@ int main()
 		//////////// POST-PROCESSING ////////////////////
 
 		// Depth of Field and Lens Flare
-		// r_depthOfField.execute(fbo_gbuffer.getBuffer("fragPosition"), fbo_gbufferComp.getBuffer("fragmentColor"));
-		// r_lensFlare.renderLensFlare(depthOfField.m_dofCompFBO->getBuffer("fragmentColor"), 0);
+		//r_depthOfField.execute(fbo_gbuffer.getBuffer("fragPosition"), fbo_gbufferComp.getBuffer("fragmentColor"));
+		// r_lensFlare.renderLensFlare(depthOfField.m_dofCompFBO->getBuffer("fragmentColor"), &fbo_gbufferComp);
+
+		// quick debug
+		//copyFBOContent(r_depthOfField.m_dofCompFBO, &fbo_gbufferComp, GL_COLOR_BUFFER_BIT); 
 
 		/////////// DEBUGGING ////////////////////////////
 		r_showTex.setViewport(0,0, WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y );
