@@ -406,7 +406,6 @@ int main()
 		sh_tessellation.update("view", mainCamera.getViewMatrix());
 		
 		shadowMapShader.update("view", lightCamera.getViewMatrix());
-		shadowMapShader.update("view", mainCamera.getViewMatrix());
 
 		treeRendering.foliageShader->update("view", mainCamera.getViewMatrix());
 		treeRendering.branchShader->update("view", mainCamera.getViewMatrix());
