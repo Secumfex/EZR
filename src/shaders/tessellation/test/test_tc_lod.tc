@@ -44,7 +44,8 @@ void main(){
      #define id gl_InvocationID
      //gl_out[id].gl_Position = gl_in[id].gl_Position;
 	 	tcPosition[gl_InvocationID] = gl_in[gl_InvocationID].gl_Position.xyz;
-
+	//vec4 position =  projection * view * model * gl_Position;
+	
      if(id == 0){
          vec4 v0 = project(gl_in[0].gl_Position);
          vec4 v1 = project(gl_in[1].gl_Position);
@@ -77,15 +78,11 @@ void main(){
 
              gl_TessLevelInner[0] = mix(e1, e2, 0.5);
              gl_TessLevelInner[1] = mix(e0, e3, 0.5);
-             gl_TessLevelOuter[0] = e0 + 4;
-             gl_TessLevelOuter[1] = e1 + 4;
-             gl_TessLevelOuter[2] = e2 + 4;
-             gl_TessLevelOuter[3] = e3 + 4;
+             gl_TessLevelOuter[0] = e0 + 3;
+             gl_TessLevelOuter[1] = e1 + 3;
+             gl_TessLevelOuter[2] = e2 + 3;
+             gl_TessLevelOuter[3] = e3 + 3;
 			 
-			//gl_TessLevelOuter[0] = 8;
-            //gl_TessLevelOuter[1] = 8;
-            //gl_TessLevelOuter[2] = 8;
-            //gl_TessLevelOuter[3] = 8;
          }
      }
  }

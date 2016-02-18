@@ -16,5 +16,5 @@ float make_simple_interpolation(vec3 rgb) {
 void main () {
 	float height = make_simple_interpolation(texture(terrain, position).xyz);
 	//float height = abs(rand(position)) / 12.0f;
-	gl_Position = vec4(position.x, height,position.y, 1);
+	gl_Position = vec4(position.x, height, position.y, 1);
 }

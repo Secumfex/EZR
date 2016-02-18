@@ -125,7 +125,7 @@ int main()
 	// glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) *
 	//modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-50.0f, -1.5f, -50.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(130.0f, 15.0f, 130.0f));
 	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-75.0f, 0.0f, -75.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(150.0f, 17.0f, 150.0f));
-	glm::mat4 model = modelMatrices[0];
+	glm::mat4 modelTerrain = modelMatrices[0];
 	
 	// grid resembling water surface
 	Renderable* waterGrid = new Grid(32,32,1.0f,1.0f,true);
@@ -155,11 +155,11 @@ int main()
 
 	// Terrainstuff
 	ShaderProgram sh_tessellation("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag_lod.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te.te"); DEBUGLOG->outdent();//
-	sh_tessellation.update("model", model);
+	sh_tessellation.update("model", modelTerrain);
 	sh_tessellation.update("view", mainCamera.getViewMatrix());
 	sh_tessellation.update("projection", mainCamera.getProjectionMatrix());
-	sh_tessellation.update("b", bezier);
-	sh_tessellation.update("bt", bezier_transposed);
+	//sh_tessellation.update("b", bezier);
+	//sh_tessellation.update("bt", bezier_transposed);
 	sh_tessellation.bindTextureOnUse("terrain", distortionTex);
 	sh_tessellation.bindTextureOnUse("diff", diffTex);
 	sh_tessellation.bindTextureOnUse("snow", snowTex);
