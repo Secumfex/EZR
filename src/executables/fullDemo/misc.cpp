@@ -256,10 +256,11 @@ inline void updateDynamicFieldOfView(PostProcessing::DepthOfField& r_depthOfFiel
 
 		float diffNear = (depth / 2.0f) - r_depthOfField.m_focusPlaneDepths.y;
 		float diffFar = (depth + depth/2.0f) - r_depthOfField.m_focusPlaneDepths.z;
-		r_depthOfField.m_focusPlaneDepths.x = r_depthOfField.m_focusPlaneDepths.x + diffNear * dt;
-		r_depthOfField.m_focusPlaneDepths.y = r_depthOfField.m_focusPlaneDepths.y + diffNear * dt;
-		r_depthOfField.m_focusPlaneDepths.z = r_depthOfField.m_focusPlaneDepths.z + diffFar * dt;
-		r_depthOfField.m_focusPlaneDepths.w = r_depthOfField.m_focusPlaneDepths.w + diffFar * dt;
+
+		r_depthOfField.m_focusPlaneDepths.x = min(r_depthOfField.m_focusPlaneDepths.x + diffNear * ((abs(diffNear) > 50.0f) ? 0.9f : dt) , 30.0f);
+		r_depthOfField.m_focusPlaneDepths.y = min( r_depthOfField.m_focusPlaneDepths.y + diffNear * ((abs(diffNear) > 50.0f) ? 0.9f : dt), 40.0f);
+		r_depthOfField.m_focusPlaneDepths.z = r_depthOfField.m_focusPlaneDepths.z + diffFar * ((abs(diffFar) > 50.0f) ? 0.9f : dt);
+		r_depthOfField.m_focusPlaneDepths.w = r_depthOfField.m_focusPlaneDepths.w + diffFar * ((abs(diffFar) > 50.0f) ? 0.9f : dt);
 
 		r_depthOfField.updateUniforms();
 	}
