@@ -107,8 +107,10 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	
-	GLuint tex_grassQuad = TextureTools::loadTextureFromResourceFolder("grass.png");
-
+	GLuint tex_grassQuad = TextureTools::loadTextureFromResourceFolder("grass_2.png");
+	glBindTexture(GL_TEXTURE_2D, tex_grassQuad);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 	/////////////////////    Import Stuff (Misc)    //////////////////////////
 
