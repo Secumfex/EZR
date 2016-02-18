@@ -7,7 +7,7 @@
 #define BIAS 0.00005
 #define PHI 10000000.0
 #define TAU 0.0001
-#define LIMIT 30.0
+#define LIMIT 50.0
 
 in vec2 passUV;
 
