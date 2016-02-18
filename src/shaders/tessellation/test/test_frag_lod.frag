@@ -32,7 +32,7 @@ void main(){
 
 	fragColor = mixedColor;
 	vec4 passNormal = vec4(0.0,1.0, 0.0, 1.0);
-	fragNormal =  normalize(transpose(inverse(view * model)) * texture(normal, tePosition.xz));
+	fragNormal = vec4(normalize((transpose(inverse(view * model )) * texture(normal, tePosition.xz)).xyz),0.0);
 	fragPosition = passPosition;
 	fragUVCoord = vec4(tePosition, 1.0);
 	fragMaterial = vec4(0.0, 1.0, 0.2, 0.0);

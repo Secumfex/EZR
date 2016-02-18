@@ -597,7 +597,7 @@ int main()
 
 		// show / debug view of some texture
 		r_showTex.setViewport(0,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
-		sh_showTex.updateAndBindTexture("tex", 0, fbo_gbuffer.getBuffer("fragPosition"));
+		sh_showTex.updateAndBindTexture("tex", 0, fbo_gbuffer.getBuffer("fragNormal"));
 		r_showTex.render();
 
 		r_showTex.setViewport(WINDOW_RESOLUTION.x / 4,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
