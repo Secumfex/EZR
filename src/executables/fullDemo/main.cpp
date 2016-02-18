@@ -38,6 +38,8 @@ static int s_ssrRayStep = 0.0f;
 //////////////////// MISC /////////////////////////////////////
 std::map<aiTextureType, GLuint> textures;
 
+static bool s_show_debug_views = true;
+
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -338,7 +340,10 @@ int main()
 
 	 CallbackHelper::keyboardFunc = [&](int k, int s, int a, int m)
 	 {
-	 	//TODO what you want to happen
+		 if ( k == GLFW_KEY_P && a == GLFW_PRESS)
+		 {
+			 s_show_debug_views = !s_show_debug_views;
+		 }
 	 };
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -510,6 +515,9 @@ int main()
 		r_showTex.setViewport(0,0, WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y );
 		sh_showTex.updateAndBindTexture("tex", 0, fbo_gbufferComp.getBuffer("fragmentColor"));
 		r_showTex.render();
+		
+		if (s_show_debug_views)
+		{
 
 		// show / debug view of some texture
 		r_showTex.setViewport(0,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
@@ -531,6 +539,7 @@ int main()
 		r_showTex.render();
 
 		glViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y); // reset
+		}
 
 		///////////// IMGUI /////////////////////////////
 		ImGui::Render();
