@@ -108,10 +108,5 @@ void main() {
     vli /= sampleNum;
     vli = clamp(vli, 0.0f, 1.0f);
 
-    gl_FragColor =  vec4(vec3(1,1,1) * vli, 1);
-    // if (index <= 16)  gl_FragColor = vec4(1, 0, 0, 1);
-    // if (index > 16)  gl_FragColor = vec4(0, 1, 0, 1);
-    // if (index > 32)  gl_FragColor = vec4(0, 0, 1, 1);
-    // if (index > 48)  gl_FragColor = vec4(1, 0, 1, 1);
-    // if (index > 1000)  gl_FragColor = vec4(1, 1, 0, 1);  
+    gl_FragColor =  vec4(vec3(1,1,1) * vli, 1.0);
 }

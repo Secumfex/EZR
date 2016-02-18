@@ -515,7 +515,9 @@ AssimpTools::MaterialInfo AssimpTools::getMaterialInfo(const aiScene* scene, int
         result.scalar[OPACITY] =scalar;
     if(AI_SUCCESS == aiGetMaterialFloat(m, AI_MATKEY_SHININESS_STRENGTH, &scalar))
         result.scalar[SHININESS_STRENGTH]= scalar;
-	
+	if(AI_SUCCESS == aiGetMaterialFloat(m, AI_MATKEY_REFLECTIVITY, &scalar))
+		result.scalar[REFLECTIVITY]= scalar;
+
 	result.texture = getMaterialTexturesInfo(scene, matIdx);
 
 	return result;
@@ -548,6 +550,7 @@ std::string AssimpTools::decodeScalarType(ScalarType type)
 	case OPACITY: return std::string("AMBIENT");
 	case SHININESS: return std::string("SHININESS (exponent)");
 	case SHININESS_STRENGTH: return std::string("SHININESS_STRENGTH");
+	case REFLECTIVITY: return std::string("REFLECTIVITY");
 	default: return std::string("UNKNOWN");
 	}
 }

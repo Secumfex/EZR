@@ -189,6 +189,11 @@ inline void assignTreeMaterialTextures(TreeAnimation::TreeRendering& treeRenderi
 		treeRendering.branchShader->update("shininess", branch_shininess->second);
 		treeRendering.branchShader->update("shininess_strength", branch_shininess_strength->second);
 	}
+	else
+	{
+		treeRendering.branchShader->update("shininess", 10.0f);
+		treeRendering.branchShader->update("shininess_strength", 0.2f);
+	}
 	treeRendering.branchShader->update("materialType", 0.0);
 }
 inline void assignWindFieldUniforms(TreeAnimation::TreeRendering& treeRendering, TreeAnimation::WindField& windField)

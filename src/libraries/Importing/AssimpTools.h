@@ -67,7 +67,7 @@ namespace AssimpTools {
 		std::string relativePath; //!< texture file path relative to the corresponding asset's file location
 	};
 
-	enum ScalarType {OPACITY, SHININESS, SHININESS_STRENGTH}; //!<enum identifying a scalar property of the material 
+	enum ScalarType {OPACITY, SHININESS, SHININESS_STRENGTH, REFLECTIVITY}; //!<enum identifying a scalar property of the material
 	enum ColorType {AMBIENT, DIFFUSE, SPECULAR, EMISSIVE, REFLECTIVE, TRANSPARENT}; //!< enum identifying a color property of the material
 	
 	/** @brief struct that saves all defined properties of a material imported with an asset. */
