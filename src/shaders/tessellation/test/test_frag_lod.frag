@@ -23,7 +23,7 @@ vec4 mixColor(vec4 col1, vec4 col2) {
 	else if (tePosition.y > 0.6) {
 		return col2;
 	}
-	else return mix(col1, col2, tePosition.y);
+	else return mix(col1, col2, (tePosition.y - 0.5) / (0.6 - 0.5));
 }
 
 void main(){
