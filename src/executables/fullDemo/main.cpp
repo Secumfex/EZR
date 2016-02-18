@@ -548,10 +548,9 @@ int main()
 
 		// Depth of Field and Lens Flare
 		r_depthOfField.execute(fbo_gbuffer.getBuffer("fragPosition"), fbo_gbufferComp.getBuffer("fragmentColor"));
-		r_lensFlare.renderLensFlare(r_depthOfField.m_dofCompFBO->getBuffer("fragmentColor"), &fbo_gbufferComp);
+		copyFBOContent(r_depthOfField.m_dofCompFBO, &fbo_gbufferComp, GL_COLOR_BUFFER_BIT); 
 
-		// quick debug
-		//copyFBOContent(r_depthOfField.m_dofCompFBO, &fbo_gbufferComp, GL_COLOR_BUFFER_BIT); 
+		r_lensFlare.renderLensFlare( fbo_gbufferComp.getBuffer("fragmentColor"), &fbo_gbufferComp );
 
 		/////////// DEBUGGING ////////////////////////////
 		r_showTex.setViewport(0,0, WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y );

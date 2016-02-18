@@ -34,13 +34,14 @@ void main() {
 		cocRadius = mix(nearBlurryRadius, nearSharpRadius, t);
 	}
 	if (depth > nearSharpDepth && depth < farSharpDepth) // in sharp area
-	{ 
-
-		cocRadius = max(min(mix(nearSharpRadius, farSharpRadius, (depth-nearSharpDepth)/(farSharpDepth-nearSharpDepth)),nearSharpRadius),farSharpRadius);
+	{
+		float t = clamp( (depth - farSharpDepth) / (farSharpDepth - nearSharpDepth), 0.0, 1.0);
+		cocRadius = mix(nearSharpRadius, farSharpRadius, t);
 	}
 	if (depth > farSharpDepth)
 	{ 
-		cocRadius = max(mix(farSharpRadius, farBlurryRadius, (depth-farSharpDepth)/(farBlurryDepth-farSharpDepth)), farBlurryRadius);
+		float t = clamp( (depth - farSharpDepth) / (farBlurryDepth - farSharpDepth), 0.0, 1.0);
+		cocRadius = mix(farSharpRadius, farBlurryRadius, t);
 	}
 
 	fragmentColor = vec4(color,cocRadius);
