@@ -28,8 +28,8 @@ uniform sampler2D vectorTexture;
 uniform sampler2D heightMap;
 uniform vec4 heightMapRange; //!< x,y --> begin coords (XZ-plane) z,w --> end coords( XZ-plane )
 
-#define HEIGHT_SCALE 15.0
-#define HEIGHT_BIAS -3.0
+#define HEIGHT_SCALE 17.0
+#define HEIGHT_BIAS -1.5
 
 vec2 worldToHeightMapUV(vec4 worldPos)
 {

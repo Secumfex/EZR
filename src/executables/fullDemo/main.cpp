@@ -118,7 +118,7 @@ int main()
 	objects.push_back(new Terrain());
 
 	// modelmartix for terrain
-	glm::vec4 terrainRange(-150.0f, -150.f, 150.0f, 150.0f);
+	glm::vec4 terrainRange(-75.0f, -75.f, 75.0f, 75.0f);
 	std::vector<glm::mat4 > modelMatrices;
 	modelMatrices.resize(1);
 	// glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) *
