@@ -82,7 +82,10 @@ void main()
 	
 	// adjust y coord
 	centerWorld.y = texture(heightMap, worldToHeightMapUV(centerWorld)).x * HEIGHT_SCALE + HEIGHT_BIAS;
-
+	if (centerWorld.y < HEIGHT_BIAS - strength) // below sea level
+	{
+		return;
+	}
 	vec4 centerView = (view * centerWorld); // center in view space
 
 	float distToCameraXZ = length(centerView.xz);
