@@ -118,6 +118,7 @@ int main()
 	objects.push_back(new Terrain());
 
 	// modelmartix for terrain
+	glm::vec4 terrainRange(-150.0f, -150.f, 150.0f, 150.0f);
 	std::vector<glm::mat4 > modelMatrices;
 	modelMatrices.resize(1);
 	// glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) *
@@ -193,6 +194,7 @@ int main()
 	treeRendering.createAndConfigureUniformBlocksAndBuffers(1);
 	assignTreeMaterialTextures(treeRendering);
 	assignWindFieldUniforms(treeRendering, windField);
+	assignHeightMapUniforms(treeRendering, distortionTex, terrainRange);
 	treeRendering.createAndConfigureRenderpasses( &fbo_gbuffer, &fbo_gbuffer, &shadowMap );
 	/******************************************/
 
@@ -216,6 +218,8 @@ int main()
 	sh_grassGeom.update("shininess", 3.0f);
 	sh_grassGeom.update("shininess_strength", 0.1f);
 	sh_grassGeom.update("strength", s_grass_size); // grass size
+	sh_grassGeom.bindTextureOnUse("heightMap", distortionTex);
+	sh_grassGeom.update("heightMapRange", terrainRange); // grass size
 	glAlphaFunc(GL_GREATER, 0);
 
 	// TODO construct all renderpasses, shaders and framebuffer objects

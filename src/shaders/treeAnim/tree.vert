@@ -67,6 +67,20 @@ out VertexData {
 	vec3 tangent;
 } VertexGeom;
 
+uniform sampler2D heightMap;
+uniform vec4 heightMapRange; //!< x,y --> begin coords (XZ-plane) z,w --> end coords( XZ-plane )
+
+#define HEIGHT_SCALE 15.0
+#define HEIGHT_BIAS -3.0
+
+vec2 worldToHeightMapUV(vec4 worldPos)
+{
+	vec2 heightMapUV;
+	heightMapUV.x = (worldPos.x - heightMapRange.x) / (heightMapRange.z - heightMapRange.x );
+	heightMapUV.y = (worldPos.z - heightMapRange.y) / (heightMapRange.w - heightMapRange.y);
+	return heightMapUV; 
+}
+
 float mix3(float a, float b, float c, float t)
 {
 	return 
@@ -301,6 +315,11 @@ void main(){
 	vec4 final_vertex_pos = mix(vec4(vertex_pos,1.0), trunk_rotated_vertex_pos, windRotationWeight);
 
 	vec4 worldPos = instancedModel * final_vertex_pos;
+
+		// adjust y coord
+	worldPos.y += texture(heightMap, worldToHeightMapUV(worldPos)).x * HEIGHT_SCALE + HEIGHT_BIAS;
+
+
     passWorldPosition = worldPos.xyz;
     passPosition = (view * worldPos).xyz;
     gl_Position =  projection * view * worldPos;

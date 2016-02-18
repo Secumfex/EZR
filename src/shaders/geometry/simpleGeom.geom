@@ -22,18 +22,20 @@ uniform	float strength;
 // uniform float stiffness;
 uniform sampler2D vectorTexture;
 
-uniform sampler2D heightMap;
-uniform vec4 heightMapRange; //!< x,y --> begin coords (XZ-plane) z,w --> end coords( XZ-plane )
-
 #define MAX_DISTANCE 15.0
 #define VARYING_SIZE_RANGE 5.0 // last 5 units
 
-#define HEIGHT_SCALE 16.0
+uniform sampler2D heightMap;
+uniform vec4 heightMapRange; //!< x,y --> begin coords (XZ-plane) z,w --> end coords( XZ-plane )
+
+#define HEIGHT_SCALE 15.0
+#define HEIGHT_BIAS -3.0
 
 vec2 worldToHeightMapUV(vec4 worldPos)
 {
-	vec2 heightMapUV = worldPos.xz / 30.0 + 15.0;
-	//TODO
+	vec2 heightMapUV;
+	heightMapUV.x = (worldPos.x - heightMapRange.x) / (heightMapRange.z - heightMapRange.x );
+	heightMapUV.y = (worldPos.z - heightMapRange.y) / (heightMapRange.w - heightMapRange.y);
 	return heightMapUV; 
 }
 
@@ -79,7 +81,7 @@ void main()
 	vec4 centerWorld = model * mix3(pos1,pos2,pos3,t);
 	
 	// adjust y coord
-	centerWorld.y = texture(heightMap, worldToHeightMapUV(centerWorld)).x * HEIGHT_SCALE;
+	centerWorld.y = texture(heightMap, worldToHeightMapUV(centerWorld)).x * HEIGHT_SCALE + HEIGHT_BIAS;
 
 	vec4 centerView = (view * centerWorld); // center in view space
 
