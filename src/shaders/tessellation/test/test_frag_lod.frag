@@ -30,7 +30,7 @@ vec4 mixColor(vec4 col1, vec4 col2) {
 
 void main(){
 	//fragNormal = texture(terrain, tePosition.xz);
-	vec4 color = texture(diff, tePosition.xz * 12);
+	vec4 color = texture(diff, tePosition.xz * 24);
 	vec4 snowColor = texture(snow, tePosition.xz * 12);
 	vec4 mixedColor = mixColor(color, snowColor);
 	//vec4 color = vec4(vec3(34.0f/255, 139.0f/255, 34.0f/255), 1.0);

@@ -121,7 +121,7 @@ int main()
 	std::vector<glm::mat4 > modelMatrices;
 	modelMatrices.resize(1);
 	// glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) *
-	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-50.0f, -3.0f, -50.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(130.0f, 15.0f, 130.0f));
+	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-50.0f, -1.5f, -50.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(130.0f, 15.0f, 130.0f));
 	glm::mat4 model = modelMatrices[0];
 	
 	// grid resembling water surface
@@ -151,7 +151,7 @@ int main()
 	r_gbuffer.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 	// Terrainstuff
-	ShaderProgram sh_tessellation("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag_lod.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te_bezier.te"); DEBUGLOG->outdent();//
+	ShaderProgram sh_tessellation("/tessellation/test/test_vert.vert", "/tessellation/test/test_frag_lod.frag", "/tessellation/test/test_tc_lod.tc", "/tessellation/test/test_te.te"); DEBUGLOG->outdent();//
 	sh_tessellation.update("model", model);
 	sh_tessellation.update("view", mainCamera.getViewMatrix());
 	sh_tessellation.update("projection", mainCamera.getProjectionMatrix());
