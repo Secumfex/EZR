@@ -128,8 +128,8 @@ int main()
 	glm::mat4 modelTerrain = modelMatrices[0];
 	
 	// grid resembling water surface
-	Renderable* waterGrid = new Grid(32,32,1.0f,1.0f,true);
-	glm::mat4 modelWater = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
+	Renderable* waterGrid = new Grid(32,32,2.0f,2.0f,true);
+	glm::mat4 modelWater = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
 	// grid resembling grass spawning area
 	Renderable* grassGrid = new Grid(64,64,0.5f,0.5f,true);
 	glm::mat4 modelGrass = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
@@ -294,7 +294,7 @@ int main()
 	sh_ssr.bindTextureOnUse("DiffuseTex",fbo_gbufferComp.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));	//aus beleuchtung
 	//sh_ssr.bindTextureOnUse("DiffuseTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	FrameBufferObject fbo_ssr(sh_ssr.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
-	RenderPass r_ssr(&sh_ssr, &fbo_ssr);
+	RenderPass r_ssr(&sh_ssr, &fbo_gbufferComp);
 	r_ssr.setClearColor(0.0,0.0,0.0,0.0);
 	r_ssr.addClearBit(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
@@ -537,7 +537,7 @@ int main()
 		r_gbufferComp.render();
 
 		//TODO render water reflections 
-	//	r_ssr.render();
+		r_ssr.render();
 		//TODO render god rays
 		r_volumetricLighting._raymarchingRenderPass->render();
 

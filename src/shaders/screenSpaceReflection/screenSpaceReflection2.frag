@@ -62,6 +62,7 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
     // Variables
     vec4 reflectedColor = vec4(0.0);
     vec2 pixelsize = 1.0/vec2(screenWidth, screenHeight);
+    //vec2 pixelsize = textureSize(DiffuseTex,0);
 
     // Get texture informations
     vec4 csPosition = projection * vec4(vsPosition, 1.0);
@@ -81,8 +82,8 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
     float initalStep;
     float pixelStepSize;
 
-    int sampleCount = max(int(screenWidth), int(screenHeight));
-    int count = 0;
+   // int sampleCount = max(int(screenWidth), int(screenHeight));
+  //  int count = 0;
     
     //optimized ssr
 //    if(optimizedSSR)
@@ -95,11 +96,14 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
         currentSamplePosition = lastSamplePosition + ssReflectionVector;
 
         float bigStep = 12 * factor;
-       // int sampleCount = max(int(screenHeight), int(screenWidth))/int(bigStep);
-       // int count = 0;
+        int sampleCount = max(int(screenHeight), int(screenWidth))/int(bigStep);
+        int count = 0;
 
-        while(count < sampleCount)
-        {
+        while(count < sampleCount) {
+        //control loops
+        	if(count > 150){
+				break;
+			}
           // Out of screen space --> break
             if(currentSamplePosition.x < 0.0 || currentSamplePosition.x > 1.0 ||
                currentSamplePosition.y < 0.0 || currentSamplePosition.y > 1.0 ||
@@ -128,7 +132,7 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
                   //sampledDepth += linearizeDepth (texture2D(DepthTex, samplingPosition + sampleOffsets[15] * 0.001f).z );
                   //sampledDepth /= 16;
 
-            float currentDepth = linearizeDepth(currentSamplePosition.z);
+           float currentDepth = linearizeDepth(currentSamplePosition.z);
             
             float delta = abs(currentDepth - sampledDepth);
 
@@ -141,9 +145,9 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
            else{
                 if(currentDepth > sampledDepth)
                 {
-                   for(float i=0; i < bigStep; i += 1.0 * factor)
+                  for(float i=0; i < bigStep; i += 1.0 * factor)
                     {
-                        lastSamplePosition = currentSamplePosition;
+                       lastSamplePosition = currentSamplePosition;
                         currentSamplePosition = lastSamplePosition - ssReflectionVector * 0.05 * i * factor;
                     }
 
@@ -192,23 +196,23 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
 //    else
 //    {
     // Ray trace
-  //  initalStep = max(pixelsize.x, pixelsize.y);
- //   pixelStepSize = user_pixelStepSize;
- //   ssReflectionVector *= initalStep;
+//    initalStep = max(pixelsize.x, pixelsize.y);
+//    pixelStepSize = user_pixelStepSize;
+//    ssReflectionVector *= initalStep;
+
+//    lastSamplePosition = ssPosition + ssReflectionVector;
+//    currentSamplePosition = lastSamplePosition + ssReflectionVector;
 //
- //   lastSamplePosition = ssPosition + ssReflectionVector;
- //   currentSamplePosition = lastSamplePosition + ssReflectionVector;
-//
-//    while(count < sampleCount){
-//    	// Out of screen space --> break
- //       if(currentSamplePosition.x < 0.0 || currentSamplePosition.x > 1.0 ||
+ //   while(count < sampleCount){
+ //   	// Out of screen space --> break
+//       if(currentSamplePosition.x < 0.0 || currentSamplePosition.x > 1.0 ||
  //          currentSamplePosition.y < 0.0 || currentSamplePosition.y > 1.0 ||
- //          currentSamplePosition.z < 0.0 || currentSamplePosition.z > 1.0){
+//           currentSamplePosition.z < 0.0 || currentSamplePosition.z > 1.0){
  //       	break;
-//        }           
-  //      vec2 samplingPosition = currentSamplePosition.xy;
+ //       }           
+ //       vec2 samplingPosition = currentSamplePosition.xy;
  //       float sampledDepth = linearizeDepth( texture(DepthTex, samplingPosition).z );
- //       float currentDepth = linearizeDepth(currentSamplePosition.z);
+//        float currentDepth = linearizeDepth(currentSamplePosition.z);
 //
  //       if(currentDepth > sampledDepth){   
 //            float delta = abs(currentDepth - sampledDepth);
@@ -250,17 +254,17 @@ bool fadeToEdges = true; 	//da nicht als uniform
 void main(void){
  //texture information from G-Buffer
  //float reflectance = texture(ReflectanceTex, vert_UV).a;	//
- float reflectance = 0.0f;
- float test1 = texture(ReflectanceTex, vert_UV).x;
- if(test1 == 2){	//gibt noch kein obj mit materialwert, doch gleich schon
- 	reflectance = texture(ReflectanceTex, vert_UV).y;
- }
- //reflectance = texture(ReflectanceTex, vert_UV).y;
- vec4 test2 = texture(vsPositionTex, vert_UV);
+ //float reflectance = 0.0f;
+ //float test1 = texture(ReflectanceTex, vert_UV).x;
+ //if(test1 > 2.0f){	//gibt noch kein obj mit materialwert, doch gleich schon
+ //	reflectance = texture(ReflectanceTex, vert_UV).z;
+ //}
+ float reflectance = texture(ReflectanceTex, vert_UV).z;
+ //vec4 test2 = texture(vsPositionTex, vert_UV);
  vec3 vsPosition = texture(vsPositionTex, vert_UV).xyz; 
- if(test2.a == 0){
- discard;
- }
+ //if(test2.a == 0){
+ //discard;
+// }
  vec3 vsNormal = texture(vsNormalTex, vert_UV).xyz; 
  
  //reflection vector calculation
@@ -268,11 +272,13 @@ void main(void){
  vec3 vsEyeVector        = normalize(vsPosition); 
  vec3 vsReflectionVector = normalize(reflect(vsEyeVector, vsNormal));             
  
- bool toggleSSR = true;
+ //bool toggleSSR = true;
  //screen space reflections
- if(toggleSSR){ 
+ //if(toggleSSR){ 
   vec4 color = ScreenSpaceReflections(vsPosition, vsNormal, vsReflectionVector); 
   //color = mix(color, texture(ReflectanceTex, vert_UV), 0.5); 
-  FragColor = reflectance * color; 
- } 
+  FragColor = reflectance * color; //* reflectance
+ //} 
+ //vec4 t = texture(DepthTex, vert_UV);
+ //FragColor = vec4(vsReflectionVector,1.0f);
 }
