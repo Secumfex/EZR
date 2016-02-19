@@ -459,6 +459,14 @@ int main()
 		showTexShader.updateAndBindTexture("tex", 0, topViewFBO.getBuffer("fragColor"));
 		showTex.render();
 
+		showTex.setViewport(WINDOW_RESOLUTION.x / 2,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
+		showTexShader.updateAndBindTexture("tex", 0, lensFlare.m_downSampleFBO->getBuffer("fResult"));
+		showTex.render();
+
+		showTex.setViewport(3 * WINDOW_RESOLUTION.x / 4,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
+		showTexShader.updateAndBindTexture("tex", 0, lensFlare.m_featuresFBO->getBuffer("fResult"));
+		showTex.render();
+
 		glViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y);
 
 		ImGui::Render();
