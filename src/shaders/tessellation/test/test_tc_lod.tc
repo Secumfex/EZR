@@ -78,10 +78,15 @@ void main(){
 
              gl_TessLevelInner[0] = mix(e1, e2, 0.5);
              gl_TessLevelInner[1] = mix(e0, e3, 0.5);
-             gl_TessLevelOuter[0] = e0 + 3;
-             gl_TessLevelOuter[1] = e1 + 3;
-             gl_TessLevelOuter[2] = e2 + 3;
-             gl_TessLevelOuter[3] = e3 + 3;
+             gl_TessLevelOuter[0] = e0;
+             gl_TessLevelOuter[1] = e1;
+             gl_TessLevelOuter[2] = e2;
+             gl_TessLevelOuter[3] = e3;
+			 
+			 //gl_TessLevelOuter[0] = 16;
+             //gl_TessLevelOuter[1] = 16;
+             //gl_TessLevelOuter[2] = 16;
+             //gl_TessLevelOuter[3] = 16;
 			 
          }
      }
