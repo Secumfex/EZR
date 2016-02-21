@@ -10,6 +10,7 @@
 #include <functional>
 #include <glm/glm.hpp>
 
+class FrameBufferObject;
 
 GLFWwindow* generateWindow(int width = 1280, int height = 720, int posX = 100, int posY = 100); //!< initialize OpenGL (if not yet initialized) and create a GLFW window
 bool shouldClose(GLFWwindow* window);
@@ -27,8 +28,33 @@ void setScrollCallback(GLFWwindow* window, std::function<void (double, double)> 
 void setCursorEnterCallback(GLFWwindow* window, std::function<void (int)> func); //!< set callback function called when cursor enters window
 void setWindowResizeCallback(GLFWwindow* window, std::function<void (int, int)> func); //!< set callback function called when cursor enters window
 
+glm::vec2 getMainWindowResolution(); //!< returns width and height of the main window (if it exists)
 glm::vec2 getResolution(GLFWwindow* window);
 float getRatio(GLFWwindow* window); //!< returns (width / height) of the window
+
+/**
+* @brief copies the content of one frame buffer to another, either a color attachment or the depth buffer etc
+* @param bitField defines the content to copy, e.g. GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT
+* @param readBuffer (optional) can be set if bitField is GL_COLOR_BUFFER_BIT, if GL_NONE is provided, the default is used (GL_COLOR_ATTACHMENT0) or (GL_BACK), if source is 0 (window)
+* @param filter (optional) can be set if bitField is GL_COLOR_BUFFER_BIT, if GL_NONE is provided, GL_NEAREST is used
+* @param defaultFBOSize (optional) size of 0 framebuffer object, will be read from mainWindowResolution if omitted
+*/
+void copyFBOContent(FrameBufferObject* source, FrameBufferObject* target, GLbitfield bitField, GLenum readBuffer = GL_NONE, GLenum filter = GL_NONE , glm::vec2 defaultFBOSize = glm::vec2(-1.0f, -1.0f));
+void copyFBOContent(GLuint source, GLuint target, glm::vec2 sourceResolution, glm::vec2 targetResolution, GLenum bitField, GLenum readBuffer = GL_NONE, GLenum filter = GL_NONE); //!< like above, but without FBO class
+
+
+template <class T>
+GLuint bufferData(const std::vector<T>& content, GLenum drawType = GL_STATIC_DRAW)
+{
+    GLuint vbo = 0;
+	if ( content.size() != 0 )// && content.size() % dimensions == 0 )
+	{
+		glGenBuffers(1, &vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glBufferData(GL_ARRAY_BUFFER, content.size() * sizeof(T), &content[0], drawType);
+	}
+    return vbo;
+}
 
 /** upload the provided volume data to a 3D OpenGL texture object, i.e. CT-Data*/
 template <typename T>

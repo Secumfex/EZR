@@ -1,10 +1,10 @@
 #version 430
 
-//layout(triangles, equal_spacing, cw) in;
 layout(quads) in;
 
 in vec3 tcPosition[];
 
+out vec4 passPosition;
 out vec3 tePosition;
 
 uniform mat4 projection;
@@ -15,7 +15,7 @@ void main() {
 	//vec4 p0 = gl_TessCoord.x * tcPosition[0];	
 	//vec4 p1 = gl_TessCoord.y * tcPosition[1];
 	//vec4 p2 = gl_TessCoord.z * tcPosition[2];
-	
+
 	float u = gl_TessCoord.x;
 	float v = gl_TessCoord.y;
 	
@@ -28,7 +28,9 @@ void main() {
 	//vec3 b = mix(tcPosition[6], tcPosition[8], gl_TessCoord.x);
 	tePosition = mix(a, b, gl_TessCoord.y);
 	
-	//tePosition = (p0 + p1 + p2 + p3) / 4.0;
 	//tePosition = normalize(p0 + p1 + p2);
-	gl_Position = projection * view * model * vec4(tePosition, 1);
-}
+
+	passPosition = view * model * vec4(tePosition, 1);
+	gl_Position = projection * passPosition;
+ 	}
+

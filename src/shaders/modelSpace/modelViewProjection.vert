@@ -1,4 +1,4 @@
-#version 430
+#version 330
  
  /**
  * This simple shader passes out all important Attributes.

@@ -70,13 +70,20 @@ int main()
 	std::vector<Renderable* > objects;
 	objects.push_back(new Terrain());
 
-	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/height2.png");
+	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_height2.png");
 	GLuint diffTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_grass.jpg");
+	glBindTexture(GL_TEXTURE_2D, diffTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	GLuint rockTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_snow.jpg");
+	glBindTexture(GL_TEXTURE_2D, rockTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	DEBUGLOG->log("Setup: model matrices"); DEBUGLOG->indent();
 	std::vector<glm::mat4 > modelMatrices;
 	modelMatrices.resize(1);
-	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,-0.5f,0.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) * glm::scale(glm::mat4(1.0), glm::vec3(50.0f, 7.0f, 50.0f));
+	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,-0.5f,0.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) * glm::scale(glm::mat4(1.0), glm::vec3(60.0f, 7.0f, 60.0f));
 	glm::mat4 model = modelMatrices[0];
 	DEBUGLOG->outdent();
 
@@ -93,12 +100,13 @@ int main()
 	shaderProgram.update("bt", bezier_transposed);
 	shaderProgram.bindTextureOnUse("terrain", distortionTex);
 	shaderProgram.bindTextureOnUse("diff", diffTex);
+	shaderProgram.bindTextureOnUse("rock", rockTex);
 
-	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
-	FrameBufferObject fbo(shaderProgram.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
-	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
+	//FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
+	//FrameBufferObject fbo(shaderProgram.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
+	//FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
 
-	Quad quad;
+	//Quad quad;
 
 	DEBUGLOG->log("RenderPass Creation: GBuffer"); DEBUGLOG->indent();
 	RenderPass renderPass(&shaderProgram, 0);

@@ -4,6 +4,11 @@
 
 Renderable::Renderable()
 {
+	m_indices.m_size = 0;
+	m_positions.m_size = 0;
+	m_normals.m_size = 0;
+	m_uvs.m_size = 0;
+	m_tangents.m_size = 0;
 }
 
 Renderable::~Renderable()
@@ -12,6 +17,7 @@ Renderable::~Renderable()
     buffers.push_back(m_indices.m_vboHandle);
     buffers.push_back(m_positions.m_vboHandle);
     buffers.push_back(m_normals.m_vboHandle);
+    buffers.push_back(m_tangents.m_vboHandle);
     buffers.push_back(m_uvs.m_vboHandle);
 
     glDeleteBuffersARB(buffers.size(), &buffers[0]);
@@ -37,11 +43,35 @@ GLuint Renderable::createVbo(std::vector<float> content, GLuint dimensions, GLui
 void Renderable::draw()
 {
     bind();
-    glDrawElements(m_mode, m_indices.m_size, GL_UNSIGNED_INT, 0);
-    unbind();
+	if (m_indices.m_size != 0) // indices have been provided, use these
+	{
+		glDrawElements(m_mode, m_indices.m_size, GL_UNSIGNED_INT, 0);
+	}
+	else // no index buffer has been provided, lets assume this has to be rendered in vertex order
+	{
+		glDrawArrays(m_mode, 0, m_positions.m_size);
+	}
+
+	unbind();
 }
 
-GLuint Renderable::createIndexVbo(std::vector<unsigned int> content, GLuint vertexAttributePointer) 
+void Renderable::drawInstanced(int numInstances)
+{
+    bind();
+
+	if (m_indices.m_size != 0) // indices have been provided, use these
+	{
+		glDrawElementsInstanced( m_mode, m_indices.m_size, GL_UNSIGNED_INT, 0, numInstances );
+	}
+	else // no index buffer has been provided, lets assume this has to be rendered in vertex order
+	{
+		glDrawArraysInstanced(m_mode, 0, m_positions.m_size, numInstances );
+	}
+	unbind();
+}
+
+
+GLuint Renderable::createIndexVbo(std::vector<unsigned int> content) 
 {
     
 	GLuint vbo = 0;
@@ -76,6 +106,95 @@ unsigned int Renderable::getIndexCount()
 void Renderable::setDrawMode(GLenum type)
 {
     m_mode = type;
+}
+
+Skybox::Skybox()
+{
+	m_mode = GL_TRIANGLES;
+
+    glGenVertexArrays(1, &m_vao);
+    glBindVertexArray(m_vao);
+
+    GLuint vertexBufferHandles[3];
+    glGenBuffers(3, vertexBufferHandles);
+
+	m_positions.m_vboHandle = vertexBufferHandles[0];
+	m_uvs.m_vboHandle = vertexBufferHandles[1];
+	m_normals.m_vboHandle = vertexBufferHandles[2];
+
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferHandles[0]);
+
+    GLfloat skyboxVertices[] = {
+        // Positions          
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+  
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+  
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+   
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+  
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+  
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f
+    };
+    // Setup skybox VAO
+	glGenVertexArrays(1, &m_vao);
+	glGenBuffers(1, &m_positions.m_vboHandle);
+    glBindVertexArray(m_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_positions.m_vboHandle);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glBindVertexArray(0);
+
+	m_mode = GL_TRIANGLES;
+}
+
+Skybox::~Skybox()
+{
+	std::vector<GLuint> buffers;
+	buffers.push_back(m_positions.m_vboHandle);
+	buffers.push_back(m_uvs.m_vboHandle);
+	buffers.push_back(m_normals.m_vboHandle);
+
+	glDeleteBuffersARB(3, &buffers[0]);
+}
+
+void Skybox::draw()
+{
+    glBindVertexArray(m_vao);
+    glDrawArrays(m_mode, 0, 36);
 }
 
 void Volume::generateBuffers(float size_x, float size_y, float size_z)
@@ -317,9 +436,9 @@ Quad::Quad()
         1.0f, 1.0f
     };
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float), positions, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*8, positions, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(0);
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(float)*8, uv, GL_STATIC_DRAW);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
@@ -351,77 +470,94 @@ Terrain::Terrain()
     m_positions.m_vboHandle = positionBuffer;
     m_mode = GL_PATCHES;
  
-	 float width = 16;  
-	 float height = 16; 
-	 float positio[132224];
+	// erste Reihe
+		//first corner === links unten
+	//	positio[i*31*32 + j * 32] = j / float(width);
+	//	positio[i*31*32 + j * 32 + 1] = i / float(height);
+	//			  
+	//	positio[i*31*32 + j * 32 + 2] = (j + 0.33f) / float(width);
+	//	positio[i*31*32 + j * 32 + 3] = (i + 0.0f) / float(width);
+	//			  
+	//	positio[i*31*32 + j * 32 + 4] = (j + 0.66f) / float(width);
+	//	positio[i*31*32 + j * 32 + 5] = (i + 0.0f)/ float(width);
+	//			  
+	//	positio[i*31*32 + j * 32 + 6] = (j + 1.0f) / float(width);
+	//	positio[i*31*32 + j * 32 + 7] = (i + 0.0f) / float(width);
+	//
+	//	//zweite Reihe
+	//	positio[i*31*32 + j * 32 + 8] = (j + 0.0f) / float(width);
+	//	positio[i*31*32 + j * 32 + 9] = (i + 0.33f) / float(width);
+	//
+	//	positio[i*31*32 + j * 32 + 10] = (j + 0.33f) / float(width);
+	//	positio[i*31*32 + j * 32 + 11] = (i + 0.33f) / float(width);
+	//
+	//	positio[i*31*32 + j * 32 + 12] = (j + 0.66f) / float(width);
+	//	positio[i*31*32 + j * 32 + 13] = (i + 0.33f) / float(width);
+	//
+	//	positio[i*31*32 + j * 32 + 14] = (j + 1.0f) / float(width);
+	//	positio[i*31*32 + j * 32 + 15] = (i + 0.33f) / float(width);
+	//
+	//	//dritte Reihe
+	//	positio[i*31*32 + j * 32 + 16] = (j + 0.0f) / float(width);
+	//	positio[i*31*32 + j * 32 + 17] = (i + 0.66f) / float(width);
+	//
+	//	positio[i*31*32 + j * 32 + 18] = (j + 0.33f) / float(width);
+	//	positio[i*31*32 + j * 32 + 19] = (i + 0.66f) / float(width);
+	//
+	//	positio[i*31*32 + j * 32 + 20] = (j + 0.66f) / float(width);
+	//	positio[i*31*32 + j * 32 + 21] = (i + 0.66f) / float(width);
+	//
+	//	positio[i*31*32 + j * 32 + 22] = (j + 1.0f) / float(width);
+	//	positio[i*31*32 + j * 32 + 23] = (i + 0.66f) / float(width);
+	//
+	//	//vierte Reihe
+	//	//sescond corner === links oben
+	//	positio[i*31*32 + j * 32 + 24] = j/ float(width);
+	//	positio[i*31*32 + j * 32 + 25] = (i+1) / float(height);
+	//
+	//	positio[i*31*32 + j * 32 + 26] = (j + 0.33f) / float(width);
+	//	positio[i*31*32 + j * 32 + 27] = (i + 1.0f) / float(width);
+	//
+	//	positio[i*31*32 + j * 32 + 28] = (j + 0.66f) / float(width);
+	//	positio[i*31*32 + j * 32 + 29] = (i + 1.0f) / float(width);
+	//
+	//	//third corner === oben rechts
+	//	positio[i*31*32 + j * 32 + 30] = (j+1)/ float(width);
+	//	positio[i*31*32 + j * 32 + 31] = (i+1) / float(height);
+
+
+	 float width = 31;  
+	 float height = 31; 
+	 float positio[8300];
 
 	for (int i=0; i<height; i++) {
 		for (int j=0; j<width; j++) {
 
 			// i * width * value_num + j * value_num + {0..value_num-1}
-			//std::cout << positio[i*16*8 + j*8]<<endl;
+			//std::cout << positio[i*32*8 + j*8]<<endl;
 
-		// erste Reihe
-		//first corner === links unten
-		positio[i*16*32 + j * 32] = j / float(width);
-		positio[i*16*32 + j * 32 + 1] = i / float(height);
+			//first corner === links unten
+		positio[i*31*8 + j * 8] = j / float(width);
+		positio[i*31*8 + j*8 + 1] = i / float(height);
 
-		positio[i*16*32 + j * 32 + 2] = (j + 0.33f) / float(width);
-		positio[i*16*32 + j * 32 + 3] = (i + 0.0f) / float(width);
-
-		positio[i*16*32 + j * 32 + 4] = (j + 0.66f) / float(width);
-		positio[i*16*32 + j * 32 + 5] = (i + 0.0f)/ float(width);
-
-		positio[i*16*32 + j * 32 + 6] = (j + 1.0f) / float(width);
-		positio[i*16*32 + j * 32 + 7] = (i + 0.0f) / float(width);
-
-		//zweite Reihe
-		positio[i*16*32 + j * 32 + 8] = (j + 0.0f) / float(width);
-		positio[i*16*32 + j * 32 + 9] = (i + 0.33f) / float(width);
-
-		positio[i*16*32 + j * 32 + 10] = (j + 0.33f) / float(width);
-		positio[i*16*32 + j * 32 + 11] = (i + 0.33f) / float(width);
-
-		positio[i*16*32 + j * 32 + 12] = (j + 0.66f) / float(width);
-		positio[i*16*32 + j * 32 + 13] = (i + 0.33f) / float(width);
-
-		positio[i*16*32 + j * 32 + 14] = (j + 1.0f) / float(width);
-		positio[i*16*32 + j * 32 + 15] = (i + 0.33f) / float(width);
-
-		//dritte Reihe
-		positio[i*16*32 + j * 32 + 16] = (j + 0.0f) / float(width);
-		positio[i*16*32 + j * 32 + 17] = (i + 0.66f) / float(width);
-
-		positio[i*16*32 + j * 32 + 18] = (j + 0.33f) / float(width);
-		positio[i*16*32 + j * 32 + 19] = (i + 0.66f) / float(width);
-
-		positio[i*16*32 + j * 32 + 20] = (j + 0.66f) / float(width);
-		positio[i*16*32 + j * 32 + 21] = (i + 0.66f) / float(width);
-
-		positio[i*16*32 + j * 32 + 22] = (j + 1.0f) / float(width);
-		positio[i*16*32 + j * 32 + 23] = (i + 0.66f) / float(width);
-
-		//vierte Reihe
-		//sescond corner === links oben
-		positio[i*16*32 + j * 32 + 24] = j/ float(width);
-		positio[i*16*32 + j * 32 + 25] = (i+1) / float(height);
-
-		positio[i*16*32 + j * 32 + 26] = (j + 0.33f) / float(width);
-		positio[i*16*32 + j * 32 + 27] = (i + 1.0f) / float(width);
-
-		positio[i*16*32 + j * 32 + 28] = (j + 0.66f) / float(width);
-		positio[i*16*32 + j * 32 + 29] = (i + 1.0f) / float(width);
+			//sescond corner === links oben
+		positio[i*31*8 + j*8 + 2] = j/ float(width);
+		positio[i*31*8 + j*8 + 3] = (i+1) / float(height);
 
 		//third corner === oben rechts
-		positio[i*16*32 + j * 32 + 30] = (j+1)/ float(width);
-		positio[i*16*32 + j * 32 + 31] = (i+1) / float(height);
+		positio[i*31*8 + j*8 + 4] = (j+1)/ float(width);
+		positio[i*31*8 + j*8 + 5] = (i+1) / float(height);
+
+			//fourth corner === unten rechts
+		positio[i*31*8 + j*8 + 6] = (j+1) / float(width);
+		positio[i*31*8 + j*8 + 7] = i / float(height);
 		}
 	}
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(positio),  &positio[0], GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glPatchParameteri(GL_PATCH_VERTICES, 16);
+	glPatchParameteri(GL_PATCH_VERTICES, 4);
 }
 
 Terrain::~Terrain()
@@ -433,7 +569,7 @@ Terrain::~Terrain()
 void Terrain::draw()
 {
     glBindVertexArray(m_vao);
-    glDrawArrays(GL_PATCHES, 0, 300000);
+    glDrawArrays(GL_PATCHES, 0, 3500);
 }
 
 
@@ -695,18 +831,18 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
     int top = 0;
     int bottom = fieldsX+1;
 
-	indices[1] = 0;
-	indices[2] = fieldsY+1;
-	indices[3] = fieldsX+1;
-	indices[4] = fieldsX+1;
-	indices[5] = fieldsY+1;
-	indices[6] = fieldsX+2;
-	indices[7] = fieldsX+2;
-	indices[8] = fieldsY+1;
-	indices[9] = fieldsX+3;
-	indices[10] = fieldsX+3;
-	indices[11] = fieldsY+1;
-	indices[11] = fieldsX+4;
+	//indices[1] = 0;
+	//indices[2] = fieldsY+1;
+	//indices[3] = fieldsX+1;
+	//indices[4] = fieldsX+1;
+	//indices[5] = fieldsY+1;
+	//indices[6] = fieldsX+2;
+	//indices[7] = fieldsX+2;
+	//indices[8] = fieldsY+1;
+	//indices[9] = fieldsX+3;
+	//indices[10] = fieldsX+3;
+	//indices[11] = fieldsY+1;
+	//indices[11] = fieldsX+4;
 
 
     for (int i = 0; i < indices.size(); i++)
@@ -719,11 +855,11 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
 		
 		if (i%2 == 0) // even index: top vertex
         {
-           // indices[i] = top;
+            indices[i] = top;
             top++;
         } 
         else{   //odd index: bottom vertex
-           // indices[i] = bottom;
+            indices[i] = bottom;
             bottom++;
         }
 
@@ -752,6 +888,229 @@ void Grid::draw()
 {
     glBindVertexArray(m_vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indices.m_vboHandle);
-   // glDrawElements(GL_TRIANGLE_STRIP, m_indices.m_size, GL_UNSIGNED_INT, 0);
-     glDrawArrays(GL_POINTS,  0, m_positions.m_size);
+    glDrawElements(GL_TRIANGLE_STRIP, m_indices.m_size, GL_UNSIGNED_INT, 0);
+    // glDrawArrays(GL_POINTS,  0, m_positions.m_size);
+}
+
+TruncatedCone::VertexData TruncatedCone::generateVertexData(float height, float radius_bottom, float radius_top, int resolution, float offset_y, GLenum drawMode)
+{ 
+    VertexData result;
+    
+    // generate vertices and indices
+    const float angle_step = glm::two_pi<float>() / (float) resolution;
+    const float u_step = 1.0f / (float) resolution;
+    int vIdx = 0;
+    for ( int i = 0; i < resolution; i++)
+    {
+        float x = cos((float) i * angle_step);
+        float z = sin((float) i * angle_step);
+
+        // first vert
+        result.positions.push_back( x * radius_bottom );
+        result.positions.push_back( - offset_y);
+        result.positions.push_back( z * radius_bottom );
+        result.uv_coords.push_back( (float) i * u_step); // u_cord
+        result.uv_coords.push_back( 0.0f); // v_coord
+        
+        glm::vec3 normal = glm::normalize( glm::vec3(x, 0.0f, z));
+        result.normals.push_back( normal.x );
+        result.normals.push_back( normal.y );
+        result.normals.push_back( normal.z );
+
+		result.indices.push_back(vIdx);
+	
+        vIdx ++;
+        
+        // second vert
+        if ( radius_top != 0.0f)
+        {
+            result.positions.push_back( x * radius_top);
+            result.positions.push_back( height - offset_y);
+            result.positions.push_back( z * radius_top);
+
+			result.indices.push_back(vIdx);
+            vIdx ++;
+
+            glm::vec3 normal = glm::normalize( glm::vec3(x, 0.0f, z));
+            result.normals.push_back( normal.x );
+            result.normals.push_back( normal.y );
+            result.normals.push_back( normal.z );
+
+            result.uv_coords.push_back( (float) i * u_step); // u_cord
+            result.uv_coords.push_back( 1.0f); // v_coord
+        
+        }
+        else // always the same vertex, so create it only once and resue its index
+        {
+            static bool once = true;
+            if (once) // push back the top vertex 
+            {
+                result.positions.push_back( x * radius_top);
+                result.positions.push_back( height - offset_y);
+                result.positions.push_back( z * radius_top);
+
+                glm::vec3 normal = glm::vec3(0.0f, 1.0f, 0.0f);
+                result.normals.push_back( normal.x );
+                result.normals.push_back( normal.y );
+                result.normals.push_back( normal.z );        
+
+                result.uv_coords.push_back( (float) i * u_step); // u_cord
+                result.uv_coords.push_back( 1.0f); // v_coord
+                
+                vIdx ++;
+                once = false;
+            }
+			result.indices.push_back(1);
+        }
+    }
+
+    // reuse first and second vertices as last positions
+	result.indices.push_back(0);
+	result.indices.push_back(1);
+
+	if ( drawMode == GL_TRIANGLES)
+	{
+		result.indices.clear(); // lets start over
+		if ( radius_top == 0.0f) // reuse top vertex
+		{
+			// first triangle
+			result.indices.push_back(0);
+			result.indices.push_back(1);
+			result.indices.push_back(2);
+
+			for (int i = 2; i <= resolution; i++)
+			{
+				result.indices.push_back(i);
+				result.indices.push_back(1);
+				result.indices.push_back(((i+1) % (resolution+1)));
+			}
+		}
+		else
+		{
+			for( int i = 0; i < resolution * 2 - 2; i++)
+			{
+				// bottom left triangle
+				result.indices.push_back(i);
+				result.indices.push_back(i + 1);
+				result.indices.push_back((i+2) % (resolution * 2 -1));
+			}
+
+			result.indices.push_back(2*resolution - 2);
+			result.indices.push_back(1);
+			result.indices.push_back(0);
+		}
+	}
+
+    return result;
+}
+
+TruncatedCone::TruncatedCone(float height, float radius_bottom, float radius_top, int resolution, float offset_y)
+{
+	glGenVertexArrays(1, &m_vao);
+    glBindVertexArray(m_vao);
+
+    m_mode = GL_TRIANGLE_STRIP;
+
+	std::vector<float> positions;
+    std::vector<float> normals;
+	std::vector<float> uv_coords;
+	std::vector<unsigned int>   indices;
+	
+	bool once = true;
+			
+	// generate vertices and indices
+	const float angle_step = glm::two_pi<float>() / (float) resolution;
+	const float u_step = 1.0f / (float) resolution;
+	int vIdx = 0;
+	for ( int i = 0; i < resolution; i++)
+	{
+		float x = cos((float) i * angle_step);
+		float z = sin((float) i * angle_step);
+
+		// first vert
+		positions.push_back( x * radius_bottom );
+		positions.push_back( - offset_y);
+		positions.push_back( z * radius_bottom );
+		uv_coords.push_back( (float) i * u_step); // u_cord
+		uv_coords.push_back( 0.0f); // v_coord
+		
+        glm::vec3 normal = glm::normalize( glm::vec3(x, 0.0f, z));
+        normals.push_back( normal.x );
+        normals.push_back( normal.y );
+        normals.push_back( normal.z );
+
+		indices.push_back(vIdx);
+		vIdx ++;
+		
+		// second vert
+		if ( radius_top != 0.0f)
+		{
+			positions.push_back( x * radius_top);
+			positions.push_back( height - offset_y);
+			positions.push_back( z * radius_top);
+			indices.push_back(vIdx );
+			vIdx ++;
+
+            glm::vec3 normal = glm::normalize( glm::vec3(x, 0.0f, z));
+            normals.push_back( normal.x );
+            normals.push_back( normal.y );
+            normals.push_back( normal.z );
+
+            uv_coords.push_back( (float) i * u_step); // u_cord
+            uv_coords.push_back( 1.0f); // v_coord
+        
+		}
+		else // always the same vertex, so create it only once and resue its index
+		{
+			if (once) // push back the top vertex 
+			{
+				positions.push_back( x * radius_top);
+				positions.push_back( height - offset_y);
+				positions.push_back( z * radius_top);
+
+                glm::vec3 normal = glm::normalize( glm::vec3(x, 0.0f, z));
+                normals.push_back( normal.x );
+                normals.push_back( normal.y );
+                normals.push_back( normal.z );        
+
+        		uv_coords.push_back( (float) i * u_step); // u_cord
+        		uv_coords.push_back( 1.0f); // v_coord
+                
+                vIdx ++;
+                once = false;
+            }
+            indices.push_back(1);
+        }
+	}
+
+	// reuse first and second vertices as last positions
+	indices.push_back(0);
+	indices.push_back(1);
+
+	// buffer vertex data
+	m_positions.m_vboHandle = createVbo(positions, 3, 0);
+	m_uvs.m_vboHandle = createVbo(uv_coords, 2, 1);
+	m_normals.m_vboHandle = createVbo(normals, 3, 2); //TODO
+	m_indices.m_vboHandle = createIndexVbo(indices);
+
+	m_uvs.m_size = uv_coords.size() / 2;
+	m_positions.m_size = positions.size() / 3;
+	m_indices.m_size = indices.size();
+	m_normals.m_size = normals.size() / 3;
+
+    glBindVertexArray(0);
+}
+
+TruncatedCone::~TruncatedCone()
+{
+	glDeleteBuffersARB(1, &(m_positions.m_vboHandle));
+    glDeleteBuffersARB(1, &(m_uvs.m_vboHandle));
+    glDeleteBuffersARB(1, &(m_normals.m_vboHandle));
+}
+
+void TruncatedCone::draw()
+{
+	glBindVertexArray(m_vao);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indices.m_vboHandle);
+	glDrawElements(m_mode, m_indices.m_size, GL_UNSIGNED_INT, 0);
 }

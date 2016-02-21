@@ -38,7 +38,7 @@ public:
 
 	void uploadUniform(ShaderProgram* shader) {
 		if (p_value != 0) {
-			shader->update(*p_value, m_name);
+			shader->update(m_name, *p_value);
 		}
 	}
 };

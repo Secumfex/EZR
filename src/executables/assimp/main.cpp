@@ -12,13 +12,14 @@
 #include <Rendering/VertexArrayObjects.h>
  #include <Rendering/RenderPass.h>
 
-// #include "UI/imgui/imgui.h"
-// #include <UI/imguiTools.h>
+ #include "UI/imgui/imgui.h"
+ #include <UI/imguiTools.h>
 #include <UI/Turntable.h>
 
-// #include <Importing/TextureTools.h>
+ #include <Importing/TextureTools.h>
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 ////////////////////// PARAMETERS /////////////////////////////
@@ -26,6 +27,8 @@ const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 
 static glm::vec4 s_color = glm::vec4(0.45 * 0.3f, 0.44f * 0.3f, 0.87f * 0.3f, 1.0f); // far : blueish
 static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
+
+static glm::vec3 s_scale = glm::vec3(1.0f,1.0f,1.0f);
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -50,16 +53,29 @@ int main()
 
 	// import using ASSIMP and check for errors
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile( file, aiProcessPreset_TargetRealtime_MaxQuality);
-	if (scene == NULL)
+	bool success = false;
+	while (!success)
 	{
-		std::string errorString = importer.GetErrorString();
-		DEBUGLOG->log("ERROR: " + errorString);
-		cout << "ENTER ANYTHING TO EXIT" << endl; cin >> errorString;
-		exit(-1);
-	} else {
-		DEBUGLOG->log("Asset has been loaded successfully");
-	}
+		const aiScene* temp = importer.ReadFile( file, aiProcessPreset_TargetRealtime_MaxQuality);
+		if (temp == NULL)
+		{
+			std::string errorString = importer.GetErrorString();
+			DEBUGLOG->log("ERROR: " + errorString); DEBUGLOG->log("Try again...");
+
+			std::cout << RESOURCES_PATH << "/"; std::getline(cin, input);
+			if (input == std::string("")) {	DEBUGLOG->log("No file name provided, loading 'cube.obj' instead."); input = "cube.obj"; }
+			file = RESOURCES_PATH "/" + input;
+			importer.FreeScene();
+			importer.ReadFile( file, aiProcessPreset_TargetRealtime_MaxQuality);
+		}
+		else
+		{
+			success = true;
+		}
+	} 
+	const aiScene* scene = importer.GetScene();
+
+	DEBUGLOG->log("Asset has been loaded successfully");
 	
 	// print some asset info
 	DEBUGLOG->log("Asset (scene) info: ");	DEBUGLOG->indent();
@@ -69,7 +85,16 @@ int main()
 		{
 			aiMesh* m = scene->mMeshes[i];
 			DEBUGLOG->log(std::string("mesh ") + DebugLog::to_string(i) + std::string(": ") + std::string( m->mName.C_Str() ));
-		}DEBUGLOG->outdent();
+		}
+		for ( unsigned int i = 0; i < scene->mNumMaterials; i++ )
+		{
+			DEBUGLOG->log(std::string("material ") + DebugLog::to_string(i) + std::string(": "));
+			auto matInfo = AssimpTools::getMaterialInfo(scene, i);
+			DEBUGLOG->indent();
+				AssimpTools::printMaterialInfo(matInfo);
+			DEBUGLOG->outdent();
+		}
+		DEBUGLOG->outdent();
 	DEBUGLOG->outdent();
 
 	DEBUGLOG->outdent();
@@ -82,7 +107,7 @@ int main()
 	//////////////////////////////////////////////////////////////////////////////
 	
 	/////////////////////     Scene / View Settings     //////////////////////////
-	glm::vec4 eye(0.0f, 0.0f, 3.0f, 1.0f);
+	glm::vec4 eye(0.0f, 0.0f, 5.0f, 1.0f);
 	glm::vec4 center(0.0f,0.0f,0.0f,1.0f);
 	glm::mat4 view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0,1,0));
 
@@ -100,16 +125,46 @@ int main()
 
 	/////////////////////     Upload assets (create Renderables / VAOs from data)    //////////////////////////
 	DEBUGLOG->log("Setup: creating VAOs from mesh data"); DEBUGLOG->indent();
-	std::vector<AssimpTools::RenderableInfo> renderableInfoVector = AssimpTools::createSimpleRenderablesFromScene( scene );
-
-	for (auto r : renderableInfoVector)
+//	std::vector<AssimpTools::RenderableInfo> renderableInfoVector = AssimpTools::createSimpleRenderablesFromScene( scene );
+	auto vertexData = AssimpTools::createVertexDataInstancesFromScene(scene);
+	auto renderables = AssimpTools::createSimpleRenderablesFromVertexDataInstances(vertexData);
+	for (auto r : renderables)
 	{
-		objects.push_back(r.renderable); // extract list of renderables
-		DEBUGLOG->log("corresponding aiScene mesh idx: ", r.meshIdx); DEBUGLOG->indent();
-		DEBUGLOG->log("name      : " + r.name);
-		DEBUGLOG->log("bbox size : " , r.boundingBox.max - r.boundingBox.min); DEBUGLOG->outdent();
+		objects.push_back(r);
 	}
+
+	//glm::vec3 bbox_min(FLT_MAX);
+	//glm::vec3 bbox_max(-FLT_MAX);
+	//for (auto r : renderableInfoVector)
+	//{
+	//	objects.push_back(r.renderable); // extract list of renderables
+	//	DEBUGLOG->log("corresponding aiScene mesh idx: ", r.meshIdx); DEBUGLOG->indent();
+	//	DEBUGLOG->log("name      : " + r.name);
+	//	DEBUGLOG->log("bbox size : " , r.boundingBox.max - r.boundingBox.min); DEBUGLOG->outdent();
+
+		//AssimpTools::checkMax(bbox_max, r.boundingBox.max);
+		//AssimpTools::checkMin(bbox_min, r.boundingBox.min);
+
+	//}
+	
+	// upload textures used by mesh
+	std::map<aiTextureType, GLuint> textures;
+	for (int i = 0; i < scene->mNumMaterials; i++)
+	{
+		auto matInfo = AssimpTools::getMaterialInfo(scene, i);
+		DEBUGLOG->indent();
+			AssimpTools::printMaterialInfo(matInfo);
+		DEBUGLOG->outdent();
+		for (auto t : matInfo.texture) // load all textures used with this material
+		{
+			GLuint tex = TextureTools::loadTextureFromResourceFolder(t.second.relativePath);
+			if (tex != -1){ textures[t.first] = tex; } // save if successfull
+		}
+	}
+
 	DEBUGLOG->outdent();
+	// recenter view
+	//center = glm::vec4(glm::vec3(center) + 0.5f * (bbox_max - bbox_min) + bbox_min, center.w);
 
 	/////////////////////// 	Renderpasses     ///////////////////////////
 	 // regular GBuffer
@@ -118,6 +173,13 @@ int main()
 	 shaderProgram.update("model", model);
 	 shaderProgram.update("view", view);
 	 shaderProgram.update("projection", perspective);
+
+	 // check for displayable textures 
+	 if (textures.find(aiTextureType_DIFFUSE) != textures.end())
+	 { shaderProgram.bindTextureOnUse("tex", textures.at(aiTextureType_DIFFUSE)); shaderProgram.update("mixTexture", 1.0);}
+	 if (textures.find(aiTextureType_NORMALS) != textures.end() && shaderProgram.getUniformInfoMap()->find("normalTex") != shaderProgram.getUniformInfoMap()->end()) 
+	 { shaderProgram.bindTextureOnUse("normalTex", textures.at(aiTextureType_NORMALS));shaderProgram.update("hasNormalTex", true);}
+
 	 DEBUGLOG->outdent();
 
 	 DEBUGLOG->log("FrameBufferObject Creation: GBuffer"); DEBUGLOG->indent();
@@ -157,18 +219,19 @@ int main()
 	//////////////////////////////////////////////////////////////////////////////
 
 	// Setup ImGui binding
- //    ImGui_ImplGlfwGL3_Init(window, true);
+     ImGui_ImplGlfwGL3_Init(window, true);
 
 	Turntable turntable;
 	double old_x;
     double old_y;
 	glfwGetCursorPos(window, &old_x, &old_y);
 	
-	// 	ImGuiIO& io = ImGui::GetIO();
-	// 	if ( io.WantCaptureMouse )
-	// 	{ return; } // ImGUI is handling this
+
 	auto cursorPosCB = [&](double x, double y)
 	{
+	 	ImGuiIO& io = ImGui::GetIO();
+	 	if ( io.WantCaptureMouse )
+	 	{ return; } // ImGUI is handling this
 
 		double d_x = x - old_x;
 		double d_y = y - old_y;
@@ -199,28 +262,28 @@ int main()
 	 auto keyboardCB = [&](int k, int s, int a, int m)
 	 {
 	 	if (a == GLFW_RELEASE) {return;} 
-	// 	switch (k)
-	// 	{
-	// 		case GLFW_KEY_W:
-	// 			eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
-	// 			center += glm::inverse(view) * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
-	// 			break;
-	// 		case GLFW_KEY_A:
-	// 			eye += glm::inverse(view)	 * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
-	// 			center += glm::inverse(view) * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
-	// 			break;
-	// 		case GLFW_KEY_S:
-	// 			eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,0.1f,0.0f);
-	// 			center += glm::inverse(view) * glm::vec4(0.0f,0.0f,0.1f,0.0f);
-	// 			break;
-	// 		case GLFW_KEY_D:
-	// 			eye += glm::inverse(view)    * glm::vec4(0.1f,0.0f,0.0f,0.0f);
-	// 			center += glm::inverse(view) * glm::vec4(0.1f,0.0f,0.0f,0.0f);
-	// 			break;
-	// 		default:
-	// 			break;
-	// 	}
-	// 	ImGui_ImplGlfwGL3_KeyCallback(window,k,s,a,m);
+	 	switch (k)
+	 	{
+	 		case GLFW_KEY_W:
+	 			eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
+	 			center += glm::inverse(view) * glm::vec4(0.0f,0.0f,-0.1f,0.0f);
+	 			break;
+	 		case GLFW_KEY_A:
+	 			eye += glm::inverse(view)	 * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
+	 			center += glm::inverse(view) * glm::vec4(-0.1f,0.0f,0.0f,0.0f);
+	 			break;
+	 		case GLFW_KEY_S:
+	 			eye += glm::inverse(view)    * glm::vec4(0.0f,0.0f,0.1f,0.0f);
+	 			center += glm::inverse(view) * glm::vec4(0.0f,0.0f,0.1f,0.0f);
+	 			break;
+	 		case GLFW_KEY_D:
+	 			eye += glm::inverse(view)    * glm::vec4(0.1f,0.0f,0.0f,0.0f);
+	 			center += glm::inverse(view) * glm::vec4(0.1f,0.0f,0.0f,0.0f);
+	 			break;
+	 		default:
+	 			break;
+	 	}
+	 	ImGui_ImplGlfwGL3_KeyCallback(window,k,s,a,m);
 	 };
 
 	setCursorPosCallback(window, cursorPosCB);
@@ -249,16 +312,16 @@ int main()
 		glfwSetWindowTitle(window, window_header.c_str() );
 
 		////////////////////////////////     GUI      ////////////////////////////////
-  //       ImGuiIO& io = ImGui::GetIO();
-		// ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
-		
+         ImGuiIO& io = ImGui::GetIO();
+		 ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
+		 ImGui::SliderFloat3("strength", glm::value_ptr(s_scale), 0.0f, 10.0f);
 		// ImGui::PushItemWidth(-100);
 
 		// ImGui::ColorEdit4( "color", glm::value_ptr( s_color)); // color mixed at max distance
   //       ImGui::SliderFloat("strength", &s_strength, 0.0f, 2.0f); // influence of color shift
         
-		// ImGui::Checkbox("auto-rotate", &s_isRotating); // enable/disable rotating volume
-		// ImGui::PopItemWidth();
+		 //ImGui::Checkbox("auto-rotate", &s_isRotating); // enable/disable rotating volume
+		 //ImGui::PopItemWidth();
 
         //////////////////////////////////////////////////////////////////////////////
 
@@ -270,7 +333,7 @@ int main()
 		// update view related uniforms
 		shaderProgram.update( "view", view);
 		shaderProgram.update( "color", s_color);
-		shaderProgram.update( "model", turntable.getRotationMatrix() * model);
+		shaderProgram.update( "model", turntable.getRotationMatrix() * model * glm::scale(s_scale));
 
 		compShader.update("vLightPos", view * s_lightPos);
 		//////////////////////////////////////////////////////////////////////////////
@@ -280,9 +343,9 @@ int main()
 
 		compositing.render();
 
-		// ImGui::Render();
-		// glDisable(GL_BLEND);
-		// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
+		 ImGui::Render();
+		 glDisable(GL_BLEND);
+		 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
 		//////////////////////////////////////////////////////////////////////////////
 
 	});
