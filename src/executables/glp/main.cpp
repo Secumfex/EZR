@@ -110,6 +110,7 @@ void gauss(PyramideFBO& pyramide, ShaderProgram& reduceShader, Quad& quad)
 		reduceShader.update("level", level);
 		quad.draw();
 	}
+
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	if (depthTestEnableState){glEnable(GL_DEPTH_TEST);}
 }
@@ -118,7 +119,7 @@ void laplace(PyramideFBO& laplacePyramide, PyramideFBO& gaussPyramide, ShaderPro
 {
 	GLboolean depthTestEnableState = glIsEnabled(GL_DEPTH_TEST);
 	if (depthTestEnableState) {glDisable(GL_DEPTH_TEST);}
-	laplaceShader.updateAndBindTexture("tex", 0, gaussPyramide.texture);
+	laplaceShader.bindTextureOnUse("tex", gaussPyramide.texture);
 	laplaceShader.use();
 	for (int level = 0; level < (int) laplacePyramide.fbo.size() - 1; level++)
 	{
@@ -129,8 +130,29 @@ void laplace(PyramideFBO& laplacePyramide, PyramideFBO& gaussPyramide, ShaderPro
 		laplaceShader.update("level", level);
 		quad.draw();
 	}
+
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	if (depthTestEnableState){glEnable(GL_DEPTH_TEST);}
+}
+
+void reconstruct(PyramideFBO& gaussPyramide, PyramideFBO& laplacePyramide, ShaderProgram& reconstructionShader, int gaussBaseLevel, std::vector<GLint>& laplaceLevels, Quad& quad, GLuint targetFBO)
+{
+	// GLboolean depthTestEnableState = glIsEnabled(GL_DEPTH_TEST);
+	// if (depthTestEnableState) {glDisable(GL_DEPTH_TEST);}
+
+	// upload gaussBaseLevel and laplaceLevels to uniform array
+	reconstructionShader.use();
+
+	reconstructionShader.updateAndBindTexture("gaussPyramide", 0, gaussPyramide.texture);
+	reconstructionShader.update("gaussBaseLevel", gaussBaseLevel);
+	reconstructionShader.bindTextureOnUse("laplacePyramide", laplacePyramide.texture);
+	glUniform1iv(glGetUniformLocation(reconstructionShader.getShaderProgramHandle(), "laplaceLevels"), laplaceLevels.size(), &laplaceLevels[0]);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, targetFBO);
+	glViewport(0,0, laplacePyramide.size, laplacePyramide.size);
+	quad.draw();
+
+	// if (depthTestEnableState){glEnable(GL_DEPTH_TEST);}
 }
 
 int main()
@@ -168,9 +190,18 @@ int main()
 	sh_gaussPyramide.update("radius", radius);
 	glUniform1fv(glGetUniformLocation(sh_gaussPyramide.getShaderProgramHandle(), "binomWeights"), binomialMasks[2 * radius].size(), &binomialMasks[2 * radius][0]);
 
-
-	//TODO compile laplace pyramide shader
+	// compile laplace pyramide shader
 	ShaderProgram sh_laplacePyramide("/screenSpace/fullscreen.vert", "/screenSpace/laplacePyramide.frag");
+
+	// compile reconstruction shader
+	ShaderProgram sh_reconstruct("/screenSpace/fullscreen.vert", "/screenSpace/reconstructGLP.frag");
+	int gaussBaseLevel = 7;
+	std::vector<GLint> laplaceLevels(laplacePyramide.numLevels, 0);
+	// laplaceLevels[0] = 1;
+	laplaceLevels[1] = 1;
+	// laplaceLevels[2] = 1;
+	// laplaceLevels[3] = 1;
+	// laplaceLevels[4] = 1;
 
 	// misc
 	auto keyboardCB = [&](int k, int s, int a, int m)
@@ -211,13 +242,20 @@ int main()
 	// try it
 	render( window, [&](double)
 	{
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		gauss(gaussPyramide, sh_gaussPyramide, quad);
 		laplace(laplacePyramide, gaussPyramide, sh_laplacePyramide, quad);
 
+		reconstruct(gaussPyramide, laplacePyramide, sh_reconstruct, gaussBaseLevel, laplaceLevels, quad, 0);
+
 		// show filtered texture
-		r_showTex.setViewport(0, 0, 512, 512);
+		r_showTex.setViewport(512, 0, 512/2, 512/2);
+		sh_showTex.bindTextureOnUse("tex", gaussPyramide.texture);
+		r_showTex.render();
+
+		r_showTex.setViewport(512, 512/2, 512/2, 512/2);
 		sh_showTex.bindTextureOnUse("tex", laplacePyramide.texture);
 		r_showTex.render();
 	});
