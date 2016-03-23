@@ -6,6 +6,7 @@
 #include <UI/imgui/imgui.h>
 
 #include <glm/gtc/type_ptr.hpp>
+#include <algorithm>
 
 namespace{float log_2( float n )  
 {  
@@ -36,7 +37,7 @@ PostProcessing::BoxBlur::BoxBlur(int width, int height, Quad* quad)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT); 
 
 	glGenerateMipmap(GL_TEXTURE_2D);
-	int mipmapNumber = (int) log_2( (float) max(width,height) );
+	int mipmapNumber = (int) log_2( (float) std::max(width,height) );
 
 	m_mipmapFBOHandles.resize(mipmapNumber);
 	glGenFramebuffers(mipmapNumber, &m_mipmapFBOHandles[0]);
@@ -65,7 +66,7 @@ void PostProcessing::BoxBlur::push(int numLevels, int beginLevel)
 	GLboolean depthTestEnableState = glIsEnabled(GL_DEPTH_TEST);
 	if (depthTestEnableState) {glDisable(GL_DEPTH_TEST);}
 	m_pushShaderProgram.use();
-	for (int level = min( (int) m_mipmapFBOHandles.size()-2, beginLevel+numLevels-1); level >= beginLevel; level--)
+	for (int level = std::min( (int) m_mipmapFBOHandles.size()-2, beginLevel+numLevels-1); level >= beginLevel; level--)
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, m_mipmapFBOHandles[level]);
 		m_pushShaderProgram.update("level", level);
