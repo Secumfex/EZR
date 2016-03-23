@@ -94,11 +94,12 @@ int main()
 	// import using ASSIMP and check for errors
 	Assimp::Importer importer;
 	DEBUGLOG->log("Loading branch model");
-	std::string branchModel = "branch_detailed.dae";
+	std::string branchModel = "branch_simple.dae";
 	
 	const aiScene* scene = AssimpTools::importAssetFromResourceFolder(branchModel, importer);
 	std::map<aiTextureType, AssimpTools::MaterialTextureInfo> branchTexturesInfo;
 	if (scene != NULL) branchTexturesInfo = AssimpTools::getMaterialTexturesInfo(scene, 0);
+	AssimpTools::printMaterialInfo(AssimpTools::getMaterialInfo(scene,0));
 	if (scene != NULL) s_material_texture_handles.resize(scene->mNumMaterials);
 
 	for (auto e : branchTexturesInfo)
@@ -204,7 +205,14 @@ int main()
 	treeRendering.foliageShader->bindTextureOnUse("windField", windField.m_vectorTextureHandle);
 	treeRendering.branchShader->update( "windFieldArea", windFieldArea);
 	treeRendering.foliageShader->update("windFieldArea", windFieldArea);
-	
+
+	// height tex
+	GLuint heightTex = TextureTools::loadTextureFromResourceFolder("blackHeight.png");
+	treeRendering.branchShader->bindTextureOnUse( "heightMap", heightTex);
+	treeRendering.foliageShader->bindTextureOnUse("heightMap", heightTex);
+	treeRendering.branchShader->update( "heightMapRange", windFieldArea);
+	treeRendering.foliageShader->update("heightMapRange", windFieldArea);
+
 	// create one render pass per tree type
 	treeRendering.createAndConfigureRenderpasses( &scene_gbuffer, 0 );
 	
@@ -368,6 +376,7 @@ int main()
 
 		//&&&&&&&&&&& COMPOSITING UNIFORMS &&&&&&&&&&&&&&//
 		compShader.update("vLightPos", cam.getViewMatrix() * s_lightPos);
+		treeRendering.foliageShader->update("vLightDir", cam.getViewMatrix() * glm::vec4(glm::vec3(- s_lightPos),0.0));
 		//bloomShader.update("depth", s_strength);
 		bloomShader.update("intensity", s_strength);
 		//////////////////////////////////////////////////////////////////////////////
