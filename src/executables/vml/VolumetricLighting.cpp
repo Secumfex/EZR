@@ -102,6 +102,6 @@ void VolumetricLighting::setupNoiseTexture() {
     checkGLError(true);
 };
 
-void VolumetricLighting::updateView(glm::mat4 cameraView, glm::mat4 lightView) {
+// void VolumetricLighting::updateView(glm::mat4 cameraView, glm::mat4 lightView) {
 
-}
+// }
