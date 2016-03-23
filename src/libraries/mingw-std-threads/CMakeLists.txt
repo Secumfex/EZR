@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 2.8)
+if(MINGW)
+	ADD_DEFINITIONS(-DMINGW_STD_THREADS)
+	include(${CMAKE_MODULE_PATH}/DefaultLibrary.cmake)
+endif()
