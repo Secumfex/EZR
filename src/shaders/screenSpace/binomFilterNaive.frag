@@ -7,6 +7,8 @@ in vec3 passPosition;
 uniform sampler2D tex;
 uniform int radius;
 
+uniform int level;
+
 uniform float binomWeights[33]; //max radius: 16
 
 const int MAX_RADIUS = 16;
@@ -24,15 +26,13 @@ float getWeight(int i, int j)
 
 void main() 
 {
-	vec4 texColor = texture(tex, passPosition.xy);
-
 	vec4 filteredColor = vec4(0,0,0,0);
 	float totalWeight = 0.0;
 	for ( int i = -radius; i <= radius; i++)
 	{
 		for (int j = -radius; j <= radius; j ++)
 		{
-			vec4 currentSample = textureOffset( tex, passPosition.xy, ivec2(i,j) );
+			vec4 currentSample = textureLodOffset( tex, passPosition.xy, float(level-1), ivec2(i,j) );
 			float currentWeight = getWeight(i,j);
 			filteredColor += currentSample * currentWeight;
 			totalWeight += currentWeight;
