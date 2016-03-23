@@ -19,6 +19,10 @@ include_directories(
     ${LIBRARIES_PATH}
 )
 
+if (MINGW)
+    include_directories(${MINGW_THREADS_INCLUDE_PATH})
+endif()
+
 file(GLOB_RECURSE SOURCES *.cpp)
 file(GLOB_RECURSE HEADER *.h)
 
@@ -35,6 +39,5 @@ target_link_libraries(
     ${ASSIMP_LIBRARIES}
     ${GLFW3_LIBRARIES}
     ${GLEW_LIBRARIES}
-#    ${IMGUI_LIBARRIES}
     ${OpenGL3_LIBRARIES}
 )

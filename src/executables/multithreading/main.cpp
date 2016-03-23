@@ -4,7 +4,11 @@
 
 #include <iostream>
  
-#include <thread>  
+#ifdef MINGW_THREADS
+ 	#include <mingw-std-threads/mingw.thread.h>
+#else
+ 	#include <thread>
+#endif
 
 ////////////////////// PARAMETERS /////////////////////////////
 const int NUM_THREADS = 10;
@@ -37,12 +41,15 @@ int main()
 		t[i].join();
 	}
 
-	/////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
 
-	//while (!shouldClose(window))
-	//{
+	float wait;
+	std::cin >> wait;
 
-	//}
+	// while (!shouldClose(window))
+	// {
+
+	// }
 
 	return 0;
 }

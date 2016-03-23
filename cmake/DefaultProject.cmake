@@ -29,7 +29,10 @@ find_package(OpenGL3 REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(GLFW3 REQUIRED)
 find_package(GLM REQUIRED)
-# find_package(IMGUI REQUIRED)
+
+if (MINGW)
+	find_package(MinGWThreads REQUIRED)
+endif(MINGW)
 
 if("${CMAKE_SYSTEM}" MATCHES "Linux")
 	find_package(X11)
