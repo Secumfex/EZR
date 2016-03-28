@@ -15,20 +15,21 @@ layout(location = 0) out vec4 fragColor;
 
 void main() 
 {
+	// vec4 reconstructed = vec4(0,0,0,0);
 	vec4 reconstructed = textureLod( gaussPyramide, passPosition.xy, float(gaussBaseLevel));
-	float samples = 1.0;
+	// float samples = 1.0;
 	
 	for (int i = 0; i < laplaceLevels.length(); i++)
 	{
 		if ( laplaceLevels[i] != 0)
 		{
 			reconstructed += textureLod( laplacePyramide, passPosition.xy, float(i));
-			samples += 1.0;
+			// samples += 1.0;
 		}
 	}
-	reconstructed /= samples;
+	// reconstructed /= samples;
 
 	fragColor = vec4( reconstructed.rgb, 1.0);
 
-	// fragColor = texture(gaussPyramide, passPosition.xy);
+	// fragColor = textureLod(laplacePyramide, passPosition.xy, float(gaussBaseLevel) );
 }

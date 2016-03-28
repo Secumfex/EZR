@@ -32,7 +32,13 @@ void main()
 	{
 		for (int j = -radius; j <= radius; j ++)
 		{
-			vec4 currentSample = textureLodOffset( tex, passPosition.xy, float(level-1), ivec2(i,j) );
+			vec2 texelSize = 1.0 / vec2(textureSize(tex, level-1));
+			vec2 offset = vec2(0.0);
+			offset.x += float(i) * texelSize.x;
+			offset.y += float(j) * texelSize.y;
+
+//			vec4 currentSample = textureLodOffset( tex, passPosition.xy, float(level-1), ivec2(i,j) );
+			vec4 currentSample = textureLod( tex, passPosition.xy + offset, float(level-1) );
 			float currentWeight = getWeight(i,j);
 			filteredColor += currentSample * currentWeight;
 			totalWeight += currentWeight;

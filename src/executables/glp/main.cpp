@@ -3,61 +3,15 @@
  */
 
 #include <Rendering/RenderPass.h>
-#include <Rendering/GLTools.h>
 #include <Importing/TextureTools.h>
 #include <Rendering/VertexArrayObjects.h>
 
-#include <algorithm>
+#include "UI/imgui/imgui.h"
+#include <UI/imguiTools.h>
+
+#include "misc.cpp"
 
 const int MAX_RADIUS = 16;
-
-void computeMasks(int level, std::vector<std::vector<GLfloat>>& binomialMasks)
-{
-	binomialMasks.resize(level+1);
-
-	binomialMasks[0].resize(1); // base level
-	binomialMasks[0][0] = 1;
-
-	for ( int i = 1; i <= level; i++ )
-	{
-		binomialMasks[i].resize(i + 1);
-
-		for ( int j = 0; j < binomialMasks[i].size();j ++)
-		{
-			// left Value
-			int left = 0;
-			if (j-1 >= 0 && j-1 < binomialMasks[i-1].size())
-			{
-				left = binomialMasks[i-1][j-1]; 
-			}
-			int right = 0;
-			if (j >= 0 && j < binomialMasks[i-1].size())
-			{
-				right = binomialMasks[i-1][j]; 
-			}
-			binomialMasks[i][j] = left + right;
-		}
-	}
-
-	// normalize each level
-	for ( int i = 1; i <= level; i++ )
-	{
-		GLfloat weight = 0.0f;
-		for ( int j = 0; j < binomialMasks[i].size(); j++)
-		{
-			weight += binomialMasks[i][j];
-		}
-		for ( int j = 0; j < binomialMasks[i].size(); j++)
-		{
-			binomialMasks[i][j] /= weight;
-		}
-	}
-}
-
-float log_2( float n )  
-{  
-    return log( n ) / log( 2 );
-}
 
 struct PyramideFBO
 {
@@ -73,7 +27,7 @@ struct PyramideFBO
 		glBindTexture(GL_TEXTURE_2D, texture);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, size,size, 0, GL_RGBA, GL_UNSIGNED_INT, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // does this do anything?
-		glGenerateMipmap(GL_TEXTURE_2D);
+		glGenerateMipmap(GL_TEXTURE_2D);	
 
 		// set texture filter parameters
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -145,7 +99,7 @@ void reconstruct(PyramideFBO& gaussPyramide, PyramideFBO& laplacePyramide, Shade
 
 	reconstructionShader.updateAndBindTexture("gaussPyramide", 0, gaussPyramide.texture);
 	reconstructionShader.update("gaussBaseLevel", gaussBaseLevel);
-	reconstructionShader.bindTextureOnUse("laplacePyramide", laplacePyramide.texture);
+	reconstructionShader.updateAndBindTexture("laplacePyramide",1, laplacePyramide.texture);
 	glUniform1iv(glGetUniformLocation(reconstructionShader.getShaderProgramHandle(), "laplaceLevels"), laplaceLevels.size(), &laplaceLevels[0]);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, targetFBO);
@@ -197,11 +151,9 @@ int main()
 	ShaderProgram sh_reconstruct("/screenSpace/fullscreen.vert", "/screenSpace/reconstructGLP.frag");
 	int gaussBaseLevel = 7;
 	std::vector<GLint> laplaceLevels(laplacePyramide.numLevels, 0);
-	// laplaceLevels[0] = 1;
 	laplaceLevels[1] = 1;
-	// laplaceLevels[2] = 1;
-	// laplaceLevels[3] = 1;
-	// laplaceLevels[4] = 1;
+
+    ImGui_ImplGlfwGL3_Init(window, true);
 
 	// misc
 	auto keyboardCB = [&](int k, int s, int a, int m)
@@ -236,6 +188,7 @@ int main()
 	 		default:
 	 			break;
 	 	}
+		ImGui_ImplGlfwGL3_KeyCallback(window,k,s,a,m);
 	 };
 	setKeyCallback(window, keyboardCB);
 
@@ -244,6 +197,20 @@ int main()
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		ImGuiIO& io = ImGui::GetIO();
+		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
+
+		// laplace levels
+        ImGui::Checkbox("0", (bool*) &laplaceLevels[0]);
+        ImGui::Checkbox("1", (bool*) &laplaceLevels[1]);
+        ImGui::Checkbox("2", (bool*) &laplaceLevels[2]);
+        ImGui::Checkbox("3", (bool*) &laplaceLevels[3]);
+        ImGui::Checkbox("4", (bool*) &laplaceLevels[4]);
+        ImGui::Checkbox("5", (bool*) &laplaceLevels[5]);
+        ImGui::Checkbox("6", (bool*) &laplaceLevels[6]);
+        ImGui::Checkbox("7", (bool*) &laplaceLevels[7]);
+        ImGui::SliderInt("gauss base", &gaussBaseLevel, 0, gaussPyramide.numLevels);
 
 		gauss(gaussPyramide, sh_gaussPyramide, quad);
 		laplace(laplacePyramide, gaussPyramide, sh_laplacePyramide, quad);
@@ -258,7 +225,13 @@ int main()
 		r_showTex.setViewport(512, 512/2, 512/2, 512/2);
 		sh_showTex.bindTextureOnUse("tex", laplacePyramide.texture);
 		r_showTex.render();
+
+		glViewport(0,0,1024,512);
+		ImGui::Render();
+		glDisable(GL_BLEND);
 	});
+
+	destroyWindow(window);
 
 	return 0;
 }
