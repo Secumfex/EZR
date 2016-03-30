@@ -32,8 +32,10 @@ int main()
 	//TODO load image
 	TextureTools::TextureInfo image1Info;
 	auto image1 = TextureTools::loadTextureFromResourceFolder("lena.png", &image1Info);
+	// auto image1 = TextureTools::loadTextureFromResourceFolder("test1.png", &image1Info);
 	TextureTools::TextureInfo image2Info;
 	auto image2 = TextureTools::loadTextureFromResourceFolder("face.jpg", &image2Info);
+	// auto image2 = TextureTools::loadTextureFromResourceFolder("test2.png", &image2Info);
 
 	// for arbitrary texture display
 	ShaderProgram sh_showTex("/screenSpace/fullscreen.vert", "/screenSpace/simpleAlphaTextureLod.frag");

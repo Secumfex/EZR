@@ -38,7 +38,8 @@ void main()
 	float numSlices = 20.0;
 	float nextSlice = floor( startUVW.y * numSlices ) + 1.0;
 	float stepSize = 0.01;
-	float parameterStepSize = stepSize / length(endUVW.xyz - startUVW.xyz); // necessary parametric steps to get from start to end
+//	float parameterStepSize = stepSize / length(endUVW.xyz - startUVW.xyz); // necessary parametric steps to get from start to end
+	float parameterStepSize = ( (nextSlice / numSlices) - startUVW.y ) / rayDir.y + 0.01;
 
 	vec4 reconstructed = vec4(0.0, 0.0, 0.0, 0.0);
 
@@ -66,9 +67,12 @@ void main()
 				}
 			}
 
-			reconstructed = mix(reconstructed, curInterpolation, 0.2 * length(curInterpolation.xyz) );
+			reconstructed = mix(reconstructed, curInterpolation, 0.2  * length(curInterpolation.xyz) );
+			// reconstructed = mix(reconstructed, curInterpolation, curInterpolation.a );
 
 			nextSlice += sliceDirection.y;
+
+			parameterStepSize = ( (nextSlice/ numSlices) - curUVW.y ) / rayDir.y + 0.01; 
 		}
 	}
 
