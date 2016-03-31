@@ -85,6 +85,16 @@ int main()
 	// compile reconstruction interpolation shader
 	ShaderProgram sh_reconstructInterpolate("/screenSpace/fullscreen.vert", "/screenSpace/reconstructInterpolateGLP.frag");
 	
+	ShaderProgram sh_simpleBlend("/screenSpace/fullscreen.vert", "/screenSpace/simpleTextureBlending.frag");
+	sh_simpleBlend.bindTextureOnUse("tex1", image1);
+	sh_simpleBlend.bindTextureOnUse("tex2", image2);
+	// FrameBufferObject simpleBlendFBO(sh_simpleBlend.getOutputInfoMap(), 512,512);
+	RenderPass r_simpleBlend(&sh_simpleBlend, 0);
+	r_simpleBlend.addDisable(GL_DEPTH_TEST);
+	r_simpleBlend.setViewport(512,0,512,512);
+	// r_simpleBlend.addClearBit(GL_COLOR_BUFFER_BIT);
+	r_simpleBlend.addRenderable(&quad);
+
 	int gaussBaseLevel = 7;
 	std::vector<GLint> laplaceLevels(laplacePyramide1.numLevels, 0);
 	laplaceLevels[1] = 1;
@@ -272,25 +282,15 @@ int main()
 
 		// reconstruct(gaussPyramide1, laplacePyramide1, sh_reconstruct, gaussBaseLevel, laplaceLevels, quad, 0);
 		float t = 0.5f + sin(elapsedTime * 0.5f) * 0.5f;
+		sh_simpleBlend.update("t", t);
 		reconstructInterpolate(reconstructionBase1, reconstructionBase2, sh_reconstructInterpolate, gaussBaseLevel, laplaceLevels, t, quad, 0);
 
-		// show filtered texture
-		r_showTex.setViewport(512, 0, 512/2, 512/2);
-		sh_showTex.bindTextureOnUse("tex", gaussPyramide1.texture);
-		r_showTex.render();
+		// 
+		r_simpleBlend.render();
 
-		r_showTex.setViewport(512, 512/2, 512/2, 512/2);
-		sh_showTex.bindTextureOnUse("tex", laplacePyramide1.texture);
-		r_showTex.render();
-
-		// show filtered textures
-		r_showTex.setViewport(512+512/2, 0, 512/2, 512/2);
-		sh_showTex.bindTextureOnUse("tex", gaussPyramide2.texture);
-		r_showTex.render();
-
-		r_showTex.setViewport(512+512/2, 512/2, 512/2, 512/2);
-		sh_showTex.bindTextureOnUse("tex", laplacePyramide2.texture);
-		r_showTex.render();
+		// r_showTex.setViewport(512, 0, 512, 512);
+		// sh_showTex.bindTextureOnUse("tex", simpleBlendFBO.getBuffer("fragColor"));
+		// r_showTex.render();
 
 		//render volume
 		r_uvwCoords.render();
