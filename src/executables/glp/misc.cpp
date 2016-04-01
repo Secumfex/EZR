@@ -89,8 +89,8 @@ inline void laplace(PyramideFBO& laplacePyramide, PyramideFBO& gaussPyramide, Sh
 
 inline void reconstruct(PyramideFBO& gaussPyramide, PyramideFBO& laplacePyramide, ShaderProgram& reconstructionShader, int gaussBaseLevel, std::vector<GLint>& laplaceLevels, Quad& quad, GLuint targetFBO)
 {
-	// GLboolean depthTestEnableState = glIsEnabled(GL_DEPTH_TEST);
-	// if (depthTestEnableState) {glDisable(GL_DEPTH_TEST);}
+	GLboolean depthTestEnableState = glIsEnabled(GL_DEPTH_TEST);
+	if (depthTestEnableState) {glDisable(GL_DEPTH_TEST);}
 
 	// upload gaussBaseLevel and laplaceLevels to uniform array
 	reconstructionShader.use();
@@ -104,7 +104,7 @@ inline void reconstruct(PyramideFBO& gaussPyramide, PyramideFBO& laplacePyramide
 	glViewport(0,0, laplacePyramide.size, laplacePyramide.size);
 	quad.draw();
 
-	// if (depthTestEnableState){glEnable(GL_DEPTH_TEST);}
+	if (depthTestEnableState){glEnable(GL_DEPTH_TEST);}
 }
 
 struct ReconstructionBase

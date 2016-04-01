@@ -17,7 +17,7 @@ const int MAX_RADIUS = 16;
 
 void reconstructInterpolateVolume(ReconstructionBase& base1, ReconstructionBase& base2, RenderPass& rayCast, int gaussBaseLevel, std::vector<GLint>& laplaceLevels)
 {
-	//rayCast.getShaderProgram()->update("gaussBaseLevel", gaussBaseLevel);
+	rayCast.getShaderProgram()->update("gaussBaseLevel", gaussBaseLevel);
 	glUseProgram(rayCast.getShaderProgram()->getShaderProgramHandle());
 	glUniform1iv(glGetUniformLocation(rayCast.getShaderProgram()->getShaderProgramHandle(), "laplaceLevels"), laplaceLevels.size(), &laplaceLevels[0]);
 	
@@ -31,11 +31,11 @@ int main()
 	Quad quad;
 	//TODO load image
 	TextureTools::TextureInfo image1Info;
-	auto image1 = TextureTools::loadTextureFromResourceFolder("lena.png", &image1Info);
-	// auto image1 = TextureTools::loadTextureFromResourceFolder("test1.png", &image1Info);
+	// auto image1 = TextureTools::loadTextureFromResourceFolder("lena.png", &image1Info);
+	auto image1 = TextureTools::loadTextureFromResourceFolder("17.png", &image1Info);
 	TextureTools::TextureInfo image2Info;
-	auto image2 = TextureTools::loadTextureFromResourceFolder("face.jpg", &image2Info);
-	// auto image2 = TextureTools::loadTextureFromResourceFolder("test2.png", &image2Info);
+	// auto image2 = TextureTools::loadTextureFromResourceFolder("face.jpg", &image2Info);
+	auto image2 = TextureTools::loadTextureFromResourceFolder("18.png", &image2Info);
 
 	// for arbitrary texture display
 	ShaderProgram sh_showTex("/screenSpace/fullscreen.vert", "/screenSpace/simpleAlphaTextureLod.frag");
@@ -96,28 +96,30 @@ int main()
 	r_simpleBlend.addRenderable(&quad);
 
 	int gaussBaseLevel = 7;
-	std::vector<GLint> laplaceLevels(laplacePyramide1.numLevels, 0);
-	laplaceLevels[1] = 1;
+	std::vector<GLint> laplaceLevels(laplacePyramide1.numLevels, 1);
+	// laplaceLevels[1] = 1;
 
 
 	/////////////// Volume Rendering //////////////
-	Volume volume(1.0f,1.0f,0.5f);
-	glm::vec4 eye(2.0f, 2.0f, 2.0f, 1.0f);
+	Volume volume(1.0f,1.0f,1.0f);
+	float depthScale = 0.1f;
+	glm::vec4 eye(0.5f, 0.5f, 3.0f, 1.0f);
 	glm::vec4 center(0.0f,0.0f,0.0f,1.0f);
 	glm::mat4 view = glm::lookAt(glm::vec3(eye), glm::vec3(center), glm::vec3(0,1,0));
-	glm::mat4 perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 10.f);
+	glm::mat4 perspective = glm::perspective(glm::radians(32.f), getRatio(window), 0.1f, 10.f);
 
 	// shader that will render back or front faces of the volume
 	ShaderProgram uvwShader("/modelSpace/volumeMVP.vert", "/modelSpace/volumeUVW.frag");
-	uvwShader.update("model", glm::mat4(1.0f));
+	uvwShader.update("model", glm::scale(glm::vec3(1.0f,1.0f,depthScale)));
 	uvwShader.update("view", view);
 	uvwShader.update("projection", perspective);
 	FrameBufferObject uvwFBO(uvwShader.getOutputInfoMap(), 512,512);
 
+    int numSlices = 15;
 	ShaderProgram raycastShader("/screenSpace/fullscreen.vert", "/modelSpace/reconstructInterpolateVolumeGLP.frag");
-	// raycastShader.update("model", glm::mat4(1.0f));
-	// raycastShader.update("view", view);
-	// raycastShader.update("projection", perspective);
+	ShaderProgram raycastShader2("/screenSpace/fullscreen.vert", "/modelSpace/reconstructInterpolateVolumeGLP_simpleBlending.frag");
+	raycastShader.update("numSlices", (float) numSlices);
+	raycastShader2.update("numSlices", (float) numSlices);
 
 	RenderPass r_uvwCoords(&uvwShader, &uvwFBO);
 	r_uvwCoords.addRenderable(&volume);
@@ -129,6 +131,15 @@ int main()
 	r_rayCast.setViewport(0,512,512,512);
 	r_rayCast.addRenderable(&quad);
 	r_rayCast.addDisable(GL_DEPTH_TEST);
+
+	RenderPass r_rayCast2(&raycastShader2, 0);
+	r_rayCast2.setViewport(512,512,512,512);
+	r_rayCast2.addRenderable(&quad);
+	r_rayCast2.addDisable(GL_DEPTH_TEST);
+	raycastShader2.bindTextureOnUse("gaussPyramide1", reconstructionBase1.gaussPyramide->texture);
+	raycastShader2.bindTextureOnUse("gaussPyramide2", reconstructionBase2.gaussPyramide->texture);
+	raycastShader2.bindTextureOnUse("uvwFront", uvwFBO.getBuffer("fragUVRCoordBack"));
+	raycastShader2.bindTextureOnUse("uvwBack",  uvwFBO.getBuffer("fragUVRCoordFront"));
 
 	//raycastShader.bindTextureOnUse("gaussPyramide1", reconstructionBase1.gaussPyramide->texture);
 	raycastShader.bindTextureOnUse("laplacePyramide1", reconstructionBase1.laplacePyramide->texture);
@@ -263,15 +274,22 @@ int main()
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
 
 		// laplace levels
-        ImGui::Checkbox("0", (bool*) &laplaceLevels[0]);
-        ImGui::Checkbox("1", (bool*) &laplaceLevels[1]);
-        ImGui::Checkbox("2", (bool*) &laplaceLevels[2]);
-        ImGui::Checkbox("3", (bool*) &laplaceLevels[3]);
-        ImGui::Checkbox("4", (bool*) &laplaceLevels[4]);
-        ImGui::Checkbox("5", (bool*) &laplaceLevels[5]);
-        ImGui::Checkbox("6", (bool*) &laplaceLevels[6]);
+        ImGui::Checkbox("0", (bool*) &laplaceLevels[0]); ImGui::SameLine();
+        ImGui::Checkbox("1", (bool*) &laplaceLevels[1]); ImGui::SameLine();
+        ImGui::Checkbox("2", (bool*) &laplaceLevels[2]); ImGui::SameLine();
+        ImGui::Checkbox("3", (bool*) &laplaceLevels[3]); ImGui::SameLine();
+        ImGui::Checkbox("4", (bool*) &laplaceLevels[4]); ImGui::SameLine();
+        ImGui::Checkbox("5", (bool*) &laplaceLevels[5]); ImGui::SameLine();
+        ImGui::Checkbox("6", (bool*) &laplaceLevels[6]); ImGui::SameLine();
         ImGui::Checkbox("7", (bool*) &laplaceLevels[7]);
         ImGui::SliderInt("gauss base", &gaussBaseLevel, 0, gaussPyramide1.numLevels-1);
+        ImGui::SliderInt("num slices", &numSlices, 0, 40);
+		ImGui::SliderFloat("depth", &depthScale, 0.0f, 1.0f);
+	
+		uvwShader.update("model", glm::scale(glm::vec3(1.0f,1.0f,depthScale)));
+
+		raycastShader.update("numSlices", (float) numSlices);
+		raycastShader2.update("numSlices", (float) numSlices);
 
 		// Build reconstruction bases
 		gauss(gaussPyramide1, sh_gaussPyramide, quad);
@@ -281,27 +299,20 @@ int main()
 		laplace(laplacePyramide2, gaussPyramide2, sh_laplacePyramide, quad);
 
 		// reconstruct(gaussPyramide1, laplacePyramide1, sh_reconstruct, gaussBaseLevel, laplaceLevels, quad, 0);
-		float t = 0.5f + sin(elapsedTime * 0.5f) * 0.5f;
+		float t = 0.5f + sin(elapsedTime * 1.0f) * 0.5f;
+		ImGui::Value("t", t);
 		sh_simpleBlend.update("t", t);
 		reconstructInterpolate(reconstructionBase1, reconstructionBase2, sh_reconstructInterpolate, gaussBaseLevel, laplaceLevels, t, quad, 0);
 
 		// 
 		r_simpleBlend.render();
 
-		// r_showTex.setViewport(512, 0, 512, 512);
-		// sh_showTex.bindTextureOnUse("tex", simpleBlendFBO.getBuffer("fragColor"));
-		// r_showTex.render();
-
 		//render volume
 		r_uvwCoords.render();
 
-		r_showTex.setViewport(512, 512, 512, 512);
-		// sh_showTex.bindTextureOnUse("tex", uvwFBO.getBuffer("fragUVRCoordBack"));
-		sh_showTex.bindTextureOnUse("tex", uvwFBO.getBuffer("fragUVRCoordFront"));
-		r_showTex.render();
-
 		// render raycasting
 		reconstructInterpolateVolume(reconstructionBase1, reconstructionBase2, r_rayCast, gaussBaseLevel, laplaceLevels);
+		r_rayCast2.render();
 
 		glViewport(0, 0, 1024, 1024);
 		ImGui::Render();

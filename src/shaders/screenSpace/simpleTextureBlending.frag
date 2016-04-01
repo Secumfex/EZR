@@ -19,5 +19,6 @@ void main()
 	
 	vec4 reconstructed = mix(texColor1, texColor2, t);
 
-	fragColor = vec4( reconstructed.rgb, 1.0);
+	fragColor = vec4( reconstructed.rgb * 4.0, 1.0);
+	// fragColor = vec4( reconstructed.a);
 }

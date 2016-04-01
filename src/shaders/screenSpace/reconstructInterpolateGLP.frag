@@ -24,6 +24,8 @@ void main()
 	
 	vec4 reconstructed = mix(gaussbase1, gaussbase2, t);
 
+	float levelsOfFirst = t * 8.0; // should be number of levels of image
+
 	for (int i = 0; i < laplaceLevels.length(); i++)
 	{
 		if ( laplaceLevels[i] != 0)
@@ -31,9 +33,11 @@ void main()
 			vec4 laplace1 = textureLod( laplacePyramide1, passPosition.xy, float(i));
 			vec4 laplace2 = textureLod( laplacePyramide2, passPosition.xy, float(i));
 
-			reconstructed += mix(laplace1, laplace2, t);
+			vec4 laplace = mix(laplace2, laplace1, max(0.0, min( 1.0, float(i+1.0) - levelsOfFirst) ) );
+
+			reconstructed += laplace;
 		}
 	}
 
-	fragColor = vec4( reconstructed.rgb, 1.0);
+	fragColor = vec4( reconstructed.rgb * 4.0, 1.0);
 }
