@@ -359,10 +359,10 @@ ShaderProgram* ShaderProgram::update(std::string name, double value)
 	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
-		if (m_uniformCache.doubles.find(name) ==  m_uniformCache.doubles.end() || m_uniformCache.doubles.at(name) != value)
+		if (m_uniformCache.floats.find(name) ==  m_uniformCache.floats.end() || m_uniformCache.floats.at(name) != (float) value)
 		{
 			glUniform1f(u, value);
-			m_uniformCache.doubles[name] = value;
+			m_uniformCache.floats[name] = value;
 		}
 	return this;
 }

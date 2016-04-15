@@ -14,12 +14,11 @@
 struct UniformCache
 {
 	std::map<std::string, float> floats;
-	std::map<std::string, double> doubles;
 	std::map<std::string, glm::vec4> vecs;
 	std::map<std::string, glm::ivec4> ivecs;
 	std::map<std::string, glm::mat4> mats;
 	std::map<std::string, int> ints;
-	void clearCache(){ floats.clear(); doubles.clear(); vecs.clear(); ivecs.clear(); mats.clear(); ints.clear(); }
+	void clearCache(){ floats.clear(); vecs.clear(); ivecs.clear(); mats.clear(); ints.clear(); }
 };
 
 class ShaderProgram
