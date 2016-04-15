@@ -239,7 +239,7 @@ int main()
 	std::function<void(Renderable*)> perRenderableFunction = [&](Renderable* r){ 
 		static int i = 0;
 		shaderProgram.update("model", turntable.getRotationMatrix() * modelMatrices[i]);
-		shaderProgram.update("mixTexture", 0.0);
+		shaderProgram.update("mixTexture", 0.0f);
 
 		if (i == 2) // is billboard
 		{

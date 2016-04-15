@@ -8,6 +8,19 @@
 #include <string>
 #include <glm/glm.hpp>
 
+/**
+* @brief a simple struct that holds maps to cache current uniforms
+*/
+struct UniformCache
+{
+	std::map<std::string, float> floats;
+	std::map<std::string, glm::vec4> vecs;
+	std::map<std::string, glm::ivec4> ivecs;
+	std::map<std::string, glm::mat4> mats;
+	std::map<std::string, int> ints;
+	void clearCache(){ floats.clear(); vecs.clear(); ivecs.clear(); mats.clear(); ints.clear(); }
+};
+
 class ShaderProgram
 {
 
@@ -249,7 +262,8 @@ public:
 	inline std::map<std::string, Info>* getOutputInfoMap(){return &m_outputMap;} //!< returns the Texturemap
 	inline std::map<std::string, Info>* getInputInfoMap(){return &m_inputMap;} //!< returns the Texturemap
 	inline std::map<std::string, GLuint>* getTextureMap()	{return &m_textureMap;} //!< returns the Texturemap
-	
+	inline UniformCache* uniformCache(){return &m_uniformCache;}; // returns the Uniform Cache
+	inline void clearCache(){ m_uniformCache.clearCache(); };
 	/**
 	 * @brief Logs all active bound uniforms to the console
 	 */
@@ -262,7 +276,6 @@ public:
 	 * @brief Logs all active bound output buffers to the console
 	 */
 	void printOutputInfo();
-
 
 	void printInfo(std::map<std::string, Info>* map);
 
@@ -345,6 +358,9 @@ protected:
 
 	// Map of texture handles that will be bound to the associated (sampler-) name when use() is called
 	std::map<std::string, GLuint> m_textureMap;
+
+	// contains maps to check for old uniforms before issuing OpenGL commands
+	UniformCache m_uniformCache;
 
 public:
 	static std::string getTypeString(GLenum type);
