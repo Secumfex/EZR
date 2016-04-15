@@ -212,6 +212,9 @@ int main()
 				eye += glm::inverse(view)    * glm::vec4(0.1f,0.0f,0.0f,0.0f);
 				center += glm::inverse(view) * glm::vec4(0.1f,0.0f,0.0f,0.0f);
 				break;
+			case GLFW_KEY_DELETE:
+				shaderProgram.clearCache();geomShader.clearCache(); boxBlur.m_pushShaderProgram.clearCache();
+				break;
 			default:
 				break;
 		}

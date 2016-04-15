@@ -319,7 +319,11 @@ ShaderProgram* ShaderProgram::update(std::string name, bool value)
 	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
-	glUniform1i(u, value);
+		if (m_uniformCache.ints.find(name) ==  m_uniformCache.ints.end() || m_uniformCache.ints.at(name) != (int) value)
+		{
+			glUniform1i(u, value); 
+			m_uniformCache.ints[name] = (int) value;
+		}
 	return this;
 }
 
@@ -328,7 +332,11 @@ ShaderProgram* ShaderProgram::update(std::string name, int value)
 	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
-	glUniform1i(u, value);
+		if (m_uniformCache.ints.find(name) ==  m_uniformCache.ints.end() || m_uniformCache.ints.at(name) != value)
+		{
+			glUniform1i(u, value);
+			m_uniformCache.ints[name] = value;
+		}
 	return this;
 }
 
@@ -337,7 +345,11 @@ ShaderProgram* ShaderProgram::update(std::string name, float value)
 	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
-	glUniform1f(u, value);
+		if (m_uniformCache.floats.find(name) ==  m_uniformCache.floats.end() || m_uniformCache.floats.at(name) != value)
+		{
+			glUniform1f(u, value); 
+			m_uniformCache.floats[name] = value;
+		}
 
 	return this;
 }
@@ -347,7 +359,11 @@ ShaderProgram* ShaderProgram::update(std::string name, double value)
 	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
-	glUniform1f(u, value);
+		if (m_uniformCache.doubles.find(name) ==  m_uniformCache.doubles.end() || m_uniformCache.doubles.at(name) != value)
+		{
+			glUniform1f(u, value);
+			m_uniformCache.doubles[name] = value;
+		}
 	return this;
 }
 
@@ -356,7 +372,11 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::ivec2& vector)
 	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
-	glUniform2iv(u, 1, glm::value_ptr(vector));
+		if (m_uniformCache.ivecs.find(name) ==  m_uniformCache.ivecs.end() || m_uniformCache.ivecs.at(name) != glm::ivec4(vector,0,0))
+		{
+			glUniform2iv(u, 1, glm::value_ptr(vector)); 
+			m_uniformCache.ivecs[name] = glm::ivec4(vector,0,0);
+		}
 	return this;
 }
 
@@ -365,7 +385,11 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::ivec3& vector)
 	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
-	glUniform3iv(u, 1, glm::value_ptr(vector));
+		if (m_uniformCache.ivecs.find(name) ==  m_uniformCache.ivecs.end() || m_uniformCache.ivecs.at(name) != glm::ivec4(vector,0))
+		{
+			glUniform3iv(u, 1, glm::value_ptr(vector));
+			m_uniformCache.ivecs[name] = glm::ivec4(vector,0);
+		}
 	return this;
 }
 
@@ -374,7 +398,11 @@ ShaderProgram* ShaderProgram::update(std::string name,const glm::ivec4& vector)
 	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
-	glUniform4iv(u, 1, glm::value_ptr(vector));
+		if (m_uniformCache.ivecs.find(name) ==  m_uniformCache.ivecs.end() || m_uniformCache.ivecs.at(name) != vector)
+		{
+			glUniform4iv(u, 1, glm::value_ptr(vector));
+			m_uniformCache.ivecs[name] = vector;
+		}
 	return this;
 }
 
@@ -383,7 +411,11 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::vec2& vector)
 	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
-	glUniform2fv(u, 1, glm::value_ptr(vector));
+		if (m_uniformCache.vecs.find(name) ==  m_uniformCache.vecs.end() || m_uniformCache.vecs.at(name) != glm::vec4(vector, 0.0f, 0.0f))
+		{
+			glUniform2fv(u, 1, glm::value_ptr(vector)); 
+			m_uniformCache.vecs[name] = glm::vec4(vector,0,0);
+		}
 	return this;
 }
 
@@ -392,7 +424,11 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::vec3& vector)
 	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
-	glUniform3fv(uniform(name), 1, glm::value_ptr(vector));
+		if (m_uniformCache.vecs.find(name) ==  m_uniformCache.vecs.end() || m_uniformCache.vecs.at(name) != glm::vec4(vector, 0.0f))
+		{
+			glUniform3fv(uniform(name), 1, glm::value_ptr(vector)); 
+			m_uniformCache.vecs[name] = glm::vec4(vector,0);
+		}
 	return this;
 }
 
@@ -401,7 +437,11 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::vec4& vector)
 	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
-	glUniform4fv(u, 1, glm::value_ptr(vector));
+		if (m_uniformCache.vecs.find(name) ==  m_uniformCache.vecs.end() || m_uniformCache.vecs.at(name) != vector)
+		{
+			glUniform4fv(u, 1, glm::value_ptr(vector));
+			m_uniformCache.vecs[name] = vector;
+		}
 	return this;
 }
 
@@ -410,7 +450,11 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::mat2& matrix)
 	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
-	glUniformMatrix2fv(u, 1, GL_FALSE, glm::value_ptr(matrix));
+		if (m_uniformCache.mats.find(name) ==  m_uniformCache.mats.end() || m_uniformCache.mats.at(name) != glm::mat4(matrix))
+		{
+			glUniformMatrix2fv(u, 1, GL_FALSE, glm::value_ptr(matrix)); 
+			m_uniformCache.mats[name] = glm::mat4(matrix);
+		}
 	return this;
 }
 
@@ -419,7 +463,11 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::mat3& matrix)
 	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
-	glUniformMatrix3fv(u, 1, GL_FALSE, glm::value_ptr(matrix));
+		if (m_uniformCache.mats.find(name) == m_uniformCache.mats.end() || m_uniformCache.mats.at(name) != glm::mat4(matrix))
+		{
+			glUniformMatrix3fv(u, 1, GL_FALSE, glm::value_ptr(matrix));
+			m_uniformCache.mats[name] = glm::mat4(matrix);
+		}
 	return this;
 }
 
@@ -428,7 +476,11 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::mat4& matrix)
 	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
-	glUniformMatrix4fv(u, 1, GL_FALSE, glm::value_ptr(matrix));
+		if (m_uniformCache.mats.find(name) == m_uniformCache.mats.end() || m_uniformCache.mats.at(name) != matrix)
+		{
+			glUniformMatrix4fv(u, 1, GL_FALSE, glm::value_ptr(matrix));
+			m_uniformCache.mats[name] = glm::mat4(matrix);
+		}
 	return this;
 }
 
