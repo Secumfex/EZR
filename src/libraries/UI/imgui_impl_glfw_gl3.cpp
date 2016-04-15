@@ -4,6 +4,8 @@
 #include "imgui/imgui.h"
 #include "imgui_impl_glfw_gl3.h"
 
+#include "Rendering/OpenGLContext.h"
+
 // GL3W/GLFW
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -52,7 +54,7 @@ static void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
         { 0.0f,			0.0f,			-1.0f,		0.0f },
         { -1.0f,		1.0f,			0.0f,		1.0f },
     };
-    glUseProgram(g_ShaderHandle);
+    OPENGLCONTEXT->useShader(g_ShaderHandle);
     glUniform1i(g_AttribLocationTex, 0);
     glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
     glBindVertexArray(g_VaoHandle);
@@ -88,7 +90,7 @@ static void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    glUseProgram(last_program);
+    OPENGLCONTEXT->useShader(last_program);
     glDisable(GL_SCISSOR_TEST);
     glBindTexture(GL_TEXTURE_2D, last_texture);
 }
