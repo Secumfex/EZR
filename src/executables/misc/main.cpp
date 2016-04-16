@@ -56,7 +56,7 @@ void updateVectorTexture(double elapsedTime)
 	}
 	else
 	{
-		OPENGLCONTEXT->bindTexture(s_vectorTexture, GL_TEXTURE0);
+		OPENGLCONTEXT->bindTextureToUnit(s_vectorTexture, GL_TEXTURE0);
 
 		auto evaluate = [&](float t, float offsetX, float offsetY){
 			float x = sin(t + offsetX) * 0.5f + 0.5f;
@@ -276,10 +276,10 @@ int main()
 
 		updateVectorTexture(elapsedTime);
 
-		OPENGLCONTEXT->bindTexture(s_vectorTexture, GL_TEXTURE0);
+		OPENGLCONTEXT->bindTextureToUnit(s_vectorTexture, GL_TEXTURE0);
 
 	//	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
-		OPENGLCONTEXT->bindTexture(s_texHandle, GL_TEXTURE1);
+		OPENGLCONTEXT->bindTextureToUnit(s_texHandle, GL_TEXTURE1);
 		geomShader.update("tex", 1);
 		geomShader.update("blendColor", 2.0);
 		//geomShader.update("color", s_color);

@@ -71,7 +71,7 @@ void TreeAnimation::WindField::updateVectorTexture(double elapsedTime)
 	}
 
 	// upload to texture
-	OPENGLCONTEXT->bindTexture(m_vectorTextureHandle, GL_TEXTURE0);
+	OPENGLCONTEXT->bindTextureToUnit(m_vectorTextureHandle, GL_TEXTURE0);
 
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, m_width, m_height, GL_RGB, GL_FLOAT, &m_vectorTexData[0] );
 	OPENGLCONTEXT->bindTexture(0);
