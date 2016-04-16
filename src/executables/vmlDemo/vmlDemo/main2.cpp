@@ -381,7 +381,7 @@ int main2()
         texShader.bindTextureOnUse("tex", shadowMap.getDepthTextureHandle());
         showShadowMap.render();
 
-        glViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
+        OPENGLCONTEXT->setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
         ImGui::Render();
 		//////////////////////////////////////////////////////////////////////////////
 

@@ -288,7 +288,7 @@ FrameBufferObject::FrameBufferObject(std::map<std::string, ShaderProgram::Info>*
 
 void FrameBufferObject::bind() {
 	OPENGLCONTEXT->bindFBO(m_frameBufferHandle);
-	glViewport( 0, 0, m_width, m_height);
+	OPENGLCONTEXT->setViewport(0, 0, m_width, m_height);
 }
 
 void FrameBufferObject::unbind() {

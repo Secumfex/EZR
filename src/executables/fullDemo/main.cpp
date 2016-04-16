@@ -764,7 +764,7 @@ int main()
 		}
 
 
-		glViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y); // reset
+		OPENGLCONTEXT->setViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y); // reset
 		}
 
 		///////////// IMGUI /////////////////////////////

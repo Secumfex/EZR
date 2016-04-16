@@ -113,7 +113,6 @@ int main()
 		elapsedTime = glfwGetTime();
 		dt = elapsedTime - dt;
 		glfwSetWindowTitle(window, DebugLog::to_string( 1.0 / dt ).c_str());
-		DEBUGLOG->log("loop time: ", elapsedTime);
 
 		// asynchronously do stuff with the vector texture data
 		if (finished)

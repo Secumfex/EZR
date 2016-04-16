@@ -143,7 +143,7 @@ void PostProcessing::DepthOfField::execute(GLuint positionMap, GLuint colorMap)
 	if (depthTestEnableState) {glDisable(GL_DEPTH_TEST);}
 
 	// compute COC map
-	glViewport(0,0,m_width, m_height);
+	OPENGLCONTEXT->setViewport(0,0,m_width, m_height);
 	m_cocFBO->bind();
 	m_calcCoCShader.updateAndBindTexture("colorMap", 0, colorMap);
 	m_calcCoCShader.updateAndBindTexture("positionMap", 1, positionMap);
@@ -152,7 +152,7 @@ void PostProcessing::DepthOfField::execute(GLuint positionMap, GLuint colorMap)
 
 	// compute DoF
 	// horizontal pass 
-	glViewport(0, 0, m_hDofFBO->getWidth(), m_hDofFBO->getHeight());
+	OPENGLCONTEXT->setViewport(0, 0, m_hDofFBO->getWidth(), m_hDofFBO->getHeight());
 	m_hDofFBO->bind();
 	m_dofShader.use();
 	m_dofShader.update("HORIZONTAL", true);
@@ -160,7 +160,7 @@ void PostProcessing::DepthOfField::execute(GLuint positionMap, GLuint colorMap)
 	m_quad->draw();
 
 	// vertical pass
-	glViewport(0,0,m_vDofFBO->getWidth(), m_vDofFBO->getHeight());
+	OPENGLCONTEXT->setViewport(0,0,m_vDofFBO->getWidth(), m_vDofFBO->getHeight());
 	m_vDofFBO->bind();
 	m_dofShader.update("HORIZONTAL", false);
 	m_dofShader.updateAndBindTexture("blurSourceBuffer", 1, m_hDofFBO->getBuffer("blurResult"));
@@ -433,7 +433,7 @@ void PostProcessing::LensFlare::renderLensFlare(GLuint sourceTexture, FrameBuffe
 	}
 	else{
 		OPENGLCONTEXT->bindFBO(0);
-		glViewport( temp_viewport[0], temp_viewport[1], temp_viewport[2], temp_viewport[3]);
+		OPENGLCONTEXT->setViewport( temp_viewport[0], temp_viewport[1], temp_viewport[2], temp_viewport[3]);
 	}
 	m_upscaleBlendShader.updateAndBindTexture("uInputTex", m_upscaleBlendShader.getTextureMap()->size(), sourceTexture);
 	m_upscaleBlendShader.use();

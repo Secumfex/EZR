@@ -97,7 +97,7 @@ void RenderPass::render()
 	m_shaderProgram->use();
 	if (m_viewport != glm::ivec4(-1))
 	{
-		glViewport( (GLint) m_viewport.x, (GLint) m_viewport.y, (GLsizei) m_viewport.z, (GLsizei) m_viewport.w);
+		OPENGLCONTEXT->setViewport( (GLint) m_viewport.x, (GLint) m_viewport.y, (GLsizei) m_viewport.z, (GLsizei) m_viewport.w);
 	}
 
 	clearBits();
@@ -122,7 +122,7 @@ void RenderPass::render()
 	restoreStates();
 	// if (m_viewport != glm::ivec4(-1))
 	// {
-	// 	glViewport( (GLint) temp_viewport.x, (GLint) temp_viewport.y, (GLsizei) temp_viewport.z, (GLsizei) temp_viewport.w);
+	// 	OPENGLCONTEXT->setViewport( (GLint) temp_viewport.x, (GLint) temp_viewport.y, (GLsizei) temp_viewport.z, (GLsizei) temp_viewport.w);
 	// }
 }
 
@@ -133,7 +133,7 @@ void RenderPass::renderInstanced(int numInstances)
 	else{OPENGLCONTEXT->bindFBO(0); }
 
 	m_shaderProgram->use();
-	if (m_viewport != glm::ivec4(-1)){ glViewport( (GLint) m_viewport.x, (GLint) m_viewport.y, (GLsizei) m_viewport.z, (GLsizei) m_viewport.w); }
+	if (m_viewport != glm::ivec4(-1)){ OPENGLCONTEXT->setViewport( (GLint) m_viewport.x, (GLint) m_viewport.y, (GLsizei) m_viewport.z, (GLsizei) m_viewport.w); }
 
 	clearBits();
 

@@ -22,7 +22,7 @@ GLFWwindow* generateWindow(int width, int height, int posX, int posY) {
 	glfwSetWindowSize(window, width, height);
 	glfwMakeContextCurrent(window);
 
-	glViewport(0,0,width,height);
+	OPENGLCONTEXT->setViewport(0,0,width,height);
 
 	if (g_initialized == false)
 	{

@@ -467,7 +467,7 @@ int main()
 		showTexShader.updateAndBindTexture("tex", 0, lensFlare.m_featuresFBO->getBuffer("fResult"));
 		showTex.render();
 
-		glViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y);
+		OPENGLCONTEXT->setViewport(0,0,WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y);
 
 		ImGui::Render();
 		glDisable(GL_BLEND);
