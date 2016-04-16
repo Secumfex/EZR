@@ -23,7 +23,8 @@ public:
 	std::map<GLint, GLuint> cacheTextures; // currently bound textures to texture units GL_TEXTURE0..31
 	GLuint cacheVAO; // currently bound VAO
 	GLuint cacheFBO; // currently bound FBO
-	GLuint cacheShader;
+	GLuint cacheShader; // currently active shader program
+	GLenum cacheActiveTexture; // currently active texture unit
 
 	GLFWwindow* cacheWindow;
 	glm::ivec4 cacheViewport;
@@ -39,8 +40,9 @@ public:
 	// methods only issuing OpenGL commands if cached value difffers
 	void bindVAO(GLuint vao);
 	void useShader(GLuint shaderProgram);
+	void activeTexture(GLenum unit);
 	void bindTexture(GLuint texture, GLenum type = GL_TEXTURE_2D);
-	void bindTexture(GLuint texture, GLint unit, GLenum type = GL_TEXTURE_2D);
+	void bindTextureToUnit(GLuint texture, GLenum unit, GLenum type = GL_TEXTURE_2D);
 	void setViewport(int x, int y, int width, int height);
 	void setViewport(glm::vec4 viewport);
 	void setViewport(glm::ivec4 viewport);

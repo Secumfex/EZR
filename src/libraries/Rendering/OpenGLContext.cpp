@@ -18,6 +18,7 @@ void OpenGLContext::clearCache()
 	cacheVAO = -1;
 	cacheFBO = -1;
 	cacheShader = -1;
+	cacheActiveTexture = -1;
 
 	cacheViewport = glm::ivec4(-1);
 	cacheWindowSize = glm::ivec2(-1);
@@ -53,6 +54,8 @@ void OpenGLContext::updateWindowCache()
 
 void OpenGLContext::updateTextureCache(int MAX_NUM_CACHED_TEXTURES)
 {
+	glGetIntegerv(GL_ACTIVE_TEXTURE, (GLint*) &cacheActiveTexture);
+
 	// yuck
 	for (int i = 0; i < MAX_NUM_CACHED_TEXTURES; i++)
 	{
@@ -66,7 +69,9 @@ void OpenGLContext::updateTextureCache(int MAX_NUM_CACHED_TEXTURES)
 			{
 				glGetIntegerv(GL_TEXTURE_BINDING_1D, &textureHandle);
 				if ( textureHandle == 0 )
+				{
 					glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &textureHandle);
+				}
 			}
 		}
 
@@ -76,10 +81,14 @@ void OpenGLContext::updateTextureCache(int MAX_NUM_CACHED_TEXTURES)
 			cacheTextures[i] = textureHandle;
 		}
 	}
+
+	glActiveTexture(cacheActiveTexture);
 }
 
 void OpenGLContext::updateCurrentTextureCache()
 {
+	glGetIntegerv(GL_ACTIVE_TEXTURE, (GLint*) &cacheActiveTexture);
+
 	// only texture units already in cache
 	for ( auto e : cacheTextures)
 	{
@@ -94,13 +103,17 @@ void OpenGLContext::updateCurrentTextureCache()
 			{
 				glGetIntegerv(GL_TEXTURE_BINDING_1D, &textureHandle);
 				if ( textureHandle == 0 )
+				{
 					glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &textureHandle);
+				}
 			}
 		}
 
 		// update with textureHandle, regardless of it being 0
 		cacheTextures.at(e.first) = textureHandle;
 	}
+
+	glActiveTexture(cacheActiveTexture);
 }
 
 void OpenGLContext:: bindVAO(GLuint vao)
@@ -121,17 +134,26 @@ void OpenGLContext::useShader(GLuint shaderProgram)
 	}
 }
 
-void OpenGLContext::bindTexture(GLuint texture, GLenum type)
+void OpenGLContext::activeTexture(GLenum unit)
 {
-	GLint unit;
-	glGetIntegerv(GL_ACTIVE_TEXTURE, &unit);
-	bindTexture(texture, unit, type);
+	if (cacheActiveTexture != unit)
+	{
+		glActiveTexture(unit);
+		cacheActiveTexture = unit;
+	}
 }
 
-void OpenGLContext::bindTexture(GLuint texture, GLint unit, GLenum type)
+
+void OpenGLContext::bindTexture(GLuint texture, GLenum type)
 {
-	if ( cacheTextures.find(unit) != cacheTextures.end() || cacheTextures.at(unit) != texture)
+	bindTextureToUnit(texture, cacheActiveTexture, type);
+}
+
+void OpenGLContext::bindTextureToUnit(GLuint texture, GLenum unit, GLenum type)
+{
+	if ( cacheTextures.find(unit) == cacheTextures.end() || cacheTextures.at(unit) != texture)
 	{
+		activeTexture(unit);
 		glBindTexture(type, texture);
 		cacheTextures[unit] = texture;
 	}
