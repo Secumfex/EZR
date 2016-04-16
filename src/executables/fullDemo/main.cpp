@@ -99,22 +99,22 @@ int main()
 	GLuint terrainNormalTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_normal.png");
 
 	GLuint diffTex = TextureTools::loadTexture( RESOURCES_PATH "/Rocks_Seamless_1_COLOR.png");
-	glBindTexture(GL_TEXTURE_2D, diffTex);
+	OPENGLCONTEXT->bindTexture(diffTex);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	GLuint snowTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_snow.jpg");
-	glBindTexture(GL_TEXTURE_2D, snowTex);
+	OPENGLCONTEXT->bindTexture(snowTex);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	GLuint grassTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_grass.jpg");
-	glBindTexture(GL_TEXTURE_2D, grassTex);
+	OPENGLCONTEXT->bindTexture(grassTex);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	
 	GLuint tex_grassQuad = TextureTools::loadTextureFromResourceFolder("grass_2.png");
-	glBindTexture(GL_TEXTURE_2D, tex_grassQuad);
+	OPENGLCONTEXT->bindTexture(tex_grassQuad);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 

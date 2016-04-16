@@ -37,6 +37,8 @@ GLFWwindow* generateWindow(int width, int height, int posX, int posY) {
 
 //	registerDefaultGLFWCallbacks(window);
 
+	OPENGLCONTEXT->updateCache();
+
 	return window;
 }
 

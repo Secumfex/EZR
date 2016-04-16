@@ -42,7 +42,7 @@ static void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_SCISSOR_TEST);
-    glActiveTexture(GL_TEXTURE0);
+	OPENGLCONTEXT->activeTexture(GL_TEXTURE0);
 
     // Setup orthographic projection matrix
     const float width = ImGui::GetIO().DisplaySize.x;
@@ -78,7 +78,7 @@ static void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
             }
             else
             {
-                glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
+                OPENGLCONTEXT->bindTexture((GLuint)(intptr_t)pcmd->TextureId);
                 glScissor((int)pcmd->ClipRect.x, (int)(height - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
                 glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, GL_UNSIGNED_SHORT, idx_buffer_offset);
             }
@@ -92,7 +92,7 @@ static void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     OPENGLCONTEXT->useShader(last_program);
     glDisable(GL_SCISSOR_TEST);
-    glBindTexture(GL_TEXTURE_2D, last_texture);
+    OPENGLCONTEXT->bindTexture(last_texture);
 }
 
 static const char* ImGui_ImplGlfwGL3_GetClipboardText()
@@ -146,7 +146,7 @@ void ImGui_ImplGlfwGL3_CreateFontsTexture()
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits for OpenGL3 demo because it is more likely to be compatible with user's existing shader.
 
     glGenTextures(1, &g_FontTexture);
-    glBindTexture(GL_TEXTURE_2D, g_FontTexture);
+    OPENGLCONTEXT->bindTexture(g_FontTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);

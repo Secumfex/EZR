@@ -247,8 +247,7 @@ void ShaderProgram::bindTextureOnUse(const std::string &textureName, GLuint text
 
 ShaderProgram* ShaderProgram::updateAndBindTexture(std::string name, int texUnit, GLuint textureHandle, GLenum textureType)
 {
-	glActiveTexture(GL_TEXTURE0 + texUnit);
-	glBindTexture(textureType, textureHandle);
+	OPENGLCONTEXT->bindTextureToUnit(textureHandle, GL_TEXTURE0 + texUnit, textureType);
 	update(name, texUnit);
 	return this;
 }
@@ -363,8 +362,8 @@ ShaderProgram* ShaderProgram::update(std::string name, double value)
 		if (m_uniformCache.floats.find(name) ==  m_uniformCache.floats.end() || m_uniformCache.floats.at(name) != (float) value)
 		{
 			OPENGLCONTEXT->useShader(m_shaderProgramHandle);
-			glUniform1f(u, value);
-			m_uniformCache.floats[name] = value;
+			glUniform1f(u, (GLfloat) value);
+			m_uniformCache.floats[name] = (float) value;
 		}
 	return this;
 }
@@ -531,8 +530,7 @@ void ShaderProgram::use()
 		// std::cout << "name: " << texture.first << ", active texture:" << i << ", uniform: " << uniform(texture.first) << ", handle: " << texture.second << std::endl;
 
 		update( texture.first, i );
-		glActiveTexture(GL_TEXTURE0+i);
-		glBindTexture(GL_TEXTURE_2D, texture.second);
+		OPENGLCONTEXT->bindTextureToUnit(texture.second, GL_TEXTURE0+i, GL_TEXTURE_2D);
 		i++;
 	}
 
@@ -766,10 +764,10 @@ void ShaderProgram::updateValuesInBufferData(std::string uniformName, const floa
 {
 	auto u = info.uniforms.find(uniformName);
 	if ( u == info.uniforms.end()) { return; }
-	if (numValues >= buffer.size()) {return;}
+	if (numValues >= (int) buffer.size()) {return;}
 
 	int valStartIdx = u->second.offset / 4;
-	if (buffer.size() < valStartIdx + numValues){return;} 
+	if ( (int) buffer.size() < valStartIdx + numValues){return;} 
 
 	for (int i = 0; i < numValues; i++)
 	{
@@ -781,7 +779,7 @@ void ShaderProgram::updateValueInBuffer(std::string uniformName, const float* va
 {
 	auto u = info.uniforms.find(uniformName);
 	if ( u == info.uniforms.end()) { return; }
-	if ( info.byteSize < u->second.offset + (numValues * sizeof(float))){return;}
+	if ( (int)  info.byteSize < u->second.offset + (numValues * sizeof(float))){return;}
 
 	glBindBuffer(GL_UNIFORM_BUFFER, bufferHandle);
 	glBufferSubData(GL_UNIFORM_BUFFER, u->second.offset, numValues * sizeof(float), values);

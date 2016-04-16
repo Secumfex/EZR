@@ -1,6 +1,7 @@
 #include "Rendering/FrameBufferObject.h"
 
 #include "Core/DebugLog.h"
+#include "Rendering/OpenGLContext.h"
 
 GLenum FrameBufferObject::s_internalFormat  = GL_RGBA;	// default
 GLenum FrameBufferObject::s_format 			= GL_RGBA;	// default
@@ -25,7 +26,7 @@ void FrameBufferObject::createDepthTexture()
 	glBindFramebuffer(GL_FRAMEBUFFER, m_frameBufferHandle);
 
 	glGenTextures(1, &m_depthTextureHandle);
-	glBindTexture(GL_TEXTURE_2D, m_depthTextureHandle);
+	OPENGLCONTEXT->bindTexture(m_depthTextureHandle);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, m_width, m_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -40,7 +41,7 @@ GLuint FrameBufferObject::createFramebufferTexture()
 {
 	GLuint textureHandle;
 	glGenTextures(1, &textureHandle);
-	glBindTexture(GL_TEXTURE_2D, textureHandle);
+	OPENGLCONTEXT->bindTexture(textureHandle);
 
 	if ( s_useTexStorage2D )
 	{
@@ -58,7 +59,7 @@ GLuint FrameBufferObject::createFramebufferTexture()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	OPENGLCONTEXT->bindTexture(0);
 	return textureHandle;
 }
 
@@ -77,9 +78,9 @@ void FrameBufferObject::addColorAttachments(int amount)
 		{
 			GLuint textureHandle = createFramebufferTexture();
 			
-			glBindTexture(GL_TEXTURE_2D, textureHandle);
+			OPENGLCONTEXT->bindTexture(textureHandle);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + m_numColorAttachments + i, GL_TEXTURE_2D, textureHandle, 0);
-			glBindTexture(GL_TEXTURE_2D, 0);
+			OPENGLCONTEXT->bindTexture(0);
 			
 			m_colorAttachments[GL_COLOR_ATTACHMENT0 + m_numColorAttachments + i] = textureHandle;
 			m_drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + m_numColorAttachments + i);
@@ -94,7 +95,7 @@ void FrameBufferObject::addColorAttachments(int amount)
 
 void FrameBufferObject::setColorAttachmentTextureHandle( GLenum attachment, GLuint textureHandle )
 {
-	glBindTexture(GL_TEXTURE_2D, textureHandle);
+	OPENGLCONTEXT->bindTexture(textureHandle);
 	int width, height;
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
@@ -111,10 +112,10 @@ void FrameBufferObject::setColorAttachmentTextureHandle( GLenum attachment, GLui
 
 		m_colorAttachments[ attachment ] = textureHandle;
 		glBindFramebuffer( GL_FRAMEBUFFER, m_frameBufferHandle);
-
-		glBindTexture(GL_TEXTURE_2D, textureHandle);
+		
+		OPENGLCONTEXT->bindTexture(textureHandle);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, textureHandle, 0);
-		glBindTexture(GL_TEXTURE_2D, 0);
+		OPENGLCONTEXT->bindTexture(0);
 	}
 	else
 	{
@@ -223,7 +224,8 @@ FrameBufferObject::FrameBufferObject(std::map<std::string, ShaderProgram::Info>*
 
     std::vector<GLuint> drawBufferHandles(size, GL_NONE);
 
-	glActiveTexture(GL_TEXTURE0);
+	
+	OPENGLCONTEXT->activeTexture(GL_TEXTURE0);
 	int i = 0;
     for (auto e : *outputMap) 
     {	
@@ -268,7 +270,8 @@ FrameBufferObject::FrameBufferObject(std::map<std::string, ShaderProgram::Info>*
 	}
 
 	//glGenTextures( 1, &m_depthTextureHandle);
-	//glBindTexture( GL_TEXTURE_2D, m_depthTextureHandle);
+	//
+	// OPENGLCONTEXT->bindTexture(m_depthTextureHandle);
 	//glTexImage2D(GL_TEXTURE_2D, 0,GL_DEPTH_COMPONENT24, m_width, m_height, 0,GL_DEPTH_COMPONENT, GL_FLOAT, 0);
 	//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depthTextureHandle, 0);
 

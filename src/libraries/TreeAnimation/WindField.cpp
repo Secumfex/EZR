@@ -8,7 +8,7 @@
 //#include <glm/gtx/transform.hpp>
 
 #include <Core/DebugLog.h>
-
+#include <Rendering/OpenGLContext.h>
 TreeAnimation::WindField::WindField(int width, int height)
 	: m_height(height),
 	m_width(width)
@@ -42,7 +42,7 @@ void TreeAnimation::WindField::updateVectorTexture(double elapsedTime)
 		//DEBUGLOG->log("VectorSize: ", m_vectorTexData.size());
 
 		glGenTextures(1, &m_vectorTextureHandle);
-		glBindTexture(GL_TEXTURE_2D, m_vectorTextureHandle);
+		OPENGLCONTEXT->bindTexture(m_vectorTextureHandle);
 		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, m_width, m_height);	
 
 		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -51,7 +51,7 @@ void TreeAnimation::WindField::updateVectorTexture(double elapsedTime)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-		glBindTexture(GL_TEXTURE_2D, 0);
+		OPENGLCONTEXT->bindTexture(0);
 	}
 
 	// evaluate vectors in vector field
@@ -71,10 +71,9 @@ void TreeAnimation::WindField::updateVectorTexture(double elapsedTime)
 	}
 
 	// upload to texture
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_vectorTextureHandle);
+	OPENGLCONTEXT->bindTexture(m_vectorTextureHandle, GL_TEXTURE0);
 
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, m_width, m_height, GL_RGB, GL_FLOAT, &m_vectorTexData[0] );
-	glBindTexture(GL_TEXTURE_2D, 0);
+	OPENGLCONTEXT->bindTexture(0);
 
 };

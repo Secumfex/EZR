@@ -36,23 +36,21 @@ void createVectorTexture()
 {
 	s_vectorTexData.resize(VECTOR_TEXTURE_SIZE*VECTOR_TEXTURE_SIZE*3, 0.0);
 	glGenTextures(1, &s_vectorTexture);
-	glBindTexture(GL_TEXTURE_2D, s_vectorTexture);
+	OPENGLCONTEXT->bindTexture(s_vectorTexture);
 	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, VECTOR_TEXTURE_SIZE, VECTOR_TEXTURE_SIZE);	
 	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	OPENGLCONTEXT->bindTexture(0);
 }
 
 void uploadVectorTextureData()
 {
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, s_vectorTexture);
-
+	OPENGLCONTEXT->bindTexture(s_vectorTexture);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, VECTOR_TEXTURE_SIZE, VECTOR_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &s_vectorTexData[0] );
-	glBindTexture(GL_TEXTURE_2D, 0);
+	OPENGLCONTEXT->bindTexture(0);
 }
 
 // to be run from a thread

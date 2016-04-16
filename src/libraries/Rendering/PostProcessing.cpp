@@ -8,6 +8,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <algorithm>
 
+#include "Rendering/OpenGLContext.h"
+
 namespace{float log_2( float n )  
 {  
     return log( n ) / log( 2 );      // log(n)/log(2) is log_2. 
@@ -27,7 +29,7 @@ PostProcessing::BoxBlur::BoxBlur(int width, int height, Quad* quad)
 	}
 
 	glGenTextures(1, &m_mipmapTextureHandle);
-	glBindTexture(GL_TEXTURE_2D, m_mipmapTextureHandle);
+	OPENGLCONTEXT->bindTexture(m_mipmapTextureHandle);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width,height, 0, GL_RGBA, GL_UNSIGNED_INT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // does this do anything?
 
@@ -56,7 +58,7 @@ PostProcessing::BoxBlur::BoxBlur(int width, int height, Quad* quad)
 
 void PostProcessing::BoxBlur::pull()
 {
-	glBindTexture(GL_TEXTURE_2D, m_mipmapTextureHandle);
+	OPENGLCONTEXT->bindTexture(m_mipmapTextureHandle);
 	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
@@ -108,7 +110,7 @@ PostProcessing::DepthOfField::DepthOfField(int width, int height, Quad* quad)
 	
 	for ( auto t : m_vDofFBO->getColorAttachments() )
 	{
-		glBindTexture(GL_TEXTURE_2D, t.second);
+		OPENGLCONTEXT->bindTexture(t.second);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	}
@@ -231,8 +233,7 @@ void PostProcessing::SkyboxRendering::render(GLuint cubeMapTexture, FrameBufferO
 
 	m_skyboxShader.use();
 	m_skyboxShader.update("skybox", 0);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture);
+	OPENGLCONTEXT->bindTextureToUnit(cubeMapTexture, GL_TEXTURE0, GL_TEXTURE_CUBE_MAP);
 	m_skybox->draw();
 	glDepthFunc(GL_LESS);
 	glDisable(GL_DEPTH_TEST);
@@ -310,7 +311,7 @@ GLuint PostProcessing::LensFlare::loadLensColorTexture()
     glGenTextures(1, &textureHandle);
  
     //bind the texture
-    glBindTexture(GL_TEXTURE_1D, textureHandle);
+	OPENGLCONTEXT->bindTexture(textureHandle,GL_TEXTURE_1D );
 
     //send image data to the new texture
     if (bytesPerPixel < 3) {
@@ -329,7 +330,7 @@ GLuint PostProcessing::LensFlare::loadLensColorTexture()
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_1D, 0);
+	OPENGLCONTEXT->bindTexture(0, GL_TEXTURE_1D);
 
     stbi_image_free(data);
     DEBUGLOG->log( "SUCCESS: image loaded from " + fileString );
@@ -356,10 +357,10 @@ PostProcessing::LensFlare::LensFlare(int width, int height)
 	m_featuresFBO = new FrameBufferObject(m_ghostingShader.getOutputInfoMap(),width,height);
 
 	// change texture filtering parameters
-	glBindTexture(GL_TEXTURE_2D, m_downSampleFBO->getBuffer("fResult"));
+	OPENGLCONTEXT->bindTexture(m_downSampleFBO->getBuffer("fResult"));
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	OPENGLCONTEXT->bindTexture(0);
 	
 	// 1D texture
 	m_lensColorTexture = loadLensColorTexture();
