@@ -116,7 +116,7 @@ void OpenGLContext::updateCurrentTextureCache()
 	glActiveTexture(cacheActiveTexture);
 }
 
-void OpenGLContext:: bindVAO(GLuint vao)
+void OpenGLContext::bindVAO(GLuint vao)
 {
 	if ( cacheVAO != vao )
 	{

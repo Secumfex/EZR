@@ -7,6 +7,8 @@
 #include <Importing/AssimpTools.h>
 #include <glm/gtx/transform.hpp>
 
+#include "Rendering/OpenGLContext.h"
+
 Renderable* TreeAnimation::generateRenderable(TreeAnimation::Tree::Branch* branch, const aiScene* branchModel)
 {
 	Renderable* renderable = nullptr;
@@ -33,7 +35,7 @@ Renderable* TreeAnimation::generateRenderable(TreeAnimation::Tree::Branch* branc
 	// add another vertex attribute which contains the tree hierarchy
 	Renderable::createVbo<unsigned int>(hierarchy, 3, 4, GL_UNSIGNED_INT, true); 
 	
-	glBindVertexArray(0); 
+	OPENGLCONTEXT->bindVAO(0); 
 
 	return renderable;
 }
@@ -107,7 +109,7 @@ Renderable* TreeAnimation::generateFoliage( TreeAnimation::Tree::Branch* branch,
 		}
 
 	    glGenVertexArrays(1, &renderable->m_vao);
-		glBindVertexArray(renderable->m_vao);
+		OPENGLCONTEXT->bindVAO(renderable->m_vao);
 
 		renderable->m_positions.m_vboHandle = Renderable::createVbo(positions, 3, 0);
 		renderable->m_positions.m_size = positions.size() / 3;
@@ -132,7 +134,7 @@ Renderable* TreeAnimation::generateFoliage( TreeAnimation::Tree::Branch* branch,
 		// add another vertex attribute which contains the tree hierarchy
 		Renderable::createVbo<unsigned int>(hierarchy, 3, 4, GL_UNSIGNED_INT, true); 
 
-		glBindVertexArray(0); 
+		OPENGLCONTEXT->bindVAO(0); 
 
 		return renderable;
 	};
@@ -268,7 +270,7 @@ Renderable* TreeAnimation::generateFoliageRenderable(TreeAnimation::FoliageVerte
 	Renderable* renderable = new Renderable();
 
 	glGenVertexArrays(1, &renderable->m_vao);
-	glBindVertexArray(renderable->m_vao);
+	OPENGLCONTEXT->bindVAO(renderable->m_vao);
 
 	renderable->m_positions.m_vboHandle = Renderable::createVbo(source.positions, 3, 0);
 	renderable->m_positions.m_size = source.positions.size() / 3;
@@ -287,7 +289,7 @@ Renderable* TreeAnimation::generateFoliageRenderable(TreeAnimation::FoliageVerte
 	// add another vertex attribute which contains the tree hierarchy
 	Renderable::createVbo<unsigned int>(source.hierarchy, 3, 4, GL_UNSIGNED_INT, true); 
 
-	glBindVertexArray(0); 
+	OPENGLCONTEXT->bindVAO(0); 
 
 	return renderable;
 }

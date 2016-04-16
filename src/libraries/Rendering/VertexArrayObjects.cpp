@@ -1,6 +1,7 @@
 #include "VertexArrayObjects.h"
 
 #include "Core/DebugLog.h"
+#include "Rendering/OpenGLContext.h"
 
 Renderable::Renderable()
 {
@@ -85,12 +86,12 @@ GLuint Renderable::createIndexVbo(std::vector<unsigned int> content)
 
 void Renderable::bind()
 {
-    glBindVertexArray(m_vao);
+    OPENGLCONTEXT->bindVAO(m_vao);
 }
 
 void Renderable::unbind()
 {
-    glBindVertexArray(0);
+    OPENGLCONTEXT->bindVAO(0);
 }
 
 unsigned int Renderable::getVertexCount()
@@ -113,7 +114,7 @@ Skybox::Skybox()
 	m_mode = GL_TRIANGLES;
 
     glGenVertexArrays(1, &m_vao);
-    glBindVertexArray(m_vao);
+    OPENGLCONTEXT->bindVAO(m_vao);
 
     GLuint vertexBufferHandles[3];
     glGenBuffers(3, vertexBufferHandles);
@@ -171,12 +172,12 @@ Skybox::Skybox()
     // Setup skybox VAO
 	glGenVertexArrays(1, &m_vao);
 	glGenBuffers(1, &m_positions.m_vboHandle);
-    glBindVertexArray(m_vao);
+    OPENGLCONTEXT->bindVAO(m_vao);
     glBindBuffer(GL_ARRAY_BUFFER, m_positions.m_vboHandle);
     glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-    glBindVertexArray(0);
+    OPENGLCONTEXT->bindVAO(0);
 
 	m_mode = GL_TRIANGLES;
 }
@@ -193,7 +194,7 @@ Skybox::~Skybox()
 
 void Skybox::draw()
 {
-    glBindVertexArray(m_vao);
+    OPENGLCONTEXT->bindVAO(m_vao);
     glDrawArrays(m_mode, 0, 36);
 }
 
@@ -202,7 +203,7 @@ void Volume::generateBuffers(float size_x, float size_y, float size_z)
 	m_mode = GL_TRIANGLES;
 
     glGenVertexArrays(1, &m_vao);
-    glBindVertexArray(m_vao);
+    OPENGLCONTEXT->bindVAO(m_vao);
 
     GLuint vertexBufferHandles[3];
     glGenBuffers(3, vertexBufferHandles);
@@ -403,14 +404,14 @@ Volume::~Volume()
 
 void Volume::draw()
 {
-    glBindVertexArray(m_vao);
+    OPENGLCONTEXT->bindVAO(m_vao);
     glDrawArrays(m_mode, 0, 36);
 }
 
 Quad::Quad()
 {
     glGenVertexArrays(1, &m_vao);
-    glBindVertexArray(m_vao);
+    OPENGLCONTEXT->bindVAO(m_vao);
 
     GLuint positionBuffer;
     glGenBuffers(1, &positionBuffer);
@@ -453,7 +454,7 @@ Quad::~Quad()
 
 void Quad::draw()
 {
-    glBindVertexArray(m_vao);
+    OPENGLCONTEXT->bindVAO(m_vao);
     glDrawArrays(m_mode, 0, 4);
 }
 
@@ -461,7 +462,7 @@ void Quad::draw()
 Terrain::Terrain()
 {
     glGenVertexArrays(1, &m_vao);
-    glBindVertexArray(m_vao);
+    OPENGLCONTEXT->bindVAO(m_vao);
 
     GLuint positionBuffer;
     glGenBuffers(1, &positionBuffer);
@@ -568,7 +569,7 @@ Terrain::~Terrain()
 
 void Terrain::draw()
 {
-    glBindVertexArray(m_vao);
+    OPENGLCONTEXT->bindVAO(m_vao);
     glDrawArrays(GL_PATCHES, 0, 3500);
 }
 
@@ -590,7 +591,7 @@ glm::vec3 Sphere::sampleSurface(float u, float v)
 Sphere::Sphere(unsigned int hSlices, unsigned int vSlices, float radius)
 {
     glGenVertexArrays(1, &m_vao);
-    glBindVertexArray(m_vao);
+    OPENGLCONTEXT->bindVAO(m_vao);
 
     GLuint vertexBufferHandles[3];
     glGenBuffers(3, vertexBufferHandles);
@@ -723,14 +724,14 @@ Sphere::~Sphere()
 
 void Sphere::draw()
 {
-    glBindVertexArray(m_vao);
+    OPENGLCONTEXT->bindVAO(m_vao);
     glDrawArrays(m_mode, 0, m_positions.m_size);
 }
 
 Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY, bool centered)
 {
     glGenVertexArrays(1, &m_vao);
-    glBindVertexArray(m_vao);
+    OPENGLCONTEXT->bindVAO(m_vao);
 
     GLuint positionBuffer;
     GLuint uvBuffer;
@@ -886,7 +887,7 @@ Grid::~Grid()
 
 void Grid::draw()
 {
-    glBindVertexArray(m_vao);
+    OPENGLCONTEXT->bindVAO(m_vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indices.m_vboHandle);
     glDrawElements(GL_TRIANGLE_STRIP, m_indices.m_size, GL_UNSIGNED_INT, 0);
     // glDrawArrays(GL_POINTS,  0, m_positions.m_size);
@@ -1007,7 +1008,7 @@ TruncatedCone::VertexData TruncatedCone::generateVertexData(float height, float 
 TruncatedCone::TruncatedCone(float height, float radius_bottom, float radius_top, int resolution, float offset_y)
 {
 	glGenVertexArrays(1, &m_vao);
-    glBindVertexArray(m_vao);
+    OPENGLCONTEXT->bindVAO(m_vao);
 
     m_mode = GL_TRIANGLE_STRIP;
 
@@ -1098,7 +1099,7 @@ TruncatedCone::TruncatedCone(float height, float radius_bottom, float radius_top
 	m_indices.m_size = indices.size();
 	m_normals.m_size = normals.size() / 3;
 
-    glBindVertexArray(0);
+    OPENGLCONTEXT->bindVAO(0);
 }
 
 TruncatedCone::~TruncatedCone()
@@ -1110,7 +1111,7 @@ TruncatedCone::~TruncatedCone()
 
 void TruncatedCone::draw()
 {
-	glBindVertexArray(m_vao);
+	OPENGLCONTEXT->bindVAO(m_vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indices.m_vboHandle);
 	glDrawElements(m_mode, m_indices.m_size, GL_UNSIGNED_INT, 0);
 }
