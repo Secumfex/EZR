@@ -16,7 +16,8 @@ void OpenGLContext::clearCache()
 {
 	cacheTextures.clear();
 	cacheVAO = -1;
-	cacheFBO = -1;
+	cacheDrawFBO = -1;
+	cacheDrawFBO = -1;
 	cacheShader = -1;
 	cacheActiveTexture = -1;
 
@@ -34,7 +35,8 @@ void OpenGLContext::updateCache()
 void OpenGLContext::updateBindingCache()
 {
 	// current framebuffer
-	glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, (GLint*) &cacheFBO);
+	glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, (GLint*) &cacheDrawFBO);
+	glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, (GLint*) &cacheReadFBO);
 
 	// current vao
 	glGetIntegerv(GL_VERTEX_ARRAY_BINDING, (GLint*) &cacheVAO);
@@ -122,6 +124,35 @@ void OpenGLContext::bindVAO(GLuint vao)
 	{
 		glBindVertexArray(vao);
 		cacheVAO = vao;
+	}
+}
+
+void OpenGLContext::bindFBO(GLuint fbo, GLenum type)
+{
+	switch(type)
+	{
+	case GL_FRAMEBUFFER: // both
+		if ( cacheDrawFBO != fbo || cacheReadFBO != fbo)
+		{
+			glBindFramebuffer(type, fbo);
+			cacheDrawFBO = fbo;
+			cacheReadFBO = fbo;
+		}
+		break;
+	case GL_DRAW_FRAMEBUFFER:
+		if ( cacheDrawFBO != fbo)
+		{
+			glBindFramebuffer(type, fbo);
+			cacheDrawFBO = fbo;
+		}
+		break;
+	case GL_READ_FRAMEBUFFER:
+		if ( cacheReadFBO != fbo )
+		{
+			glBindFramebuffer(type, fbo);
+			cacheReadFBO = fbo;
+		}
+		break;
 	}
 }
 

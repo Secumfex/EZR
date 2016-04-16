@@ -11,7 +11,7 @@ bool FrameBufferObject::s_useTexStorage2D	= false;	// default
 FrameBufferObject::FrameBufferObject(int width, int height)
 {
 	glGenFramebuffers(1, &m_frameBufferHandle);
-	glBindFramebuffer(GL_FRAMEBUFFER, m_frameBufferHandle);
+	OPENGLCONTEXT->bindFBO(m_frameBufferHandle);
 
 	m_width = width;
 	m_height = height;
@@ -23,7 +23,7 @@ FrameBufferObject::FrameBufferObject(int width, int height)
 
 void FrameBufferObject::createDepthTexture()
 {
-	glBindFramebuffer(GL_FRAMEBUFFER, m_frameBufferHandle);
+	OPENGLCONTEXT->bindFBO(m_frameBufferHandle);
 
 	glGenTextures(1, &m_depthTextureHandle);
 	OPENGLCONTEXT->bindTexture(m_depthTextureHandle);
@@ -34,7 +34,7 @@ void FrameBufferObject::createDepthTexture()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depthTextureHandle, 0);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	OPENGLCONTEXT->bindFBO(0);
 }
 
 GLuint FrameBufferObject::createFramebufferTexture()
@@ -70,7 +70,7 @@ void FrameBufferObject::addColorAttachments(int amount)
 	if ( m_numColorAttachments + amount <=  maxColorAttachments)
 	{
 //		DEBUGLOG->log("max color attachments: ", maxColorAttachments);
-		glBindFramebuffer(GL_FRAMEBUFFER, m_frameBufferHandle);
+		OPENGLCONTEXT->bindFBO(m_frameBufferHandle);
 
 		DEBUGLOG->log("Creating Color Attachments: ", amount);
 		DEBUGLOG->indent();
@@ -89,7 +89,7 @@ void FrameBufferObject::addColorAttachments(int amount)
 
 		m_numColorAttachments = m_colorAttachments.size();
 		glDrawBuffers(m_drawBuffers.size(), &m_drawBuffers[0]);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		OPENGLCONTEXT->bindFBO(0);
 	}
 }
 
@@ -111,7 +111,7 @@ void FrameBufferObject::setColorAttachmentTextureHandle( GLenum attachment, GLui
 		DEBUGLOG->log("WARNING : remember to delete the old texture handle", oldAttachment);
 
 		m_colorAttachments[ attachment ] = textureHandle;
-		glBindFramebuffer( GL_FRAMEBUFFER, m_frameBufferHandle);
+		OPENGLCONTEXT->bindFBO(m_frameBufferHandle);
 		
 		OPENGLCONTEXT->bindTexture(textureHandle);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, textureHandle, 0);
@@ -121,7 +121,7 @@ void FrameBufferObject::setColorAttachmentTextureHandle( GLenum attachment, GLui
 	{
 		DEBUGLOG->log("ERROR : specified color attachment does not exist");
 	}
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	OPENGLCONTEXT->bindFBO(0);
 }
 
 GLuint FrameBufferObject::getColorAttachmentTextureHandle(GLenum attachment)
@@ -161,9 +161,9 @@ GLuint FrameBufferObject::getDepthTextureHandle() const {
 
 void FrameBufferObject::setDepthTextureHandle(GLuint depthTextureHandle) {
 	m_depthTextureHandle = depthTextureHandle;
-	glBindFramebuffer(GL_FRAMEBUFFER, m_frameBufferHandle);
+	OPENGLCONTEXT->bindFBO(m_frameBufferHandle);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depthTextureHandle, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	OPENGLCONTEXT->bindFBO(0);
 }
 
 const std::vector<GLenum>& FrameBufferObject::getDrawBuffers() const {
@@ -208,7 +208,7 @@ FrameBufferObject::FrameBufferObject(std::map<std::string, ShaderProgram::Info>*
 {
 	//Generate FBO
 	glGenFramebuffers(1, &m_frameBufferHandle);
-    glBindFramebuffer(GL_FRAMEBUFFER, m_frameBufferHandle);
+    OPENGLCONTEXT->bindFBO(m_frameBufferHandle);
 
     //Generate color textures
     int size = outputMap->size();
@@ -283,16 +283,16 @@ FrameBufferObject::FrameBufferObject(std::map<std::string, ShaderProgram::Info>*
 		DEBUGLOG->log("ERROR: Unable to create FBO!");
 	}
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);	
+	OPENGLCONTEXT->bindFBO(0);	
 }
 
 void FrameBufferObject::bind() {
-	glBindFramebuffer(GL_FRAMEBUFFER, m_frameBufferHandle);
+	OPENGLCONTEXT->bindFBO(m_frameBufferHandle);
 	glViewport( 0, 0, m_width, m_height);
 }
 
 void FrameBufferObject::unbind() {
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	OPENGLCONTEXT->bindFBO(0);
 }
 
 

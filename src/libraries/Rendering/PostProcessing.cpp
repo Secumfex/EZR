@@ -46,12 +46,12 @@ PostProcessing::BoxBlur::BoxBlur(int width, int height, Quad* quad)
 
 	for ( int i = 0; i < mipmapNumber; i++)
 	{
-		glBindFramebuffer(GL_FRAMEBUFFER, m_mipmapFBOHandles[i]);
+		OPENGLCONTEXT->bindFBO(m_mipmapFBOHandles[i]);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_mipmapTextureHandle, i);
 		glDrawBuffer(GL_COLOR_ATTACHMENT0);
 	}
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	OPENGLCONTEXT->bindFBO(0);
 
 	m_pushShaderProgram.bindTextureOnUse("tex", m_mipmapTextureHandle);
 }
@@ -70,11 +70,11 @@ void PostProcessing::BoxBlur::push(int numLevels, int beginLevel)
 	m_pushShaderProgram.use();
 	for (int level = std::min( (int) m_mipmapFBOHandles.size()-2, beginLevel+numLevels-1); level >= beginLevel; level--)
 	{
-		glBindFramebuffer(GL_FRAMEBUFFER, m_mipmapFBOHandles[level]);
+		OPENGLCONTEXT->bindFBO(m_mipmapFBOHandles[level]);
 		m_pushShaderProgram.update("level", level);
 		m_quad->draw();
 	}
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	OPENGLCONTEXT->bindFBO(0);
 	if (depthTestEnableState){glEnable(GL_DEPTH_TEST);}
 }
 
@@ -229,7 +229,7 @@ void PostProcessing::SkyboxRendering::render(GLuint cubeMapTexture, FrameBufferO
 	glDepthFunc(GL_LEQUAL);
 	
 	if(target != nullptr) {target->bind();}
-	else{ glBindFramebuffer(GL_FRAMEBUFFER, 0); }
+	else{ OPENGLCONTEXT->bindFBO(0); }
 
 	m_skyboxShader.use();
 	m_skyboxShader.update("skybox", 0);
@@ -416,11 +416,11 @@ void PostProcessing::LensFlare::renderLensFlare(GLuint sourceTexture, FrameBuffe
 	m_quad.draw();
 
 	// copy content to box blur fbo
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_featuresFBO->getFramebufferHandle());
+	OPENGLCONTEXT->bindFBO(m_featuresFBO->getFramebufferHandle(), GL_READ_FRAMEBUFFER);
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_boxBlur->m_mipmapFBOHandles[0]);
+	OPENGLCONTEXT->bindFBO(m_boxBlur->m_mipmapFBOHandles[0], GL_DRAW_FRAMEBUFFER);
 	glBlitFramebuffer(0,0,m_featuresFBO->getWidth(), m_featuresFBO->getHeight(), 0,0, m_boxBlur->m_width, m_boxBlur->m_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	OPENGLCONTEXT->bindFBO(0);
 
 	// blur
 	m_boxBlur->pull();
@@ -432,7 +432,7 @@ void PostProcessing::LensFlare::renderLensFlare(GLuint sourceTexture, FrameBuffe
 		target->bind();
 	}
 	else{
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		OPENGLCONTEXT->bindFBO(0);
 		glViewport( temp_viewport[0], temp_viewport[1], temp_viewport[2], temp_viewport[3]);
 	}
 	m_upscaleBlendShader.updateAndBindTexture("uInputTex", m_upscaleBlendShader.getTextureMap()->size(), sourceTexture);

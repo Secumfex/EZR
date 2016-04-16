@@ -301,9 +301,9 @@ int main()
 		geom.render();
 
 		// copy window content to mipmap fbo for level 0
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		OPENGLCONTEXT->bindFBO(0, GL_READ_FRAMEBUFFER);
 		glReadBuffer(GL_BACK);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, boxBlur.m_mipmapFBOHandles[0]);
+		OPENGLCONTEXT->bindFBO(boxBlur.m_mipmapFBOHandles[0], GL_DRAW_FRAMEBUFFER);
 		glBlitFramebuffer(0,0,getResolution(window).x,getResolution(window).y,0,0,getResolution(window).x,getResolution(window).y, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		boxBlur.pull();
 
@@ -311,9 +311,9 @@ int main()
 		boxBlur.push(s_num_levels, s_show_level);
 		
 		// copy mipmap fbo content of level 0 to window
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		OPENGLCONTEXT->bindFBO(0, GL_DRAW_FRAMEBUFFER);
 		glReadBuffer(GL_BACK);
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, boxBlur.m_mipmapFBOHandles[min((int)boxBlur.m_mipmapFBOHandles.size()-1, max(s_show_level, 0))]);
+		OPENGLCONTEXT->bindFBO(boxBlur.m_mipmapFBOHandles[min((int)boxBlur.m_mipmapFBOHandles.size()-1, max(s_show_level, 0))], GL_READ_FRAMEBUFFER);
 		glBlitFramebuffer(0,0,getResolution(window).x / pow (2.0, min((int)boxBlur.m_mipmapFBOHandles.size()-1, max(s_show_level, 0))), getResolution(window).y / pow(2.0,min((int)boxBlur.m_mipmapFBOHandles.size()-1, max(s_show_level, 0))),0,0,getResolution(window).x,getResolution(window).y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
 		ImGui::Render();

@@ -22,7 +22,8 @@ public:
 	//std::map<GLint, GLfloat> cacheFloat;
 	std::map<GLint, GLuint> cacheTextures; // currently bound textures to texture units GL_TEXTURE0..31
 	GLuint cacheVAO; // currently bound VAO
-	GLuint cacheFBO; // currently bound FBO
+	GLuint cacheReadFBO; // currently bound FBO
+	GLuint cacheDrawFBO; // currently bound FBO
 	GLuint cacheShader; // currently active shader program
 	GLenum cacheActiveTexture; // currently active texture unit
 
@@ -39,6 +40,7 @@ public:
 
 	// methods only issuing OpenGL commands if cached value difffers
 	void bindVAO(GLuint vao);
+	void bindFBO(GLuint fbo, GLenum type = GL_FRAMEBUFFER);
 	void useShader(GLuint shaderProgram);
 	void activeTexture(GLenum unit);
 	void bindTexture(GLuint texture, GLenum type = GL_TEXTURE_2D);
