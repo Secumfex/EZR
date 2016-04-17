@@ -2,6 +2,7 @@
 #define GLTOOLS_H
 
 #include "Core/DebugLog.h"
+#include "Rendering/OpenGLContext.h"
 #include <Importing/Importer.h>
 
 #include <GL/glew.h>
@@ -63,9 +64,9 @@ GLuint loadTo3DTexture(VolumeData<T>& volumeData, GLenum internalFormat = GL_R16
 	GLuint volumeTexture;
 
 	glEnable(GL_TEXTURE_3D);
-	glActiveTexture(GL_TEXTURE0);
+	OPENGLCONTEXT->activeTexture(GL_TEXTURE0);
 	glGenTextures(1, &volumeTexture);
-	glBindTexture(GL_TEXTURE_3D, volumeTexture);
+	OPENGLCONTEXT->bindTexture(volumeTexture, GL_TEXTURE_3D);
 
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

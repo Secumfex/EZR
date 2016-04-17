@@ -22,7 +22,7 @@ GLFWwindow* generateWindow(int width, int height, int posX, int posY) {
 	glfwSetWindowSize(window, width, height);
 	glfwMakeContextCurrent(window);
 
-	glViewport(0,0,width,height);
+	OPENGLCONTEXT->setViewport(0,0,width,height);
 
 	if (g_initialized == false)
 	{
@@ -36,6 +36,8 @@ GLFWwindow* generateWindow(int width, int height, int posX, int posY) {
 	}
 
 //	registerDefaultGLFWCallbacks(window);
+
+	OPENGLCONTEXT->updateCache();
 
 	return window;
 }
@@ -195,8 +197,8 @@ float getRatio(GLFWwindow* window) {
 void copyFBOContent(FrameBufferObject* source, FrameBufferObject* target, GLbitfield bitField, GLenum readBuffer, GLenum filter, glm::vec2 defaultFBOSize )
 {
 	// bind framebuffers
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, (source != nullptr) ? source->getFramebufferHandle() : 0);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, (target != nullptr) ? target->getFramebufferHandle() : 0);
+	OPENGLCONTEXT->bindFBO((source != nullptr) ? source->getFramebufferHandle() : 0, GL_READ_FRAMEBUFFER);
+	OPENGLCONTEXT->bindFBO((target != nullptr) ? target->getFramebufferHandle() : 0, GL_DRAW_FRAMEBUFFER);
 	
 	GLint defaultFBOWidth =  (GLint) (defaultFBOSize.x != -1.0f) ? defaultFBOSize.x : g_mainWindowSize.x;
 	GLint defaultFBOHeight = (GLint) (defaultFBOSize.y != -1.0f) ? defaultFBOSize.y : g_mainWindowSize.y;
@@ -220,7 +222,7 @@ void copyFBOContent(FrameBufferObject* source, FrameBufferObject* target, GLbitf
 			0,0,(target != nullptr) ? target->getWidth() : defaultFBOWidth, (target != nullptr) ? target->getHeight() : defaultFBOHeight,
 			bitField, (filter == GL_NONE) ? GL_NEAREST : filter);
 		
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		OPENGLCONTEXT->bindFBO(0);
 		return;
 	}
 	if (bitField == GL_DEPTH_BUFFER_BIT)
@@ -229,7 +231,7 @@ void copyFBOContent(FrameBufferObject* source, FrameBufferObject* target, GLbitf
 			0,0,(source != nullptr) ? source->getWidth() : defaultFBOWidth, (source!=nullptr)   ? source->getHeight() : defaultFBOHeight, 
 			0,0,(target != nullptr) ? target->getWidth() : defaultFBOWidth, (target != nullptr) ? target->getHeight() : defaultFBOHeight,
 			bitField, GL_NEAREST);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		OPENGLCONTEXT->bindFBO(0);
 		return;
 	}
 
@@ -238,13 +240,13 @@ void copyFBOContent(FrameBufferObject* source, FrameBufferObject* target, GLbitf
 		0,0,(source != nullptr) ? source->getWidth() : defaultFBOWidth, (source!=nullptr)   ? source->getHeight() : defaultFBOHeight, 
 		0,0,(target != nullptr) ? target->getWidth() : defaultFBOWidth, (target != nullptr) ? target->getHeight() : defaultFBOHeight,
 		bitField, filter);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	OPENGLCONTEXT->bindFBO(0);
 }
 void copyFBOContent(GLuint source, GLuint target, glm::vec2 sourceResolution, glm::vec2 targetResolution, GLenum bitField, GLenum readBuffer, GLenum filter)
 {
 		// bind framebuffers
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, source);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target);
+	OPENGLCONTEXT->bindFBO(source, GL_READ_FRAMEBUFFER);
+	OPENGLCONTEXT->bindFBO(target, GL_DRAW_FRAMEBUFFER);
 		
 	// color buffer is to be copied
 	if (bitField == GL_COLOR_BUFFER_BIT)
@@ -265,7 +267,7 @@ void copyFBOContent(GLuint source, GLuint target, glm::vec2 sourceResolution, gl
 			0,0, (GLint) targetResolution.x, (GLint) targetResolution.y,
 			bitField, (filter == GL_NONE) ? GL_NEAREST : filter);
 		
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		OPENGLCONTEXT->bindFBO(0);
 		return;
 	}
 	if (bitField == GL_DEPTH_BUFFER_BIT)
@@ -274,7 +276,7 @@ void copyFBOContent(GLuint source, GLuint target, glm::vec2 sourceResolution, gl
 			0,0, (GLint) sourceResolution.x, (GLint) sourceResolution.y,
 			0,0, (GLint) targetResolution.x, (GLint) targetResolution.y,
 			bitField, GL_NEAREST);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		OPENGLCONTEXT->bindFBO(0);
 		return;
 	}
 
@@ -283,5 +285,5 @@ void copyFBOContent(GLuint source, GLuint target, glm::vec2 sourceResolution, gl
 		0,0, (GLint) sourceResolution.x, (GLint) sourceResolution.y,
 		0,0, (GLint) targetResolution.x, (GLint) targetResolution.y,
 		bitField, filter);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	OPENGLCONTEXT->bindFBO(0);
 }

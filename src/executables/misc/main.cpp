@@ -45,19 +45,18 @@ void updateVectorTexture(double elapsedTime)
 		DEBUGLOG->log("VectorSize: ", s_vectorTexData.size());
 
 		glGenTextures(1, &s_vectorTexture);
-		glBindTexture(GL_TEXTURE_2D, s_vectorTexture);
+		OPENGLCONTEXT->bindTexture(s_vectorTexture);
 		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, VECTOR_TEXTURE_SIZE, VECTOR_TEXTURE_SIZE);	
 	
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glBindTexture(GL_TEXTURE_2D, 0);
+		OPENGLCONTEXT->bindTexture(0);
 	}
 	else
 	{
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, s_vectorTexture);
+		OPENGLCONTEXT->bindTextureToUnit(s_vectorTexture, GL_TEXTURE0);
 
 		auto evaluate = [&](float t, float offsetX, float offsetY){
 			float x = sin(t + offsetX) * 0.5f + 0.5f;
@@ -78,7 +77,7 @@ void updateVectorTexture(double elapsedTime)
 		}
 
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, VECTOR_TEXTURE_SIZE, VECTOR_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &s_vectorTexData[0] );
-		glBindTexture(GL_TEXTURE_2D, 0);
+		OPENGLCONTEXT->bindTexture(0);
 	}
 }
 
@@ -115,7 +114,7 @@ int main()
 
 	// load grass texture
 	s_texHandle = TextureTools::loadTexture(RESOURCES_PATH +  std::string( "/grass.png"));
-	glBindTexture(GL_TEXTURE_2D, s_texHandle);
+	OPENGLCONTEXT->bindTexture(s_texHandle);
 
 	/////////////////////// 	Renderpass     ///////////////////////////
 	DEBUGLOG->log("Shader Compilation: volume uvw coords"); DEBUGLOG->indent();
@@ -277,12 +276,10 @@ int main()
 
 		updateVectorTexture(elapsedTime);
 
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, s_vectorTexture);
+		OPENGLCONTEXT->bindTextureToUnit(s_vectorTexture, GL_TEXTURE0);
 
 	//	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, s_texHandle);
+		OPENGLCONTEXT->bindTextureToUnit(s_texHandle, GL_TEXTURE1);
 		geomShader.update("tex", 1);
 		geomShader.update("blendColor", 2.0);
 		//geomShader.update("color", s_color);
@@ -290,13 +287,9 @@ int main()
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
-		// glActiveTexture(GL_TEXTURE0);
-		// glBindTexture(GL_TEXTURE_2D, fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0)); // color
-		// glActiveTexture(GL_TEXTURE1);
-		// glBindTexture(GL_TEXTURE_2D, fbo.getColorAttachmeHntTextureHandle(GL_COLOR_ATTACHMENT1)); // normal
-		// glActiveTexture(GL_TEXTURE2);
-		// glBindTexture(GL_TEXTURE_2D, fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2)); // position
-		// glActiveTexture(GL_TEXTURE0);
+		// OPENGLCONTEXT->bindTexture(fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0), GL_TEXTURE0); // color
+		// OPENGLCONTEXT->bindTexture(fbo.getColorAttachmeHntTextureHandle(GL_COLOR_ATTACHMENT1), GL_TEXTURE1); // normal
+		// OPENGLCONTEXT->bindTexture(fbo.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2), GL_TEXTURE2); // position
 
 		//compShader.update("colorMap",    0);
 		//compShader.update("normalMap",   1);
@@ -308,9 +301,9 @@ int main()
 		geom.render();
 
 		// copy window content to mipmap fbo for level 0
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		OPENGLCONTEXT->bindFBO(0, GL_READ_FRAMEBUFFER);
 		glReadBuffer(GL_BACK);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, boxBlur.m_mipmapFBOHandles[0]);
+		OPENGLCONTEXT->bindFBO(boxBlur.m_mipmapFBOHandles[0], GL_DRAW_FRAMEBUFFER);
 		glBlitFramebuffer(0,0,getResolution(window).x,getResolution(window).y,0,0,getResolution(window).x,getResolution(window).y, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		boxBlur.pull();
 
@@ -318,9 +311,9 @@ int main()
 		boxBlur.push(s_num_levels, s_show_level);
 		
 		// copy mipmap fbo content of level 0 to window
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		OPENGLCONTEXT->bindFBO(0, GL_DRAW_FRAMEBUFFER);
 		glReadBuffer(GL_BACK);
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, boxBlur.m_mipmapFBOHandles[min((int)boxBlur.m_mipmapFBOHandles.size()-1, max(s_show_level, 0))]);
+		OPENGLCONTEXT->bindFBO(boxBlur.m_mipmapFBOHandles[min((int)boxBlur.m_mipmapFBOHandles.size()-1, max(s_show_level, 0))], GL_READ_FRAMEBUFFER);
 		glBlitFramebuffer(0,0,getResolution(window).x / pow (2.0, min((int)boxBlur.m_mipmapFBOHandles.size()-1, max(s_show_level, 0))), getResolution(window).y / pow(2.0,min((int)boxBlur.m_mipmapFBOHandles.size()-1, max(s_show_level, 0))),0,0,getResolution(window).x,getResolution(window).y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
 		ImGui::Render();

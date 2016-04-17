@@ -347,7 +347,7 @@ int main()
         texShader.bindTextureOnUse("tex", shadowMap.getDepthTextureHandle());
         showDepth.render();
 
-        glViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
+        OPENGLCONTEXT->setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
         ImGui::Render();
         //////////////////////////////////////////////////////////////////////////////
         //</editor-fold>

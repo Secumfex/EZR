@@ -93,9 +93,9 @@ void VolumetricLighting::setupNoiseTexture() {
     FrameBufferObject::s_internalFormat  = GL_RGBA;
 
     // write noise to fbo texture
-    glBindTexture(GL_TEXTURE_2D, noiseMap.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
+    OPENGLCONTEXT->bindTexture(noiseMap.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, _width, _height, GL_RED, GL_UNSIGNED_BYTE, (GLvoid*)noiseData);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    OPENGLCONTEXT->bindTexture(0);
 
     // bind to shader
     _raymarchingShader->bindTextureOnUse("noiseMap", noiseMap.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));

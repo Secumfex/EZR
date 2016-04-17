@@ -4,6 +4,8 @@
 #include "imgui/imgui.h"
 #include "imgui_impl_glfw_gl3.h"
 
+#include "Rendering/OpenGLContext.h"
+
 // GL3W/GLFW
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -40,7 +42,7 @@ static void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_SCISSOR_TEST);
-    glActiveTexture(GL_TEXTURE0);
+	OPENGLCONTEXT->activeTexture(GL_TEXTURE0);
 
     // Setup orthographic projection matrix
     const float width = ImGui::GetIO().DisplaySize.x;
@@ -52,10 +54,10 @@ static void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
         { 0.0f,			0.0f,			-1.0f,		0.0f },
         { -1.0f,		1.0f,			0.0f,		1.0f },
     };
-    glUseProgram(g_ShaderHandle);
+    OPENGLCONTEXT->useShader(g_ShaderHandle);
     glUniform1i(g_AttribLocationTex, 0);
     glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
-    glBindVertexArray(g_VaoHandle);
+    OPENGLCONTEXT->bindVAO(g_VaoHandle);
 
     for (int n = 0; n < draw_data->CmdListsCount; n++)
     {
@@ -76,7 +78,7 @@ static void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
             }
             else
             {
-                glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
+                OPENGLCONTEXT->bindTexture((GLuint)(intptr_t)pcmd->TextureId);
                 glScissor((int)pcmd->ClipRect.x, (int)(height - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
                 glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, GL_UNSIGNED_SHORT, idx_buffer_offset);
             }
@@ -85,12 +87,12 @@ static void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
     }
 
     // Restore modified state
-    glBindVertexArray(0);
+    OPENGLCONTEXT->bindVAO(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    glUseProgram(last_program);
+    OPENGLCONTEXT->useShader(last_program);
     glDisable(GL_SCISSOR_TEST);
-    glBindTexture(GL_TEXTURE_2D, last_texture);
+    OPENGLCONTEXT->bindTexture(last_texture);
 }
 
 static const char* ImGui_ImplGlfwGL3_GetClipboardText()
@@ -144,7 +146,7 @@ void ImGui_ImplGlfwGL3_CreateFontsTexture()
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits for OpenGL3 demo because it is more likely to be compatible with user's existing shader.
 
     glGenTextures(1, &g_FontTexture);
-    glBindTexture(GL_TEXTURE_2D, g_FontTexture);
+    OPENGLCONTEXT->bindTexture(g_FontTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
@@ -206,7 +208,7 @@ bool ImGui_ImplGlfwGL3_CreateDeviceObjects()
     glGenBuffers(1, &g_ElementsHandle);
 
     glGenVertexArrays(1, &g_VaoHandle);
-    glBindVertexArray(g_VaoHandle);
+    OPENGLCONTEXT->bindVAO(g_VaoHandle);
     glBindBuffer(GL_ARRAY_BUFFER, g_VboHandle);
     glEnableVertexAttribArray(g_AttribLocationPosition);
     glEnableVertexAttribArray(g_AttribLocationUV);
@@ -217,7 +219,7 @@ bool ImGui_ImplGlfwGL3_CreateDeviceObjects()
     glVertexAttribPointer(g_AttribLocationUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, uv));
     glVertexAttribPointer(g_AttribLocationColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, col));
 #undef OFFSETOF
-    glBindVertexArray(0);
+    OPENGLCONTEXT->bindVAO(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     ImGui_ImplGlfwGL3_CreateFontsTexture();

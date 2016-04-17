@@ -6,6 +6,7 @@
 #include "TextureTools.h"
 
 #include "Core/DebugLog.h"
+#include "Rendering/OpenGLContext.h"
 
 namespace TextureTools {
 	GLuint loadTexture(std::string fileName, TextureInfo* texInfo){
@@ -26,7 +27,7 @@ namespace TextureTools {
         glGenTextures(1, &textureHandle);
      
         //bind the texture
-        glBindTexture(GL_TEXTURE_2D, textureHandle);
+		OPENGLCONTEXT->bindTexture(textureHandle);
      
         //send image data to the new texture
         if (bytesPerPixel < 3) {
@@ -48,8 +49,8 @@ namespace TextureTools {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-        glBindTexture(GL_TEXTURE_2D, 0);
+		
+		OPENGLCONTEXT->bindTexture(0);
 
         stbi_image_free(data);
         DEBUGLOG->log( "SUCCESS: image loaded from " + fileString );
@@ -79,7 +80,8 @@ namespace TextureTools {
 	int width,height,bytesPerPixel;
 
 	unsigned char* image;
-    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+	
+	OPENGLCONTEXT->bindTexture(textureID, GL_TEXTURE_CUBE_MAP);
 	for(GLuint i = 0; i < faces.size(); i++)
 	{
 		stbi_set_flip_vertically_on_load(false);
@@ -103,7 +105,8 @@ namespace TextureTools {
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+	OPENGLCONTEXT->bindTexture(0, GL_TEXTURE_CUBE_MAP);
+
 
 	return textureID;
 	}

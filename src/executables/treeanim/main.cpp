@@ -114,7 +114,7 @@ int main()
 	std::map<aiTextureType, GLuint > foliageMatTextures;
 	foliageMatTextures[aiTextureType_DIFFUSE] = foliageTexHandle;
 	s_material_texture_handles.push_back(foliageMatTextures);
-	glBindTexture(GL_TEXTURE_2D, foliageTexHandle);
+	OPENGLCONTEXT->bindTexture(foliageTexHandle);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 	/////////////////////    create Tree data           //////////////////////////
@@ -175,7 +175,7 @@ int main()
 	//DEBUGLOG->log("FrameBufferObject Creation: Foliage GBuffer");
 	//FrameBufferObject gbuffer_foliage(foliageShader.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
 	FrameBufferObject::s_internalFormat  = GL_RGBA;	   // restore default
-	glBindTexture(GL_TEXTURE_2D, scene_gbuffer.getBuffer("fragColor"));
+	OPENGLCONTEXT->bindTexture(scene_gbuffer.getBuffer("fragColor"));
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, (GLint) log_2(max(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y)) );
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	DEBUGLOG->outdent();

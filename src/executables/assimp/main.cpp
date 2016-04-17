@@ -23,7 +23,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 ////////////////////// PARAMETERS /////////////////////////////
-const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
+glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
 
 static glm::vec4 s_color = glm::vec4(0.45 * 0.3f, 0.44f * 0.3f, 0.87f * 0.3f, 1.0f); // far : blueish
 static glm::vec4 s_lightPos = glm::vec4(2.0,2.0,2.0,1.0);
@@ -290,6 +290,17 @@ int main()
 	setMouseButtonCallback(window, mouseButtonCB);
 	setKeyCallback(window, keyboardCB);
 
+	auto windowResizeCB = [&](int width, int height)
+	{
+		OPENGLCONTEXT->updateWindowCache();
+		WINDOW_RESOLUTION = glm::vec2(OPENGLCONTEXT->cacheWindowSize);
+		compositing.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
+		perspective = glm::perspective(glm::radians(65.f), getRatio(window), 0.1f, 10.f);
+		shaderProgram.update("projection", perspective);
+	};
+
+	setWindowResizeCallback(window, windowResizeCB);
+
 	// model matrices / texture update function
 	// std::function<void(Renderable*)> perRenderableFunction = [&](Renderable* r){ 
 	// 	static int i = 0;
@@ -343,9 +354,9 @@ int main()
 
 		compositing.render();
 
-		 ImGui::Render();
-		 glDisable(GL_BLEND);
-		 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
+		ImGui::Render();
+		glDisable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
 		//////////////////////////////////////////////////////////////////////////////
 
 	});

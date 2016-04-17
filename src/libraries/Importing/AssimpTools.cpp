@@ -3,6 +3,7 @@
 #include "Core/DebugLog.h"
 
 #include "Rendering/VertexArrayObjects.h"
+#include "Rendering/OpenGLContext.h"
 
 glm::vec3 toVec3(const aiVector3D& vert)
 {
@@ -140,7 +141,7 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 		    glGenVertexArrays(1, &vao);
 			Renderable *renderable = new Renderable;
 			renderable->m_vao = vao;
-			glBindVertexArray(vao);
+			OPENGLCONTEXT->bindVAO(vao);
 
 			if (m->HasPositions()){
 			renderable->m_positions.m_vboHandle = createVbo(vertices, 3, 0);
@@ -175,7 +176,7 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 
 			renderable->setDrawMode(GL_TRIANGLES);
 
-			glBindVertexArray(0);
+			OPENGLCONTEXT->bindVAO(0);
 
 			// save mesh info
 			RenderableInfo renderableInfo;
@@ -322,7 +323,7 @@ std::vector<Renderable* > AssimpTools::createSimpleRenderablesFromVertexDataInst
 		glGenVertexArrays(1, &vao);
 		Renderable *renderable = new Renderable;
 		renderable->m_vao = vao;
-		glBindVertexArray(vao);
+		OPENGLCONTEXT->bindVAO(vao);
 
 		if (!vertexDataInstances[i].positions.empty()){
 		renderable->m_positions.m_vboHandle = Renderable::createVbo(vertexDataInstances[i].positions, 3, 0);
@@ -353,7 +354,7 @@ std::vector<Renderable* > AssimpTools::createSimpleRenderablesFromVertexDataInst
 
 		renderable->setDrawMode(GL_TRIANGLES);
 
-		glBindVertexArray(0);
+		OPENGLCONTEXT->bindVAO(0);
 
 		// add to set of renderables
 		resultVector.push_back(renderable);

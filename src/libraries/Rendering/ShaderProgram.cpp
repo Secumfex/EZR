@@ -2,6 +2,8 @@
 
 #include "Core/DebugLog.h"
 
+#include "Rendering/OpenGLContext.h"
+
 #include <stdlib.h>
 #include <iostream>
 #include <sstream>
@@ -245,8 +247,7 @@ void ShaderProgram::bindTextureOnUse(const std::string &textureName, GLuint text
 
 ShaderProgram* ShaderProgram::updateAndBindTexture(std::string name, int texUnit, GLuint textureHandle, GLenum textureType)
 {
-	glActiveTexture(GL_TEXTURE0 + texUnit);
-	glBindTexture(textureType, textureHandle);
+	OPENGLCONTEXT->bindTextureToUnit(textureHandle, GL_TEXTURE0 + texUnit, textureType);
 	update(name, texUnit);
 	return this;
 }
@@ -316,11 +317,11 @@ GLuint ShaderProgram::texture(const std::string &texture)
 
 ShaderProgram* ShaderProgram::update(std::string name, bool value) 
 {
-	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 		if (m_uniformCache.ints.find(name) ==  m_uniformCache.ints.end() || m_uniformCache.ints.at(name) != (int) value)
 		{
+			OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 			glUniform1i(u, value); 
 			m_uniformCache.ints[name] = (int) value;
 		}
@@ -329,11 +330,11 @@ ShaderProgram* ShaderProgram::update(std::string name, bool value)
 
 ShaderProgram* ShaderProgram::update(std::string name, int value) 
 {
-	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 		if (m_uniformCache.ints.find(name) ==  m_uniformCache.ints.end() || m_uniformCache.ints.at(name) != value)
 		{
+			OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 			glUniform1i(u, value);
 			m_uniformCache.ints[name] = value;
 		}
@@ -342,11 +343,11 @@ ShaderProgram* ShaderProgram::update(std::string name, int value)
 
 ShaderProgram* ShaderProgram::update(std::string name, float value) 
 {
-	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 		if (m_uniformCache.floats.find(name) ==  m_uniformCache.floats.end() || m_uniformCache.floats.at(name) != value)
 		{
+			OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 			glUniform1f(u, value); 
 			m_uniformCache.floats[name] = value;
 		}
@@ -356,24 +357,24 @@ ShaderProgram* ShaderProgram::update(std::string name, float value)
 
 ShaderProgram* ShaderProgram::update(std::string name, double value) 
 {
-	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 		if (m_uniformCache.floats.find(name) ==  m_uniformCache.floats.end() || m_uniformCache.floats.at(name) != (float) value)
 		{
-			glUniform1f(u, value);
-			m_uniformCache.floats[name] = value;
+			OPENGLCONTEXT->useShader(m_shaderProgramHandle);
+			glUniform1f(u, (GLfloat) value);
+			m_uniformCache.floats[name] = (float) value;
 		}
 	return this;
 }
 
 ShaderProgram* ShaderProgram::update(std::string name, const glm::ivec2& vector) 
 {
-	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 		if (m_uniformCache.ivecs.find(name) ==  m_uniformCache.ivecs.end() || m_uniformCache.ivecs.at(name) != glm::ivec4(vector,0,0))
 		{
+			OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 			glUniform2iv(u, 1, glm::value_ptr(vector)); 
 			m_uniformCache.ivecs[name] = glm::ivec4(vector,0,0);
 		}
@@ -382,11 +383,11 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::ivec2& vector)
 
 ShaderProgram* ShaderProgram::update(std::string name, const glm::ivec3& vector) 
 {
-	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 		if (m_uniformCache.ivecs.find(name) ==  m_uniformCache.ivecs.end() || m_uniformCache.ivecs.at(name) != glm::ivec4(vector,0))
 		{
+			OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 			glUniform3iv(u, 1, glm::value_ptr(vector));
 			m_uniformCache.ivecs[name] = glm::ivec4(vector,0);
 		}
@@ -395,11 +396,11 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::ivec3& vector)
 
 ShaderProgram* ShaderProgram::update(std::string name,const glm::ivec4& vector) 
 {
-	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 		if (m_uniformCache.ivecs.find(name) ==  m_uniformCache.ivecs.end() || m_uniformCache.ivecs.at(name) != vector)
 		{
+			OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 			glUniform4iv(u, 1, glm::value_ptr(vector));
 			m_uniformCache.ivecs[name] = vector;
 		}
@@ -408,11 +409,11 @@ ShaderProgram* ShaderProgram::update(std::string name,const glm::ivec4& vector)
 
 ShaderProgram* ShaderProgram::update(std::string name, const glm::vec2& vector) 
 {
-	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 		if (m_uniformCache.vecs.find(name) ==  m_uniformCache.vecs.end() || m_uniformCache.vecs.at(name) != glm::vec4(vector, 0.0f, 0.0f))
 		{
+			OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 			glUniform2fv(u, 1, glm::value_ptr(vector)); 
 			m_uniformCache.vecs[name] = glm::vec4(vector,0,0);
 		}
@@ -421,11 +422,11 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::vec2& vector)
 
 ShaderProgram* ShaderProgram::update(std::string name, const glm::vec3& vector) 
 {
-	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 		if (m_uniformCache.vecs.find(name) ==  m_uniformCache.vecs.end() || m_uniformCache.vecs.at(name) != glm::vec4(vector, 0.0f))
 		{
+			OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 			glUniform3fv(uniform(name), 1, glm::value_ptr(vector)); 
 			m_uniformCache.vecs[name] = glm::vec4(vector,0);
 		}
@@ -434,11 +435,11 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::vec3& vector)
 
 ShaderProgram* ShaderProgram::update(std::string name, const glm::vec4& vector) 
 {
-	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 		if (m_uniformCache.vecs.find(name) ==  m_uniformCache.vecs.end() || m_uniformCache.vecs.at(name) != vector)
 		{
+			OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 			glUniform4fv(u, 1, glm::value_ptr(vector));
 			m_uniformCache.vecs[name] = vector;
 		}
@@ -447,11 +448,11 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::vec4& vector)
 
 ShaderProgram* ShaderProgram::update(std::string name, const glm::mat2& matrix) 
 {
-	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 		if (m_uniformCache.mats.find(name) ==  m_uniformCache.mats.end() || m_uniformCache.mats.at(name) != glm::mat4(matrix))
 		{
+			OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 			glUniformMatrix2fv(u, 1, GL_FALSE, glm::value_ptr(matrix)); 
 			m_uniformCache.mats[name] = glm::mat4(matrix);
 		}
@@ -460,11 +461,11 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::mat2& matrix)
 
 ShaderProgram* ShaderProgram::update(std::string name, const glm::mat3& matrix) 
 {
-	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 		if (m_uniformCache.mats.find(name) == m_uniformCache.mats.end() || m_uniformCache.mats.at(name) != glm::mat4(matrix))
 		{
+			OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 			glUniformMatrix3fv(u, 1, GL_FALSE, glm::value_ptr(matrix));
 			m_uniformCache.mats[name] = glm::mat4(matrix);
 		}
@@ -473,11 +474,11 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::mat3& matrix)
 
 ShaderProgram* ShaderProgram::update(std::string name, const glm::mat4& matrix) 
 {
-	glUseProgram(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 		if (m_uniformCache.mats.find(name) == m_uniformCache.mats.end() || m_uniformCache.mats.at(name) != matrix)
 		{
+			OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 			glUniformMatrix4fv(u, 1, GL_FALSE, glm::value_ptr(matrix));
 			m_uniformCache.mats[name] = glm::mat4(matrix);
 		}
@@ -486,7 +487,7 @@ ShaderProgram* ShaderProgram::update(std::string name, const glm::mat4& matrix)
 
 ShaderProgram* ShaderProgram::update(std::string name, const std::vector<int>& vector)
 {
-	glUseProgram(m_shaderProgramHandle);
+	OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 		glUniform1iv(u, sizeof(vector), &vector[0]);
@@ -495,7 +496,7 @@ ShaderProgram* ShaderProgram::update(std::string name, const std::vector<int>& v
 
 ShaderProgram* ShaderProgram::update(std::string name, const std::vector<glm::vec2>& vector) 
 {
-	glUseProgram(m_shaderProgramHandle);
+	OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 	glUniform2fv(u, sizeof(vector), glm::value_ptr((&vector[0])[0]));
@@ -504,7 +505,7 @@ ShaderProgram* ShaderProgram::update(std::string name, const std::vector<glm::ve
 
 ShaderProgram* ShaderProgram::update(std::string name, const std::vector<glm::vec3>& vector) 
 {
-	glUseProgram(m_shaderProgramHandle);
+	OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 	glUniform3fv(u, sizeof(vector), glm::value_ptr((&vector[0])[0]));
@@ -513,7 +514,7 @@ ShaderProgram* ShaderProgram::update(std::string name, const std::vector<glm::ve
 
 ShaderProgram* ShaderProgram::update(std::string name, const std::vector<glm::vec4>& vector) 
 {
-	glUseProgram(m_shaderProgramHandle);
+	OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 	auto u = uniform(name);
 	if ( u != (GLuint) -1)
 	glUniform4fv(u, sizeof(vector), glm::value_ptr((&vector[0])[0]));
@@ -529,17 +530,16 @@ void ShaderProgram::use()
 		// std::cout << "name: " << texture.first << ", active texture:" << i << ", uniform: " << uniform(texture.first) << ", handle: " << texture.second << std::endl;
 
 		update( texture.first, i );
-		glActiveTexture(GL_TEXTURE0+i);
-		glBindTexture(GL_TEXTURE_2D, texture.second);
+		OPENGLCONTEXT->bindTextureToUnit(texture.second, GL_TEXTURE0+i, GL_TEXTURE_2D);
 		i++;
 	}
 
-	glUseProgram(m_shaderProgramHandle);
+	OPENGLCONTEXT->useShader(m_shaderProgramHandle);
 }
 
 void ShaderProgram::disable()
 {
-	glUseProgram(0);
+	OPENGLCONTEXT->useShader(0);
 }
 
 void ShaderProgram::mapShaderProperties(GLenum interface, std::map<std::string, Info>* map) {
@@ -764,10 +764,10 @@ void ShaderProgram::updateValuesInBufferData(std::string uniformName, const floa
 {
 	auto u = info.uniforms.find(uniformName);
 	if ( u == info.uniforms.end()) { return; }
-	if (numValues >= buffer.size()) {return;}
+	if (numValues >= (int) buffer.size()) {return;}
 
 	int valStartIdx = u->second.offset / 4;
-	if (buffer.size() < valStartIdx + numValues){return;} 
+	if ( (int) buffer.size() < valStartIdx + numValues){return;} 
 
 	for (int i = 0; i < numValues; i++)
 	{
@@ -779,7 +779,7 @@ void ShaderProgram::updateValueInBuffer(std::string uniformName, const float* va
 {
 	auto u = info.uniforms.find(uniformName);
 	if ( u == info.uniforms.end()) { return; }
-	if ( info.byteSize < u->second.offset + (numValues * sizeof(float))){return;}
+	if ( (int)  info.byteSize < u->second.offset + (numValues * sizeof(float))){return;}
 
 	glBindBuffer(GL_UNIFORM_BUFFER, bufferHandle);
 	glBufferSubData(GL_UNIFORM_BUFFER, u->second.offset, numValues * sizeof(float), values);

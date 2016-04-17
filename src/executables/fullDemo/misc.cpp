@@ -141,9 +141,9 @@ inline void loadFoliageMaterial()
 	std::map<aiTextureType, GLuint > foliageMatTextures;
 	foliageMatTextures[aiTextureType_DIFFUSE] = foliageTexHandle;
 	s_tree_materials_textures.push_back(foliageMatTextures);
-	glBindTexture(GL_TEXTURE_2D, foliageTexHandle);
+	OPENGLCONTEXT->bindTexture(foliageTexHandle);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	OPENGLCONTEXT->bindTexture(0);
 
 }
 
