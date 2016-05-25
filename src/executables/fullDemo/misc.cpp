@@ -142,7 +142,8 @@ inline void loadFoliageMaterial()
 	foliageMatTextures[aiTextureType_DIFFUSE] = foliageTexHandle;
 	s_tree_materials_textures.push_back(foliageMatTextures);
 	OPENGLCONTEXT->bindTexture(foliageTexHandle);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 2);
 	OPENGLCONTEXT->bindTexture(0);
 
 }

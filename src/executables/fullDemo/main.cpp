@@ -115,8 +115,9 @@ int main()
 	
 	GLuint tex_grassQuad = TextureTools::loadTextureFromResourceFolder("grass_2.png");
 	OPENGLCONTEXT->bindTexture(tex_grassQuad);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 2);
 
 	GLuint waterTextureHandle = TextureTools::loadTextureFromResourceFolder("water/07_DIFFUSE.jpg");
 	//GLuint waterNormalTextureHandle = TextureTools::loadTextureFromResourceFolder("water/07_NORMAL.jpg");
