@@ -14,7 +14,7 @@
 #include <VML/VolumetricLighting.h>
 
 ////////////////////// PARAMETERS /////////////////////////////
-static const glm::vec2 WINDOW_RESOLUTION = glm::vec2(800.0f, 600.0f);
+static glm::vec2 WINDOW_RESOLUTION = glm::vec2(1024.0f, 576.0f);
 static const glm::vec4 WORLD_LIGHT_DIRECTION = glm::vec4(-glm::normalize(glm::vec3(-2.16f, 2.6f, 10.0f)), 0.0f);
 
 // needed for bezier-patch-interpolation
@@ -482,6 +482,25 @@ int main()
 			s_animate_seasons = !s_animate_seasons;
 		 }
 	 };
+
+	auto windowResizeCB = [&](int width, int height)
+	{
+		OPENGLCONTEXT->updateWindowCache();
+		WINDOW_RESOLUTION = glm::vec2(OPENGLCONTEXT->cacheWindowSize);
+
+		mainCamera.setProjectionMatrix(glm::perspective(glm::radians(65.f), getRatio(window), 0.5f, 100.f));
+		
+		// update all projection matrices
+		sh_ssr.update("projection",mainCamera.getProjectionMatrix());
+		sh_grassGeom.update("projection", mainCamera.getProjectionMatrix());
+		r_skybox.m_skyboxShader.update("projection", mainCamera.getProjectionMatrix());
+		treeRendering.branchShader->update("projection", mainCamera.getProjectionMatrix());
+		treeRendering.foliageShader->update("projection", mainCamera.getProjectionMatrix());
+		sh_gbuffer.update("projection", mainCamera.getProjectionMatrix());
+		sh_tessellation.update("projection", mainCamera.getProjectionMatrix());
+	};
+
+	setWindowResizeCallback(window, windowResizeCB);
 
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////// RENDER LOOP /////////////////////////////////
