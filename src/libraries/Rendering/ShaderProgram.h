@@ -365,14 +365,14 @@ protected:
 public:
 	static std::string getTypeString(GLenum type);
 
-	struct BlockUniformInfo 
+	struct BlockUniformInfo //!< Info about a uniform that is in a uniform block (hence, a "block uniform")
 	{
 		ShaderProgram::Info info;
 		GLint offset; // byte offset in the uniform block / buffer
-		GLint arrayStride;
-		GLint matrixStride;
+		GLint arrayStride; // size of array, 1 for non-array uniforms
+		GLint matrixStride; // stride of a column of the (column-major)matrix uniform, 0 for non-matrix uniforms
 	};
-	struct UniformBlockInfo
+	struct UniformBlockInfo //!< Info about a Uniform Block
 	{
 		GLint index; //!< index in the shader program
 		GLint byteSize;
@@ -385,7 +385,9 @@ public:
 	static std::vector<float> createUniformBlockDataVector(ShaderProgram::UniformBlockInfo& uniformBlock); //!< creates a std::vector equal to the byte size of the uniform block
 	static GLuint createUniformBlockBuffer(std::vector<float>& data, GLuint bindingPoint); //!< generates a buffer, fills it with data and binds it to bindingPoint
 
+	/** @brief updates the values in the data vector at the positions corresponding to the provided uniform, without uploading to the buffer.*/
 	static void updateValuesInBufferData(std::string uniformName, const float* values, int numValues, ShaderProgram::UniformBlockInfo& info, std::vector<float>& buffer);
+	/** @brief updates the values in the uniform buffer at the positions corresponding to the provided uniform, by uploading them directly to the uniform buffer */
 	static void updateValueInBuffer(std::string uniformName, const float* values, int numValues, ShaderProgram::UniformBlockInfo& info, GLuint bufferHandle);
 };
 
