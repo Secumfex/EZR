@@ -236,7 +236,7 @@ void TreeAnimation::generateFoliageGeometryShaderVertexData( TreeAnimation::Tree
 		float rWidth = ((float) rand()) / ((float) RAND_MAX)* 0.2f + 0.03f; //0.03..0.23
 		float rHeight = ((float) rand()) / ((float) RAND_MAX)* 0.2f + 0.03f; //0.03..0.23
 
-		addUV(rWidth, rHeight);
+		addUV(rWidth, rHeight); //isnt really used for anything
 
 		glm::vec3 n[4];
 
