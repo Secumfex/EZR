@@ -24,7 +24,12 @@ public:
 	const int m_width;
 	const int m_height;
 
+	void createVectorTexture();
+	void updateVectorTextureData(double elapsedTime);
+	void uploadVectorTextureData();
+
 	void updateVectorTexture(double elapsedTime);
+	void updateVectorTextureThreaded(double elapsedTime); //like above, but multithreaded
 };
 
 } // TreeAnimation

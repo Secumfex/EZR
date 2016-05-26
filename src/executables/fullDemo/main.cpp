@@ -45,6 +45,8 @@ static bool s_enableDepthOfField = true;
 static bool s_enableLenseflare = true;
 static bool s_animate_seasons = false;
 
+// static bool s_multithreaded_windfield = false;
+
 static bool s_ssrCubeMap = true;
 static bool s_ssrFade = false;
 //static bool s_ssrGlossy = true;
@@ -482,6 +484,11 @@ int main()
 		 {
 			s_animate_seasons = !s_animate_seasons;
 		 }
+ 		//  if ( k == GLFW_KEY_M && a == GLFW_PRESS)
+		 // {
+			//  s_multithreaded_windfield = !s_multithreaded_windfield;
+			//  DEBUGLOG->log("multithread: ",s_multithreaded_windfield);
+		 // }
 	 };
 
 	auto windowResizeCB = [&](int width, int height)
@@ -603,7 +610,16 @@ int main()
 		///////////////////////////// VARIABLE UPDATING ///////////////////////////////
 		mainCamera.update(dt);
 		updateLightCamera(mainCamera, lightCamera, - glm::vec3(WORLD_LIGHT_DIRECTION) * 15.0f);
-		windField.updateVectorTexture(elapsedTime);
+		
+		// if( s_multithreaded_windfield )
+		// {
+			windField.updateVectorTextureThreaded(elapsedTime);
+		// }
+		// else
+		// {
+		// 	windField.updateVectorTexture(elapsedTime);
+		// }
+
 		glm::mat4 cameraView = mainCamera.getViewMatrix();
 		glm::vec3 cameraPos = mainCamera.getPosition();
 		glm::mat4 lightView = lightCamera.getViewMatrix();
