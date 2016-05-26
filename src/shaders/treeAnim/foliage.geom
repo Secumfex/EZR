@@ -53,8 +53,16 @@ vec4 centerPos(vec4 pos1, vec4 pos2, vec4 pos3)
 void main() {    
 
 	vec4 center = vec4(VertexGeom[0].position, 1.0);
+    vec2 n = normalize(VertexGeom[0].normal.xy);
+    float cosa = n.x;
+    float sina = n.y;
 
-    gl_Position = projection * (center + vec4(-foliageSize, 0.0, 0.0, 0.0)); 
+    // rotation matrix from normal (direction from branch to foliage quad)
+    mat2 rotate = mat2(cosa,sina,   //first column
+                   -sina,cosa); //second column
+
+
+    gl_Position = projection * (center + vec4( rotate * vec2(-foliageSize, 0.0), 0.0, 0.0)); 
     // passUVCoord = VertexGeom[0].texCoord;
     passUVCoord = vec2(0,0);
     passPosition = VertexGeom[0].position;
@@ -62,7 +70,7 @@ void main() {
     passNormal = normalize( VertexGeom[0].normal - vec3(foliageSize * 0.25, foliageSize * 0.25, 0.0 ));
     passTangent = VertexGeom[0].tangent;    EmitVertex();
 
-    gl_Position = projection * (center + vec4(-foliageSize, foliageSize, 0.0, 0.0));    
+    gl_Position = projection * (center + vec4( rotate * vec2(-foliageSize, foliageSize), 0.0, 0.0));    
     // passUVCoord = VertexGeom[0].texCoord;
     passUVCoord = vec2(0,1);
     passPosition = VertexGeom[0].position;
@@ -71,7 +79,7 @@ void main() {
     passTangent = VertexGeom[0].tangent;
     EmitVertex();
 
-    gl_Position = projection * (center + vec4(foliageSize, 0.0, 0.0, 0.0));    
+    gl_Position = projection * (center + vec4( rotate * vec2(foliageSize, 0.0), 0.0, 0.0));    
     passUVCoord = vec2(1,0);
     // passUVCoord = VertexGeom[0].texCoord;
     passPosition = VertexGeom[0].position;
@@ -80,7 +88,7 @@ void main() {
     passTangent = VertexGeom[0].tangent;
     EmitVertex();
     
-    gl_Position = projection * (center +vec4(foliageSize, foliageSize, 0.0, 0.0)); 
+    gl_Position = projection * (center +vec4( rotate * vec2(foliageSize, foliageSize), 0.0, 0.0)); 
     passUVCoord = vec2(1,1);
     // passUVCoord = VertexGeom[0].texCoord;
     passPosition = VertexGeom[0].position;
