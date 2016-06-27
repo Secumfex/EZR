@@ -354,7 +354,7 @@ int main()
 	sh_ssr.bindTextureOnUse("CubeMapTex",tex_cubeMap);
 	//sh_ssr.bindTextureOnUse("DiffuseTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	FrameBufferObject fbo_ssr(sh_ssr.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
-	RenderPass r_ssr(&sh_ssr, &fbo_gbufferComp);
+	RenderPass r_ssr(&sh_ssr, &fbo_ssr);
 
 	// Post-Processing rendering
 	PostProcessing::DepthOfField r_depthOfField(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y, &quad);
@@ -744,6 +744,7 @@ int main()
 		// ssr
 		if (s_enableSSR) {
 			r_ssr.render();
+			copyFBOContent(&fbo_ssr, &fbo_gbufferComp, GL_COLOR_BUFFER_BIT);
 		}
 
 		// volumetric lighting
