@@ -736,14 +736,17 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
     GLuint positionBuffer;
     GLuint uvBuffer;
     GLuint normalBuffer;
+    GLuint tangentBuffer;
     GLuint indexBuffer;
     glGenBuffers(1, &positionBuffer);
     glGenBuffers(1, &uvBuffer);
     glGenBuffers(1, &normalBuffer);
+    glGenBuffers(1, &tangentBuffer);
     glGenBuffers(1, &indexBuffer);
 
     m_positions.m_vboHandle = positionBuffer;
     m_normals.m_vboHandle = normalBuffer;
+    m_tangents.m_vboHandle = tangentBuffer;
     m_uvs.m_vboHandle = uvBuffer;
     m_indices.m_vboHandle = indexBuffer;
 
@@ -752,6 +755,7 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
 
     std::vector<float> positions( ((fieldsX+1) * (fieldsY+1))*3, 0.0f );
     std::vector<float> normals( ((fieldsX+1) * (fieldsY+1))*3, 0.0f );
+    std::vector<float> tangents( ((fieldsX+1) * (fieldsY+1))*3, 0.0f );
     std::vector<float> uv( ((fieldsX+1) * (fieldsY+1))*2, 0.0f );
 
     int posIdx = 0;
@@ -791,6 +795,7 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
             // DEBUGLOG->log("posY: ", y);
 
             normals[posIdx + 2] = 1.0f;
+            tangents[posIdx + 0] = 1.0f;
 
             posIdx += 3;
 
@@ -810,6 +815,7 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
     m_positions.m_size = positions.size() / 3;
     m_uvs.m_size = uv.size() / 2;
     m_normals.m_size = normals.size() / 3;
+    m_tangents.m_size = tangents.size() / 3;
 
     glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float)*positions.size(), &positions[0], GL_STATIC_DRAW);
@@ -825,6 +831,11 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
     glBufferData(GL_ARRAY_BUFFER, sizeof(float)*normals.size(), &normals[0], GL_STATIC_DRAW);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(2);
+
+    glBindBuffer(GL_ARRAY_BUFFER, tangentBuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*tangents.size(), &tangents[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(3);
 
     // Index Buffer / Element Array Buffer
     std::vector<unsigned int> indices(((fieldsX+1)*2)*(fieldsY),0);
@@ -883,6 +894,7 @@ Grid::~Grid()
     glDeleteBuffersARB(1, &(m_positions.m_vboHandle));
     glDeleteBuffersARB(1, &(m_uvs.m_vboHandle));
     glDeleteBuffersARB(1, &(m_normals.m_vboHandle));
+    glDeleteBuffersARB(1, &(m_tangents.m_vboHandle));
 }
 
 void Grid::draw()

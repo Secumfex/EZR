@@ -122,7 +122,7 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 2);
 
 	GLuint waterTextureHandle = TextureTools::loadTextureFromResourceFolder("water/07_DIFFUSE.jpg");
-	//GLuint waterNormalTextureHandle = TextureTools::loadTextureFromResourceFolder("water/07_NORMAL.jpg");
+	GLuint waterNormalTextureHandle = TextureTools::loadTextureFromResourceFolder("water/07_NORMAL.jpg");
 
 	/////////////////////    Import Stuff (Misc)    //////////////////////////
 
@@ -300,8 +300,8 @@ int main()
 			//sh_gbuffer.update("color", glm::vec4(0.2f,0.2f,0.7f,1.0f));
 			sh_gbuffer.update("mixTexture", 1.0f);
 			sh_gbuffer.updateAndBindTexture("tex", 1,waterTextureHandle);
-			sh_gbuffer.update("hasNormalTex", false);
-			//sh_gbuffer.updateAndBindTexture("normalTex", 2, waterNormalTextureHandle);
+			sh_gbuffer.update("hasNormalTex", true);
+			sh_gbuffer.updateAndBindTexture("normalTex", 2, waterNormalTextureHandle);
 		}
 	};
 	r_gbuffer.setPerRenderableFunction(&r_gbuffer_perRenderableFunc);
@@ -351,10 +351,12 @@ int main()
 	sh_ssr.bindTextureOnUse("ReflectanceTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT4));
 	sh_ssr.bindTextureOnUse("DepthTex",fbo_gbuffer.getDepthTextureHandle());
 	sh_ssr.bindTextureOnUse("DiffuseTex",fbo_gbufferComp.getBuffer("fragmentColor"));	//aus beleuchtung
+
 	sh_ssr.bindTextureOnUse("CubeMapTex",tex_cubeMap);
 	//sh_ssr.bindTextureOnUse("DiffuseTex",gFBO.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));
 	FrameBufferObject fbo_ssr(sh_ssr.getOutputInfoMap(), getResolution(window).x, getResolution(window).y);
 	RenderPass r_ssr(&sh_ssr, &fbo_ssr);
+	// r_ssr.addClearBit(GL_COLOR_BUFFER_BIT);
 
 	// Post-Processing rendering
 	PostProcessing::DepthOfField r_depthOfField(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y, &quad);
