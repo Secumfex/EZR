@@ -19,7 +19,7 @@ uniform mat4 view;
 
 uniform bool toggleCM;
 uniform bool toggleFade;
-//uniform bool toggleGlossy;
+uniform bool toggleGlossy;
 uniform int loops;
 uniform float mixV;
 
@@ -119,9 +119,20 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
                   
         float currentDepth = linearizeDepth(currentSamplePosition.z);
             
-        float delta = abs(currentDepth - sampledDepth);
 
         // Step ray
+        // if(currentDepth > sampledDepth){ // too far, go back to find intersection
+        //     lastSamplePosition = currentSamplePosition;
+        //     currentSamplePosition = lastSamplePosition - (ssReflectionVector / bigStep);
+        // }
+        // else if (currentDepth < sampledDepth) // no hit, go forward
+        // {
+        //     lastSamplePosition = currentSamplePosition;
+        //     currentSamplePosition = lastSamplePosition + (ssReflectionVector * bigStep);
+        // }
+                
+        float delta = abs(currentDepth - sampledDepth);
+
         if(currentDepth < sampledDepth){
             lastSamplePosition = currentSamplePosition;
             currentSamplePosition = lastSamplePosition + ssReflectionVector * bigStep;
@@ -134,32 +145,32 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
                 }
          	}
             if(delta < 0.015){
-               bool toggleGlossy = true;	//da noch nicht als uniform
+               // bool toggleGlossy = true;	//da noch nicht als uniform
                if(toggleGlossy){
-					float diskSize = 0.00001f;
+					float diskSize = sqrt( pixelsize.x * pixelsize.y) * 10.0;
 
-                    reflectedColor = texture2D(DiffuseTex, samplingPosition);
-                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 0] * diskSize);
-                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 1] * diskSize);
-                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 2] * diskSize);
-                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 3] * diskSize);
-                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 4] * diskSize);
-                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 5] * diskSize);
-                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 6] * diskSize);
-                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 7] * diskSize);
-                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 8] * diskSize);
-                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[ 9] * diskSize);
-                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[10] * diskSize);
-                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[11] * diskSize);
-                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[12] * diskSize);
-                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[13] * diskSize);
-                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[14] * diskSize);
-                    reflectedColor += texture2D(DiffuseTex, samplingPosition + sampleOffsets[15] * diskSize);
+                    reflectedColor = texture(DiffuseTex, samplingPosition);
+                    reflectedColor += texture(DiffuseTex, samplingPosition + sampleOffsets[ 0] * diskSize);
+                    reflectedColor += texture(DiffuseTex, samplingPosition + sampleOffsets[ 1] * diskSize);
+                    reflectedColor += texture(DiffuseTex, samplingPosition + sampleOffsets[ 2] * diskSize);
+                    reflectedColor += texture(DiffuseTex, samplingPosition + sampleOffsets[ 3] * diskSize);
+                    reflectedColor += texture(DiffuseTex, samplingPosition + sampleOffsets[ 4] * diskSize);
+                    reflectedColor += texture(DiffuseTex, samplingPosition + sampleOffsets[ 5] * diskSize);
+                    reflectedColor += texture(DiffuseTex, samplingPosition + sampleOffsets[ 6] * diskSize);
+                    reflectedColor += texture(DiffuseTex, samplingPosition + sampleOffsets[ 7] * diskSize);
+                    reflectedColor += texture(DiffuseTex, samplingPosition + sampleOffsets[ 8] * diskSize);
+                    reflectedColor += texture(DiffuseTex, samplingPosition + sampleOffsets[ 9] * diskSize);
+                    reflectedColor += texture(DiffuseTex, samplingPosition + sampleOffsets[10] * diskSize);
+                    reflectedColor += texture(DiffuseTex, samplingPosition + sampleOffsets[11] * diskSize);
+                    reflectedColor += texture(DiffuseTex, samplingPosition + sampleOffsets[12] * diskSize);
+                    reflectedColor += texture(DiffuseTex, samplingPosition + sampleOffsets[13] * diskSize);
+                    reflectedColor += texture(DiffuseTex, samplingPosition + sampleOffsets[14] * diskSize);
+                    reflectedColor += texture(DiffuseTex, samplingPosition + sampleOffsets[15] * diskSize);
 
                     reflectedColor /= 17;
                }
 				else {
-                	reflectedColor = texture2D(DiffuseTex, samplingPosition);
+                 reflectedColor = texture(DiffuseTex, samplingPosition);
                 }
 
                 break;
@@ -178,13 +189,21 @@ vec4 ScreenSpaceReflections(in vec3 vsPosition, in vec3 vsNormal, in vec3 vsRefl
         fadeToScreenEdge.y *= distance(lastSamplePosition.y, 0.0) * 4.0;
     }
     return (reflectedColor * fadeToScreenEdge.x * fadeToScreenEdge.y);
+    // return vec4(vec3(float(count) / float(50.0)),1);
 }
 
 //cubemap function
-vec4 CubeMapping(in vec3 wsReflectionVector){
+vec4 CubeMapping(vec3 wsReflectionVector){
 	vec4 reflectedColor = vec4(0.0);
-	vec3 temp = texture(CubeMapTex, wsReflectionVector).rgb;
-	reflectedColor = vec4(temp,1.0f);	
+    if(toggleGlossy){
+        vec3 temp = textureLod(CubeMapTex, wsReflectionVector, 4.0).rgb;
+        reflectedColor = vec4(temp,1.0f);   
+    }
+    else
+    {
+        vec3 temp = texture(CubeMapTex, wsReflectionVector).rgb;
+        reflectedColor = vec4(temp,1.0f);   
+    }
 	return reflectedColor;
 }
 
@@ -192,34 +211,31 @@ vec4 CubeMapping(in vec3 wsReflectionVector){
 //main
 void main(void){
 
- float test1 = texture(ReflectanceTex, vert_UV).x;
- if(test1 == 2.0f){	
- 	float reflectance = texture(ReflectanceTex, vert_UV).z;
- 
-	vec3 vsPosition = texture(vsPositionTex, vert_UV).xyz; 
+    vec4 material = texture(ReflectanceTex, vert_UV);
+ 	vec4 diffuseColor = texture(DiffuseTex, vert_UV);
 
- 	vec3 vsNormal = texture(vsNormalTex, vert_UV).xyz; 
- 
- 	//reflection vector calculation
- 	//view space calculations 
- 	vec3 vsEyeVector        = normalize(vsPosition); 
- 	vec3 vsReflectionVector = normalize(reflect(vsEyeVector, vsNormal));        
- 
- 	vec3 wsReflectionVector = inverse(mat3(view)) * vsReflectionVector;
- 
- 	//screen space reflections
-  	vec4 color = ScreenSpaceReflections(vsPosition, vsNormal, vsReflectionVector); 
+    if(material.x == 2.0){  
+        float reflectance = material.z;
 
- 	if(color.x == 0.0f && color.y == 0.0f && color.z == 0.0f && color.a == 0.0f){
- 		if(toggleCM){	
- 			color=CubeMapping(wsReflectionVector);
- 		}
- 	}
- 	vec4 temp = texture(DiffuseTex, vert_UV);
-  	FragColor = mix(color,temp,mixV);//color * temp; //* reflectance
+        vec3 vsPosition = texture(vsPositionTex, vert_UV).xyz; 
+        vec3 vsNormal = texture(vsNormalTex, vert_UV).xyz; 
+     
+        //reflection vector calculation
+        //view space calculations 
+        vec3 vsEyeVector        = normalize(vsPosition); 
+        vec3 vsReflectionVector = normalize(reflect(vsEyeVector, vsNormal));        
+     
+        //screen space reflections
+        vec4 color = ScreenSpaceReflections(vsPosition, vsNormal, vsReflectionVector); 
+
+        if( toggleCM && all( equal( color, vec4(0.0) ) ) ){
+            vec3 wsReflectionVector = inverse(mat3(view)) * vsReflectionVector;
+            color=CubeMapping(wsReflectionVector);
+        }
+
+      	FragColor = mix(color, diffuseColor, mixV);//color * temp; //* reflectance
 	}
   	else {
-  		vec4 color = texture(DiffuseTex, vert_UV);
-  		FragColor = color;
+  		FragColor = diffuseColor;
   	}
 }

@@ -33,11 +33,11 @@ namespace TextureTools {
 	// +Z (front)
 	// -Z (back)
 	*/
-	GLuint loadCubemap(std::vector<std::string> faces);
+	GLuint loadCubemap(std::vector<std::string> faces, bool generateMipMaps = true);
 	
 	// +X (right), -X(left), +Y (top), -Y (bottom), +Z (front), -Z (back)
-	GLuint loadCubemapFromResourceFolder(std::vector<std::string> fileNames) ;
-	GLuint loadDefaultCubemap();
+	GLuint loadCubemapFromResourceFolder(std::vector<std::string> fileNames, bool generateMipMaps = true);
+	GLuint loadDefaultCubemap(bool generateMipMaps = true);
 }
 
 #endif

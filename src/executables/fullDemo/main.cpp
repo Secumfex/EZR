@@ -28,7 +28,7 @@ glm::mat4 bezier = glm::mat4(
 glm::mat4 bezier_transposed = glm::transpose(bezier);
 
 static float s_wind_power = 0.25f;
-static float s_foliage_size = 1.0f;
+static float s_foliage_size = 0.5f;
 
 static float s_grass_size = 0.4f;
 
@@ -49,7 +49,7 @@ static bool s_animate_seasons = false;
 
 static bool s_ssrCubeMap = true;
 static bool s_ssrFade = false;
-//static bool s_ssrGlossy = true;
+static bool s_ssrGlossy = true;
 static int s_ssrLoops = 150;
 //static int s_ssrRayStep = 0.0;
 static float s_ssrMix = 0.8;
@@ -343,7 +343,7 @@ int main()
 	sh_ssr.update("view",mainCamera.getViewMatrix());
 	sh_ssr.update("toggleCM",s_ssrCubeMap);
 	sh_ssr.update("toggleFade",s_ssrFade);
-	//sh_ssr.update("toggleGlossy",s_ssrGlossy);
+	sh_ssr.update("toggleGlossy",s_ssrGlossy);
 	sh_ssr.update("loops",s_ssrLoops);
 	sh_ssr.update("mixV",s_ssrMix);
 	sh_ssr.bindTextureOnUse("vsPositionTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
@@ -579,7 +579,7 @@ int main()
 			ImGui::Checkbox("toggle CubeMap", &s_ssrCubeMap);
 			ImGui::SliderFloat("mix water",&s_ssrMix, 0.0, 1.0);
 			ImGui::Checkbox("fade to edges", &s_ssrFade);
-			//ImGui::Checkbox("toggle glossy", &s_ssrGlossy);
+			ImGui::Checkbox("toggle glossy", &s_ssrGlossy);
 			ImGui::TreePop();
 		}
 
@@ -676,7 +676,7 @@ int main()
 
 		sh_ssr.update("toggleCM",s_ssrCubeMap);
 		sh_ssr.update("toggleFade",s_ssrFade);
-		//sh_ssr.update("toggleGlossy",s_ssrGlossy);
+		sh_ssr.update("toggleGlossy",s_ssrGlossy);
 		sh_ssr.update("loops",s_ssrLoops);
 		//sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
 		sh_ssr.update("mixV",s_ssrMix);

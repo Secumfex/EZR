@@ -8,7 +8,14 @@
 #include "Core/DebugLog.h"
 #include "Rendering/OpenGLContext.h"
 
+#include "Rendering/GLTools.h"
+
 namespace TextureTools {
+    double log_2( double n )  
+    {  
+        return log( n ) / log( 2 );      // log(n)/log(2) is log_2. 
+    }
+
 	GLuint loadTexture(std::string fileName, TextureInfo* texInfo){
 
     	std::string fileString = std::string(fileName);
@@ -72,7 +79,7 @@ namespace TextureTools {
 		return loadTexture(filePath, texInfo);
     }
 
-	GLuint loadCubemap(std::vector<std::string> faces)
+	GLuint loadCubemap(std::vector<std::string> faces,bool generateMipMaps)
 	{
 	GLuint textureID;
 	glGenTextures(1, &textureID);
@@ -91,36 +98,71 @@ namespace TextureTools {
 			DEBUGLOG->log("ERROR : Unable to open image " + faces[i]);
             return -1;
         } else if (bytesPerPixel == 3){
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+            // if (generateMipMaps)
+            // {
+            //     int numMipmaps = (int) log_2( (float) std::max(width,height) );
+            //     glTexStorage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, numMipmaps, GL_RGB, width, height);  
+            //     glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, 0,0, width, height, GL_RGB, GL_UNSIGNED_BYTE, image);
+            //     // glGenerateMipmap(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i);
+            // }
+            // else
+            // {
+                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+                // glGenerateMipmap(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i);
+
+            // }
+
         } else if (bytesPerPixel == 4) {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+            // if (generateMipMaps)
+            // {
+            //     int numMipmaps = (int) log_2( (float) std::max(width,height) );
+            //     glTexStorage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, numMipmaps, GL_RGBA, width, height);  
+            //     glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, 0,0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, image);
+            // }
+            // else
+            // {
+                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+                // glGenerateMipmap(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i);
+            // }
         } else {
-        	DEBUGLOG->log("Unknown format for bytes per pixel... Changed to \"4\"");
+            DEBUGLOG->log("Unknown format for bytes per pixel... Changed to \"4\"");
+
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
         }
-	    stbi_image_free(image);
-	}
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	OPENGLCONTEXT->bindTexture(0, GL_TEXTURE_CUBE_MAP);
-
-
-	return textureID;
-	}
-
-
-	GLuint loadCubemapFromResourceFolder(std::vector<std::string> fileNames){
-		for (unsigned int i = 0; i < fileNames.size(); i++)
-		{
-			fileNames[i] = RESOURCES_PATH "/" + fileNames[i];
-		}
-		return loadCubemap(fileNames);
+        stbi_image_free(image);
     }
 
-    GLuint loadDefaultCubemap()
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if(generateMipMaps)
+    {
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        checkGLError(true);
+        glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+        checkGLError(true);
+    }
+    else
+    {
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    OPENGLCONTEXT->bindTexture(0, GL_TEXTURE_CUBE_MAP);
+
+
+    return textureID;
+    }
+
+
+    GLuint loadCubemapFromResourceFolder(std::vector<std::string> fileNames, bool generateMipMaps){
+        for (unsigned int i = 0; i < fileNames.size(); i++)
+        {
+            fileNames[i] = RESOURCES_PATH "/" + fileNames[i];
+        }
+        return loadCubemap(fileNames, generateMipMaps);
+    }
+
+    GLuint loadDefaultCubemap(bool generateMipMaps)
     {
         std::vector<std::string> cubeMapFiles;
         cubeMapFiles.push_back("cubemap/cloudtop_rt.tga");
@@ -129,6 +171,6 @@ namespace TextureTools {
         cubeMapFiles.push_back("cubemap/cloudtop_dn.tga");
         cubeMapFiles.push_back("cubemap/cloudtop_bk.tga");
         cubeMapFiles.push_back("cubemap/cloudtop_ft.tga");
-        return TextureTools::loadCubemapFromResourceFolder(cubeMapFiles);
+        return TextureTools::loadCubemapFromResourceFolder(cubeMapFiles, generateMipMaps);
     }
 }
