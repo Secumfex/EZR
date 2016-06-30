@@ -572,7 +572,7 @@ void TreeAnimation::TreeRendering::createAndConfigureShaders(std::string branchF
 	branchShader = new ShaderProgram("/treeAnim/tree.vert", branchFragmentShader);
 	foliageShader = new ShaderProgram("/treeAnim/tree.vert", foliageFragmentShader , "/treeAnim/foliage.geom" );
 	branchShadowMapShader = new ShaderProgram("/treeAnim/tree.vert", "/vml/shadowmap.frag" );
-	foliageShadowMapShader = new ShaderProgram("/treeAnim/tree.vert", "/vml/shadowmap.frag", "/treeAnim/foliage.geom" );
+	foliageShadowMapShader = new ShaderProgram("/treeAnim/tree.vert", "/treeAnim/foliageShadowMap.frag", "/treeAnim/foliage.geom" );
 }
 
 void TreeAnimation::TreeRendering::createAndConfigureUniformBlocksAndBuffers(int firstBindingPointIdx)
@@ -664,7 +664,7 @@ void TreeAnimation::TreeRendering::createAndConfigureRenderpasses(FrameBufferObj
 			{
 				foliageShadowMapRenderpasses[i]->addRenderable(r);
 			}
-			//foliageShadowMapRenderpasses[i]->addEnable(GL_ALPHA_TEST); // for foliage
+			foliageShadowMapRenderpasses[i]->addEnable(GL_ALPHA_TEST); // for foliage
 			foliageShadowMapRenderpasses[i]->addEnable(GL_DEPTH_TEST);
 		}
 	}

@@ -187,6 +187,7 @@ inline void assignTreeMaterialTextures(TreeAnimation::TreeRendering& treeRenderi
 
 	GLuint foliageTexHandle = s_tree_materials_textures[1].find(aiTextureType_DIFFUSE)->second;
 	treeRendering.foliageShader->bindTextureOnUse("tex", foliageTexHandle);
+	treeRendering.foliageShadowMapShader->bindTextureOnUse("tex", foliageTexHandle);
 
 	if (s_tree_material_infos.empty()) return;
 
