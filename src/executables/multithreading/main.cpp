@@ -14,6 +14,9 @@
 #endif
 #include <atomic>
 
+#include <windows.h>
+#include <mmsystem.h>
+
 ////////////////////// PARAMETERS /////////////////////////////
 const int NUM_THREADS = 10;
 
@@ -84,6 +87,9 @@ int main()
 	auto window = generateWindow(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y, 200, 200);
 	DEBUGLOG->setAutoPrint(true);
     
+	PlaySound(TEXT( RESOURCES_PATH "/sample.wav"), NULL, SND_FILENAME | SND_LOOP | SND_ASYNC);
+
+
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////// multithreading /////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////

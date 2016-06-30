@@ -33,7 +33,6 @@ add_definitions(-DGLEW_STATIC)
 
 add_executable(${ProjectId} ${SOURCES} ${HEADER})
 
-
 target_link_libraries(
     ${ProjectId}
     ${ALL_LIBRARIES}
@@ -41,5 +40,6 @@ target_link_libraries(
     ${GLFW3_LIBRARIES}
     ${GLEW_LIBRARIES}
     ${OpenGL3_LIBRARIES}
+    winmm.lib
 )
 
