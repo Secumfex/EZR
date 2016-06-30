@@ -13,6 +13,9 @@
 #include "misc.cpp"
 #include <VML/VolumetricLighting.h>
 
+#include <windows.h>
+#include <mmsystem.h>
+
 ////////////////////// PARAMETERS /////////////////////////////
 static glm::vec2 WINDOW_RESOLUTION = glm::vec2(1024.0f, 576.0f);
 static const glm::vec4 WORLD_LIGHT_DIRECTION = glm::vec4(-glm::normalize(glm::vec3(-2.16f, 2.6f, 10.0f)), 0.0f);
@@ -159,6 +162,9 @@ int main()
 	// grid resembling grass spawning area
 	Renderable* grassGrid = new Grid(128,128,0.75f,0.75f,true);
 	glm::mat4 modelGrass = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
+
+	// sound loop
+	PlaySound(TEXT( RESOURCES_PATH "/forest.wav"), NULL, SND_FILENAME | SND_LOOP | SND_ASYNC);
 
 	//////////////////////////////////////////////////////////////////////////////
 	////////////////////////// RENDERING SETUP  //////////////////////////////////
