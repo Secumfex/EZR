@@ -43,7 +43,7 @@ void main(){
 			binormalView.x, binormalView.y,  binormalView.z, // second column
 			nrm.x,   nrm.y,     nrm.z   // third column
 		);
-		vec3 normalTangentSpace = texture(normalTex, passUVCoord).xyz;
+		vec3 normalTangentSpace = 2.0 * (texture(normalTex, passUVCoord).xyz) - 1.0;
 
 		normalView = tangentSpaceView * normalTangentSpace;
 	}

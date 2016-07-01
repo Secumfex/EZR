@@ -795,7 +795,7 @@ Grid::Grid(unsigned int fieldsX, unsigned  int fieldsY, float sizeX, float sizeY
             // DEBUGLOG->log("posY: ", y);
 
             normals[posIdx + 2] = 1.0f;
-            tangents[posIdx + 0] = 1.0f;
+            tangents[posIdx + 0] = -1.0f;
 
             posIdx += 3;
 

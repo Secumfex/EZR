@@ -49,7 +49,7 @@ static bool s_enableLenseflare = true;
 static bool s_animate_seasons = false;
 
 // static bool s_multithreaded_windfield = false;
-
+static bool s_waterHasNormalTex = true;
 static bool s_ssrCubeMap = true;
 static bool s_ssrFade = false;
 static bool s_ssrGlossy = true;
@@ -306,8 +306,8 @@ int main()
 			//sh_gbuffer.update("color", glm::vec4(0.2f,0.2f,0.7f,1.0f));
 			sh_gbuffer.update("mixTexture", 1.0f);
 			sh_gbuffer.updateAndBindTexture("tex", 1,waterTextureHandle);
-			sh_gbuffer.update("hasNormalTex", true);
-			sh_gbuffer.updateAndBindTexture("normalTex", 2, waterNormalTextureHandle);
+			sh_gbuffer.update("hasNormalTex", s_waterHasNormalTex);
+			sh_gbuffer.updateAndBindTexture("normalTex", 2, terrainNormalTex);
 		}
 	};
 	r_gbuffer.setPerRenderableFunction(&r_gbuffer_perRenderableFunc);
@@ -464,6 +464,11 @@ int main()
 		 if ( k == GLFW_KEY_7 && a == GLFW_PRESS)
 		 {
 			 s_enableLenseflare = !s_enableLenseflare;
+		 }
+
+		 if ( k == GLFW_KEY_T && a == GLFW_PRESS)
+		 {
+			 s_waterHasNormalTex = !s_waterHasNormalTex;
 		 }
 
 		 if ( k == GLFW_KEY_9 && a == GLFW_PRESS)
