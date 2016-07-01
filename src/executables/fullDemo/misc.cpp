@@ -5,6 +5,7 @@
 #include <UI/imguiTools.h>
 #include <functional>
 #include <Core/Camera.h>
+#include <Core/Timer.h>
 #include <Rendering/GLTools.h>
 
 #include <assimp/Importer.hpp>
@@ -21,6 +22,23 @@
 #include <Rendering/PostProcessing.h>
 /***********************************************/
 // This file is for arbitrary stuff to save some ugly Lines of Code
+/***********************************************/
+
+/***********************************************/
+class ImguiTimings : public OpenGLTimings
+{
+public:
+	void imguiTimings()
+	{
+		for ( auto kv : m_timers )
+		{
+			float time = kv.second.lastTiming;
+			ImGui::SliderFloat(kv.first.c_str(), &( time ), 0.0f , 10.0f, "%.6f");
+		}
+	}
+};
+
+static ImguiTimings timings;
 /***********************************************/
 
 /***********************************************/

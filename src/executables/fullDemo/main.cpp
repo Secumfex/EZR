@@ -62,11 +62,10 @@ static float s_ssrMix = 0.8;
 //////////////////////////////////////////////////////////////////////////////
 int main()
 {
-
 	DEBUGLOG->setAutoPrint(true);
 	// create window and opengl context
 	auto window = generateWindow(WINDOW_RESOLUTION.x,WINDOW_RESOLUTION.y);
-	
+
 	srand(time(NULL));
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -526,16 +525,20 @@ int main()
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////// RENDER LOOP /////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
-
 	double elapsedTime = 0.0;
 	render(window, [&](double dt)
 	{
+		timings.updateReadyTimings();
+		
 		elapsedTime += dt;
 		std::string window_header = "Lake Moedrianielrend - " + DebugLog::to_string( 1.0 / dt ) + " FPS";
 		glfwSetWindowTitle(window, window_header.c_str() );
 
 		////////////////////////////////     GUI      ////////////////////////////////
-        ImGuiIO& io = ImGui::GetIO();
+		//timings.resetTimer("gui");
+		//timings.beginTimer("gui");
+		
+		ImGuiIO& io = ImGui::GetIO();
 		ImGui_ImplGlfwGL3_NewFrame(); // tell ImGui a new frame is being rendered
 
 		// Landscape
@@ -616,11 +619,19 @@ int main()
 		 	ImGui::TreePop();
 		}
 
+		if ( ImGui::TreeNode("Timings"))
+		{
+			timings.imguiTimings();
+			ImGui::TreePop();
+		}
 		//TODO what you want to be able to modify, use multiple windows, collapsing headers, whatever
-		
+		//timings.stopTimer("gui");
         //////////////////////////////////////////////////////////////////////////////
 
 		///////////////////////////// VARIABLE UPDATING ///////////////////////////////
+		timings.resetTimer("varupdates");
+		timings.beginTimer("varupdates");
+
 		mainCamera.update(dt);
 		updateLightCamera(mainCamera, lightCamera, - glm::vec3(WORLD_LIGHT_DIRECTION) * 15.0f);
 		
@@ -643,9 +654,14 @@ int main()
 		{
 			animateSeasons(treeRendering, sh_grassGeom, elapsedTime / 2.0f, s_grass_size, s_wind_power, s_foliage_size, sh_tessellation);
 		}
+		
+		timings.stopTimer("varupdates");
 		//////////////////////////////////////////////////////////////////////////////
 
 		////////////////////////  SHADER / UNIFORM UPDATING //////////////////////////
+		timings.resetTimer("uniformupdates");
+		timings.beginTimer("uniformupdates");
+
 		// update view dependent uniforms
 		sh_gbuffer.update( "view", mainCamera.getViewMatrix());
 		r_skybox.m_skyboxShader.update("view", glm::mat4(glm::mat3(mainCamera.getViewMatrix())));
@@ -693,6 +709,8 @@ int main()
 		sh_ssr.update("loops",s_ssrLoops);
 		//sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
 		sh_ssr.update("mixV",s_ssrMix);
+
+		timings.stopTimer("uniformupdates");
 		//////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////  RENDERING //// /////////////////////////////
@@ -702,13 +720,17 @@ int main()
 		//TODO funfunfun
 
 		// render regular G-Buffer 
+		timings.resetTimer("gbuffer");
+		timings.beginTimer("gbuffer");
 		r_gbuffer.render();
-		
+		timings.stopTimer("gbuffer");
 		//TODO other rendering procedures that render into G-Buffer
 		
 		// render trees
+		timings.resetTimer("trees");
 		if (s_enableTrees)
 		{
+			timings.beginTimer("trees");
 			for( unsigned int i = 0; i < treeRendering.branchRenderpasses.size(); i++){
 				glUniformBlockBinding(treeRendering.branchShader->getShaderProgramHandle(), treeRendering.branchShaderUniformBlockInfoMap["Tree"].index, 2+i);
 				treeRendering.branchRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
@@ -718,23 +740,37 @@ int main()
 				glUniformBlockBinding(treeRendering.foliageShader->getShaderProgramHandle(), treeRendering.foliageShaderUniformBlockInfoMap["Tree"].index, 2+i);
 				treeRendering.foliageRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 			}
+			timings.stopTimer("trees");
 		}
 
 
 		//TODO render tesselated mountains
+		
+		timings.resetTimer("landscape");
 		if (s_enableLandscape)
 		{
+			timings.beginTimer("landscape");
 			r_terrain.render();
+			timings.stopTimer("landscape");
 		}
 
 		//render skybox
+		timings.resetTimer("skybox");
+		timings.beginTimer("skybox");
 		r_skybox.render(tex_cubeMap, &fbo_gbuffer);
+		timings.stopTimer("skybox");
 
-		//TODO render shadow map ( most of above again )
+		// render shadow map ( most of above again )
+		timings.resetTimer("shadowmap");
+		timings.beginTimer("shadowmap");
 		shadowMapRenderpass.render();
 		r_terrainShadowMap.render();
+		timings.stopTimer("shadowmap");
+
+		timings.resetTimer("treesShadow");
 		if (s_enableTrees)
 		{
+		timings.beginTimer("treesShadow");
 		for(unsigned int i = 0; i < treeRendering.foliageShadowMapRenderpasses.size(); i++)
 		{
 			glUniformBlockBinding(treeRendering.foliageShadowMapShader->getShaderProgramHandle(), treeRendering.foliageShadowMapShaderUniformBlockInfoMap["Tree"].index, 2+i);
@@ -745,42 +781,63 @@ int main()
 			glUniformBlockBinding(treeRendering.branchShadowMapShader->getShaderProgramHandle(), treeRendering.branchShadowMapShaderUniformBlockInfoMap["Tree"].index, 2+i);
 			treeRendering.branchShadowMapRenderpasses[i]->renderInstanced(NUM_TREES_PER_VARIANT);
 		}
+		timings.stopTimer("treesShadow");
 		}
 		// render grass
+		timings.resetTimer("grass");
 		if (s_enableGrass) {
+			timings.beginTimer("grass");
 			r_grassGeom.render();
+			timings.stopTimer("grass");
 		}
 
 		// render regular compositing from GBuffer
+		timings.resetTimer("compositing");
+		timings.beginTimer("compositing");
 		r_gbufferComp.render();
+		timings.stopTimer("compositing");
 
 		// ssr
+		timings.resetTimer("ssr");
 		if (s_enableSSR) {
+			timings.beginTimer("ssr");
 			r_ssr.render();
 			copyFBOContent(&fbo_ssr, &fbo_gbufferComp, GL_COLOR_BUFFER_BIT);
+			timings.stopTimer("ssr");
 		}
-
+		
 		// volumetric lighting
+		timings.resetTimer("vml");
 		if (s_enableVolumetricLighting) {
+			timings.beginTimer("vml");
 			r_volumetricLighting._raymarchingRenderPass->render();
 
 			// overlay volumetric lighting
 			r_addTex.render();
+			timings.stopTimer("vml");
 		}
-
+		
 
 		//////////// POST-PROCESSING ////////////////////
 
 		// Depth of Field and Lens Flare
+		timings.resetTimer("dof");
 		if (s_enableDepthOfField)
 		{
+			timings.beginTimer("dof");
+
 			r_depthOfField.execute(fbo_gbuffer.getBuffer("fragPosition"), fbo_gbufferComp.getBuffer("fragmentColor"));
 			copyFBOContent(r_depthOfField.m_dofCompFBO, &fbo_gbufferComp, GL_COLOR_BUFFER_BIT);
+
+			timings.stopTimer("dof");
 		}
 
+		timings.resetTimer("lensflare");
 		if(s_enableLenseflare)
 		{
+			timings.beginTimer("lensflare");
 			r_lensFlare.renderLensFlare( fbo_gbufferComp.getBuffer("fragmentColor"), &fbo_gbufferComp );
+			timings.stopTimer("lensflare");
 		}
 
 		/////////// DEBUGGING ////////////////////////////
@@ -822,7 +879,6 @@ int main()
 		glDisable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // this is altered by ImGui::Render(), so reset it every frame
 		//////////////////////////////////////////////////////////////////////////////
-
 	});
 
 	destroyWindow(window);
