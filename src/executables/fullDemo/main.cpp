@@ -152,7 +152,7 @@ int main()
 	modelMatrices.resize(1);
 	// glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) *
 	//modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-50.0f, -1.5f, -50.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(130.0f, 15.0f, 130.0f));
-	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-75.0f, 0.0f, -75.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(150.0f, 17.0f, 150.0f));
+	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-90.0f, -1.75f, -110.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(300.0f, 50.0f, 230.0f));
 	glm::mat4 modelTerrain = modelMatrices[0];
 	
 	// grid resembling water surface
