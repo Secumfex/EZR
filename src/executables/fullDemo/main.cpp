@@ -147,7 +147,7 @@ int main()
 	objects.push_back(new Terrain());
 
 	// modelmartix for terrain
-	glm::vec4 terrainRange(-100.0f, -115.f, 100.0f, 115.0f);
+	glm::vec4 terrainRange(-100.0f, -100.f, 100.0f, 100.0f);
 	std::vector<glm::mat4 > modelMatrices;
 	modelMatrices.resize(1);
 	// glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) *
@@ -157,7 +157,7 @@ int main()
 	
 	// grid resembling water surface
 	Renderable* waterGrid = new Grid(32,32,2.0f,2.0f,true);
-	glm::mat4 modelWater = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
+	glm::mat4 modelWater = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
 	// grid resembling grass spawning area
 	Renderable* grassGrid = new Grid(128,128,0.75f,0.75f,true);
 	glm::mat4 modelGrass = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
