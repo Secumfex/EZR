@@ -30,7 +30,7 @@ uniform vec4 heightMapRange; //!< x,y --> begin coords (XZ-plane) z,w --> end co
 
 #define HEIGHT_SCALE 50.0
 #define HEIGHT_BIAS -2.0
-#define SEA_LEVEL 1.0
+#define SEA_LEVEL 0.0
 #define MAX_HEIGHT 3.0
 
 vec2 worldToHeightMapUV(vec4 worldPos)

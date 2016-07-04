@@ -10,6 +10,7 @@ out vec3 tePosition;
 uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;
+uniform sampler2D terrain;
 
 void main() {
 	//vec4 p0 = gl_TessCoord.x * tcPosition[0];	
@@ -29,6 +30,7 @@ void main() {
 	tePosition = mix(a, b, gl_TessCoord.y);
 	
 	//tePosition = normalize(p0 + p1 + p2);
+	tePosition.y = texture(terrain, tePosition.xz).x;
 
 	passPosition = view * model * vec4(tePosition, 1);
 	gl_Position = projection * passPosition;
