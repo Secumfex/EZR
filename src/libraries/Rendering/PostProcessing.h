@@ -83,7 +83,7 @@ namespace PostProcessing
 		SunOcclusionQuery(GLuint depthTexture = -1, glm::vec2 textureSize = glm::vec2(1.0f,1.0f), Renderable* sun = nullptr);
 		~SunOcclusionQuery();
 
-		GLuint performQuery(glm::vec4 sunScreenPos);
+		GLuint performQuery(const glm::vec4& sunScreenPos);
 
 		ShaderProgram m_occlusionShader;
 		FrameBufferObject* m_occlusionFBO;
@@ -115,8 +115,8 @@ namespace PostProcessing
 
 		BoxBlur* m_boxBlur;
 
-		glm::mat3 updateLensStarMatrix(glm::mat3 view);
-		glm::mat3 updateLensStarMatrix(glm::mat4 view);
+		glm::mat3 updateLensStarMatrix(const glm::mat3& view);
+		glm::mat3 updateLensStarMatrix(const glm::mat4& view);
 
 		// variables
 		int m_blur_strength;

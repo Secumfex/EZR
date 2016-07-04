@@ -89,7 +89,7 @@ void Camera::setPosition(float x, float y, float z){
 	m_position = glm::vec3(x,y,z);
 }
 
-void Camera::setPosition(glm::vec3 newPos){
+void Camera::setPosition(const glm::vec3& newPos){
 	m_position = newPos;
 }
 
@@ -142,7 +142,7 @@ glm::mat4* Camera::getViewMatrixPointer(){
 	return &m_viewMatrix;
 }
 
-void Camera::setProjectionMatrix( glm::mat4 projectionMatrix )
+void Camera::setProjectionMatrix(const glm::mat4& projectionMatrix )
 {
 	m_projectionMatrix = projectionMatrix;
 }
@@ -156,12 +156,12 @@ glm::mat4* Camera::getProjectionMatrixPointer() {
 	return &m_projectionMatrix;
 }
 
-void Camera::setDirection(glm::vec3 dir){
+void Camera::setDirection(const glm::vec3& dir){
 	m_direction = glm::normalize(dir);
 	updatePhiTheta();	// update phi & theta by evaluating the new direction
 }
 
-void Camera::setCenter(glm::vec3 center){
+void Camera::setCenter(const glm::vec3& center){
 	m_direction = center - m_position;
 	m_direction = glm::normalize(m_direction);
 	updatePhiTheta();	// update phi & theta by evaluating the new direction

@@ -194,11 +194,11 @@ void OpenGLContext::setViewport(int x, int y, int width, int height)
 {
 	setViewport(glm::ivec4(x,y,width,height));
 }
-void OpenGLContext::setViewport(glm::vec4 viewport)
+void OpenGLContext::setViewport(const glm::vec4& viewport)
 {
 	setViewport(glm::ivec4(viewport));
 }
-void OpenGLContext::setViewport(glm::ivec4 viewport)
+void OpenGLContext::setViewport(const glm::ivec4& viewport)
 {
 	if (cacheViewport != viewport )
 	{

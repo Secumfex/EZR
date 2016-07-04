@@ -236,7 +236,7 @@ inline void assignWindFieldUniforms(TreeAnimation::TreeRendering& treeRendering,
 	treeRendering.branchShadowMapShader->update( "windFieldArea", FORESTED_AREA);
 	treeRendering.foliageShadowMapShader->update("windFieldArea", FORESTED_AREA);
 }
-inline void assignHeightMapUniforms(TreeAnimation::TreeRendering& treeRendering, GLuint distortionTex, glm::vec4 terrainRange)
+inline void assignHeightMapUniforms(TreeAnimation::TreeRendering& treeRendering, GLuint distortionTex, const glm::vec4& terrainRange)
 {
 	treeRendering.branchShader->bindTextureOnUse("heightMap", distortionTex);
 	treeRendering.branchShader->update("heightMapRange", terrainRange); // grass size

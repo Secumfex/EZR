@@ -11,7 +11,7 @@ glm::vec3 toVec3(const aiVector3D& vert)
 }
 
 
-std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFromScene(const aiScene* scene, glm::mat4 vertexTransform, bool createTangentsAndBitangents)
+std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFromScene(const aiScene* scene,const glm::mat4& vertexTransform, bool createTangentsAndBitangents)
 {
 	std::vector<RenderableInfo >resultVector; 
 	for (unsigned int i = 0; i < scene->mNumMeshes; i++)
@@ -193,7 +193,7 @@ std::vector<AssimpTools::RenderableInfo > AssimpTools::createSimpleRenderablesFr
 	}
 }
 
-std::vector<AssimpTools::VertexData> AssimpTools::createVertexDataInstancesFromScene( const aiScene* scene, glm::mat4 vertexTransform, bool createTangentsAndBitangents)
+std::vector<AssimpTools::VertexData> AssimpTools::createVertexDataInstancesFromScene( const aiScene* scene, const glm::mat4& vertexTransform, bool createTangentsAndBitangents)
 {
 	std::vector<VertexData >resultVector;
 	resultVector.resize(scene->mNumMeshes);

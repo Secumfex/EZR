@@ -46,8 +46,8 @@ public:
 	void bindTexture(GLuint texture, GLenum type = GL_TEXTURE_2D);
 	void bindTextureToUnit(GLuint texture, GLenum unit, GLenum type = GL_TEXTURE_2D);
 	void setViewport(int x, int y, int width, int height);
-	void setViewport(glm::vec4 viewport);
-	void setViewport(glm::ivec4 viewport);
+	void setViewport(const glm::vec4& viewport);
+	void setViewport(const glm::ivec4& viewport);
 	void setWindowSize(GLFWwindow* window, int width, int height);
 	void setWindowSize(GLFWwindow* window, glm::vec2 windowSize);
 	void setWindowSize(GLFWwindow* window, glm::ivec2 windowSize);

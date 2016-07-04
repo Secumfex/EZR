@@ -10,7 +10,7 @@
 class Spotlight {
 
 public:
-    Spotlight(glm::vec4 color, float phi);
+    Spotlight(const glm::vec4& color, float phi);
 
 private:
 

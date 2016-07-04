@@ -9,7 +9,7 @@ Culling::CullingHelper::~CullingHelper()
 {
 }
 
-std::pair<Renderable*, Culling::CullingInfo> Culling::getCullingInfo(const AssimpTools::RenderableInfo& renderable, glm::mat4 modelMatrix)
+std::pair<Renderable*, Culling::CullingInfo> Culling::getCullingInfo(const AssimpTools::RenderableInfo& renderable, const glm::mat4& modelMatrix)
 {
 	CullingInfo cullingInfo;
 	
@@ -23,7 +23,7 @@ std::pair<Renderable*, Culling::CullingInfo> Culling::getCullingInfo(const Assim
 	return std::pair<Renderable*, Culling::CullingInfo>(renderable.renderable, cullingInfo);
 }
 
-std::vector<std::pair<Renderable*, Culling::CullingInfo> > Culling::getCullingInfo(const std::vector<AssimpTools::RenderableInfo>& renderables, glm::mat4 modelMatrix)
+std::vector<std::pair<Renderable*, Culling::CullingInfo> > Culling::getCullingInfo(const std::vector<AssimpTools::RenderableInfo>& renderables, const glm::mat4& modelMatrix)
 {
 	std::vector<std::pair<Renderable*, CullingInfo>> result;
 

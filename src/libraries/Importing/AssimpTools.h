@@ -32,7 +32,7 @@ namespace AssimpTools {
 	 * @param scene imported with Assimp::Importer
 	 * @param vertexTransform transformation that will be apllied to every vertex (and normal). Default: identity
 	 */
-	std::vector<RenderableInfo > createSimpleRenderablesFromScene( const aiScene* scene, glm::mat4 vertexTransform = glm::mat4(1.0f), bool createTangentsAndBitangents = true); 
+	std::vector<RenderableInfo > createSimpleRenderablesFromScene( const aiScene* scene, const glm::mat4& vertexTransform = glm::mat4(1.0f), bool createTangentsAndBitangents = true); 
 
 	struct VertexData
 	{
@@ -42,7 +42,7 @@ namespace AssimpTools {
 		std::vector<float> normals;
 		std::vector<float> tangents;
 	};
-	std::vector<VertexData> createVertexDataInstancesFromScene( const aiScene* scene, glm::mat4 vertexTransform = glm::mat4(1.0f), bool createTangentsAndBitangents = true);
+	std::vector<VertexData> createVertexDataInstancesFromScene( const aiScene* scene, const glm::mat4& vertexTransform = glm::mat4(1.0f), bool createTangentsAndBitangents = true);
 	std::vector<Renderable* > createSimpleRenderablesFromVertexDataInstances(std::vector<VertexData>& vertexDataInstances);
 
 	BoundingBox computeBoundingBox(const aiMesh* mesh); //!< computes the bounding box of the given mesh

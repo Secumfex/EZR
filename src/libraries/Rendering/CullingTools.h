@@ -12,8 +12,8 @@ struct CullingInfo
 	glm::mat4 modelMatrix; // pose of center
 };
 
-std::pair<Renderable*, CullingInfo> getCullingInfo(const AssimpTools::RenderableInfo& renderable, glm::mat4 modelMatrix);
-std::vector<std::pair<Renderable*, CullingInfo> > getCullingInfo(const std::vector<AssimpTools::RenderableInfo>& renderables, glm::mat4 modelMatrix);
+std::pair<Renderable*, CullingInfo> getCullingInfo(const AssimpTools::RenderableInfo& renderable, const glm::mat4& modelMatrix);
+std::vector<std::pair<Renderable*, CullingInfo> > getCullingInfo(const std::vector<AssimpTools::RenderableInfo>& renderables, const glm::mat4& modelMatrix);
 std::vector<std::pair<Renderable*, CullingInfo> > getCullingInfo(const std::vector<AssimpTools::RenderableInfo>& renderables, const std::vector<glm::mat4> modelMatrices );
 
 class CullingHelper{

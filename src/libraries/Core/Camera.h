@@ -151,21 +151,21 @@ public:
 	 * sets/changes the x,y,and z value of position
 	 * @param newPos position as glm vec3
 	 */
-	virtual void setPosition(glm::vec3 newPos);
+	virtual void setPosition(const glm::vec3& newPos);
 
 	/** \brief setter
 	 *
 	 * sets/changes direction
 	 * @param dir
 	 */
-	virtual void setDirection(glm::vec3 dir);
+	virtual void setDirection(const glm::vec3& dir);
 
 	/** \brief setter
 	 *
 	 * sets/changes center
 	 * @param center
 	 */
-	void setCenter(glm::vec3 center);
+	void setCenter(const glm::vec3& center);
 	/* GETTER AND SETTER END */
 
 	/** \brief compute normalized view direction from current inclination and rotation
@@ -210,7 +210,7 @@ public:
 	 *
 	 * set projection matrix
 	 */
-	void setProjectionMatrix( glm::mat4 projectionMatrix );
+	void setProjectionMatrix( const glm::mat4& projectionMatrix );
 
 	/** \brief setter
 	 * 

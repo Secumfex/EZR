@@ -269,7 +269,7 @@ PostProcessing::SunOcclusionQuery::~SunOcclusionQuery()
 }
 
 
-GLuint PostProcessing::SunOcclusionQuery::performQuery(glm::vec4 sunScreenPos)
+GLuint PostProcessing::SunOcclusionQuery::performQuery(const glm::vec4& sunScreenPos)
 {
 	m_occlusionShader.update("lightData", sunScreenPos);
 
@@ -441,7 +441,7 @@ void PostProcessing::LensFlare::renderLensFlare(GLuint sourceTexture, FrameBuffe
 }
 
 #include <glm/gtx/transform.hpp>
-glm::mat3 PostProcessing::LensFlare::updateLensStarMatrix(glm::mat3 view)
+glm::mat3 PostProcessing::LensFlare::updateLensStarMatrix(const glm::mat3& view)
 {
 	glm::vec3 camx = - view[0]; // camera x (left) vector
 	glm::vec3 camz = - view[2]; // camera z (forward) vector
@@ -470,7 +470,7 @@ glm::mat3 PostProcessing::LensFlare::updateLensStarMatrix(glm::mat3 view)
 	return uLensStarMatrix;
 }
 
-glm::mat3 PostProcessing::LensFlare::updateLensStarMatrix(glm::mat4 view)
+glm::mat3 PostProcessing::LensFlare::updateLensStarMatrix(const glm::mat4& view)
 {
 	return updateLensStarMatrix(glm::mat3(view));
 }
