@@ -70,8 +70,8 @@ out VertexData {
 uniform sampler2D heightMap;
 uniform vec4 heightMapRange; //!< x,y --> begin coords (XZ-plane) z,w --> end coords( XZ-plane )
 
-#define HEIGHT_SCALE 17.0
-#define HEIGHT_BIAS 0.0
+#define HEIGHT_SCALE 50.0
+#define HEIGHT_BIAS -2.0
 
 vec2 worldToHeightMapUV(vec4 worldPos)
 {

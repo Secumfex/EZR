@@ -28,8 +28,8 @@ uniform sampler2D vectorTexture;
 uniform sampler2D heightMap;
 uniform vec4 heightMapRange; //!< x,y --> begin coords (XZ-plane) z,w --> end coords( XZ-plane )
 
-#define HEIGHT_SCALE 17.0
-#define HEIGHT_BIAS 0.0
+#define HEIGHT_SCALE 50.0
+#define HEIGHT_BIAS -2.0
 #define SEA_LEVEL 1.0
 #define MAX_HEIGHT 3.0
 

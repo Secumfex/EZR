@@ -147,12 +147,12 @@ int main()
 	objects.push_back(new Terrain());
 
 	// modelmartix for terrain
-	glm::vec4 terrainRange(-75.0f, -75.f, 75.0f, 75.0f);
+	glm::vec4 terrainRange(-100.0f, -115.f, 100.0f, 115.0f);
 	std::vector<glm::mat4 > modelMatrices;
 	modelMatrices.resize(1);
 	// glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0)) *
 	//modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-50.0f, -1.5f, -50.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(130.0f, 15.0f, 130.0f));
-	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-90.0f, -2.0f, -125.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(200.0f, 50.0f, 230.0f));
+	modelMatrices[0] = glm::translate(glm::mat4(1.0f), glm::vec3(-100.0f, -2.0f, -115.0f)) *  glm::scale(glm::mat4(1.0), glm::vec3(200.0f, 50.0f, 230.0f));
 	glm::mat4 modelTerrain = modelMatrices[0];
 	
 	// grid resembling water surface
