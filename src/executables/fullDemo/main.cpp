@@ -764,7 +764,10 @@ int main()
 		timings.resetTimer("shadowmap");
 		timings.beginTimer("shadowmap");
 		shadowMapRenderpass.render();
-		r_terrainShadowMap.render();
+		if (s_enableLandscape)
+		{
+			r_terrainShadowMap.render();
+		}
 		timings.stopTimer("shadowmap");
 
 		timings.resetTimer("treesShadow");
