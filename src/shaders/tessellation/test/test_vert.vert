@@ -8,6 +8,6 @@ float make_simple_interpolation(vec3 rgb) {
 }
 void main () {
 	//float height = make_simple_interpolation(texture(terrain, position).xyz);
-	// float height = texture(terrain, position).x;
-	gl_Position = vec4(position.x, 0.0, position.y, 1);
+	float height = texture(terrain, position).x;
+	gl_Position = vec4(position.x, height, position.y, 1);
 }

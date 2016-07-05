@@ -527,9 +527,9 @@ Terrain::Terrain()
 	//	positio[i*31*32 + j * 32 + 31] = (i+1) / float(height);
 
 
-	 float width = 15;  
-	 float height = 15; 
-	 float positio[1928];
+	 float width = 65;  
+	 float height = 65; 
+	 float positio[34382];
 
 	for (int i=0; i<height; i++) {
 		for (int j=0; j<width; j++) {
@@ -538,20 +538,20 @@ Terrain::Terrain()
 			//std::cout << positio[i*32*8 + j*8]<<endl;
 
 			//first corner === links unten
-		positio[i*15*8 + j * 8] = j / float(width);
-		positio[i*15*8 + j*8 + 1] = i / float(height);
+		positio[i*65*8 + j * 8] = j / float(width);
+		positio[i*65*8 + j*8 + 1] = i / float(height);
 
 			//sescond corner === links oben
-		positio[i*15*8 + j*8 + 2] = j/ float(width);
-		positio[i*15*8 + j*8 + 3] = (i+1) / float(height);
+		positio[i*65*8 + j*8 + 2] = j/ float(width);
+		positio[i*65*8 + j*8 + 3] = (i+1) / float(height);
 
 		//third corner === oben rechts
-		positio[i*15*8 + j*8 + 4] = (j+1)/ float(width);
-		positio[i*15*8 + j*8 + 5] = (i+1) / float(height);
+		positio[i*65*8 + j*8 + 4] = (j+1)/ float(width);
+		positio[i*65*8 + j*8 + 5] = (i+1) / float(height);
 
 			//fourth corner === unten rechts
-		positio[i*15*8 + j*8 + 6] = (j+1) / float(width);
-		positio[i*15*8 + j*8 + 7] = i / float(height);
+		positio[i*65*8 + j*8 + 6] = (j+1) / float(width);
+		positio[i*65*8 + j*8 + 7] = i / float(height);
 		}
 	}
 
@@ -570,7 +570,7 @@ Terrain::~Terrain()
 void Terrain::draw()
 {
     OPENGLCONTEXT->bindVAO(m_vao);
-    glDrawArrays(GL_PATCHES, 0, 830);
+    glDrawArrays(GL_PATCHES, 0, 34000);
 }
 
 
