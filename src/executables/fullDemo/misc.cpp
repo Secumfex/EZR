@@ -88,7 +88,7 @@ struct Settings_s
 		ssrLoops = 150;
 		 // ssrRayStep = 0.0;
 		ssrMix = 0.8;
-		dynamicDoF = false;
+		dynamicDoF = true;
 		queryTime = false;
 
 		//vml defaults

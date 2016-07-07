@@ -33,6 +33,11 @@ glm::mat4 bezier_transposed = glm::transpose(bezier);
 std::unordered_map<aiTextureType, GLuint, AssimpTools::EnumClassHash> textures;
 //////////////////// MISC /////////////////////////////////////
 
+static Timer s_idle_ui_timer(true);
+static Timer s_idle_movement_timer(true);
+static const double IDLE_ANIMATION_TIME_LIMIT = 20.0;
+static bool s_idle_animation_active = false;
+static glm::mat4 s_idle_animation_rotation_matrix;
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -388,11 +393,24 @@ int main()
 	CallbackHelper::cursorPosFunc = [&](double x, double y)
 	{
 	 	//TODO what you want to happen
+
+	 	if ( CallbackHelper::active_mouse_control )
+	 	{
+	 		s_idle_movement_timer.reset();
+	 		s_idle_animation_active = false;
+	 	}
 	};
 
 	CallbackHelper::mouseButtonFunc = [&](int b, int a, int m)
 	{
 	 	//TODO what you want to happen
+
+		ImGuiIO& io = ImGui::GetIO();
+	 	if (io.WantCaptureMouse && a == GLFW_PRESS && b == GLFW_MOUSE_BUTTON_LEFT)
+	 	{
+	 		s_idle_ui_timer.reset();
+	 	}
+
 	};
 
 	 CallbackHelper::keyboardFunc = [&](int k, int s, int a, int m)
@@ -513,6 +531,11 @@ int main()
 			// Settings.multithreaded_windfield = !Settings.multithreaded_windfield;
 			//  DEBUGLOG->log("multithread: ",Settings.multithreaded_windfield);
 		 // }
+		if (k == GLFW_KEY_W || k == GLFW_KEY_S || k == GLFW_KEY_A || k == GLFW_KEY_D)
+		{
+			s_idle_movement_timer.reset();
+			s_idle_animation_active = false;
+		}
 	 };
 
 	auto windowResizeCB = [&](int width, int height)
@@ -541,6 +564,15 @@ int main()
 
 	render(window, [&](double dt)
 	{
+		// update timers
+		s_idle_movement_timer.update(dt);
+		s_idle_ui_timer.update(dt);
+
+		if ( s_idle_ui_timer.getElapsedTime() > IDLE_ANIMATION_TIME_LIMIT && s_idle_movement_timer.getElapsedTime() > IDLE_ANIMATION_TIME_LIMIT)
+		{
+			s_idle_animation_active = true;
+		}
+
 		timings.updateReadyTimings();
 		
 		elapsedTime += dt;
@@ -609,6 +641,7 @@ int main()
 			ImGui::SliderFloat("mix water",&Settings.ssrMix, 0.0, 1.0);
 			ImGui::Checkbox("fade to edges", &Settings.ssrFade);
 			ImGui::Checkbox("toggle glossy", &Settings.ssrGlossy);
+			ImGui::Checkbox("toggle normalmap", &Settings.waterHasNormalTex);
 			ImGui::TreePop();
 		}
 
@@ -658,6 +691,14 @@ int main()
 		///////////////////////////// VARIABLE UPDATING ///////////////////////////////
 		timings.resetTimer("varupdates");
 		timings.beginTimer("varupdates");
+
+		if (s_idle_animation_active) // update rotation matrix
+		{
+			s_idle_animation_rotation_matrix = glm::rotate(glm::mat4(1.0f), (float) elapsedTime / 10.0f, glm::vec3(0.0f, 1.0f, 0.0f) );
+
+			mainCamera.setPosition(glm::vec3( s_idle_animation_rotation_matrix * glm::vec4(7.0f,1.25f,0.0f,1.0f) ) + glm::vec3(0.f,0.0f,5.0f));
+			mainCamera.setCenter(glm::vec3(0.0f,1.75f,5.0f));
+		}
 
 		mainCamera.update(dt);
 		updateLightCamera(mainCamera, lightCamera, - glm::vec3(WORLD_LIGHT_DIRECTION) * 15.0f);
@@ -737,7 +778,7 @@ int main()
 		//sh_ssr.update("user_pixelStepSize",Settings.ssrRayStep);
 		sh_ssr.update("mixV",Settings.ssrMix);
 
-		sh_gbuffer.update("time", elapsedTime);
+		// sh_gbuffer.update("time", elapsedTime);
 		//std::cout<<"ZEIT: "<< elapsedTime << endl;
 		timings.stopTimer("uniformupdates");
 		//////////////////////////////////////////////////////////////////////////////
