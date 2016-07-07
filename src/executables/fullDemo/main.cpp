@@ -638,6 +638,18 @@ int main()
 			ImGui::TreePop();
 		}
 		else {timings.setEnabled(false);}
+
+		if (ImGui::Button("Reset Camera")) {
+			mainCamera.setPosition(0.0f, 2.0f, 0.0f);
+			mainCamera.setDirection(glm::vec3(0.0f, 0.2f, 1.0f));
+			updateLightCamera(mainCamera, lightCamera, - glm::vec3(WORLD_LIGHT_DIRECTION) * 15.0f);
+		}
+		if (ImGui::Button("Toggle Debug Views")) {
+			Settings.show_debug_views = !Settings.show_debug_views;
+		}
+		if (ImGui::Button("Toggle Seasons Animation")) {
+			Settings.animate_seasons = !Settings.animate_seasons;
+		}
 		//TODO what you want to be able to modify, use multiple windows, collapsing headers, whatever
 		//timings.stopTimer("gui");
         //////////////////////////////////////////////////////////////////////////////
