@@ -64,6 +64,9 @@ struct Settings_s
 	float vml_halo_width;
 	float vml_distortion;
 	float vml_strength;
+	float weightMin;
+	float weightMax;
+	int mode;
 
 	// postprocessing
 
@@ -105,6 +108,10 @@ struct Settings_s
 		vml_halo_width= (0.25f);
 		vml_distortion= (5.0f);
 		vml_strength= (2.5f);
+
+		weightMin = 0.6f;
+		weightMax = 0.7f;
+		mode = 7;
 	}
 };
 static const Settings_s Settings_default;

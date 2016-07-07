@@ -141,7 +141,7 @@ int main()
 	Renderable* waterGrid = new Grid(32,32,2.0f,2.0f,true);
 	glm::mat4 modelWater = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
 	// grid resembling grass spawning area
-	Renderable* grassGrid = new Grid(128,128,0.75f,0.75f,true);
+	Renderable* grassGrid = new Grid(300,300,0.3f,0.3f,true);
 	glm::mat4 modelGrass = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
 
 	// sound loop
@@ -364,13 +364,11 @@ int main()
 	r_showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 
 	// arbitrary texture display shader
-	float weightMin = 0.6f;
-	float weightMax = 0.7f;
-	int mode = 7;
+
 	ShaderProgram sh_addTexShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessVolumetricLighting.frag");
-	sh_addTexShader.update("min", weightMin);
-	sh_addTexShader.update("max", weightMax);
-	sh_addTexShader.update("mode", mode);
+	sh_addTexShader.update("min", Settings.weightMin);
+	sh_addTexShader.update("max", Settings.weightMax);
+	sh_addTexShader.update("mode", Settings.mode);
 	RenderPass r_addTex(&sh_addTexShader, &fbo_gbufferComp);
 	r_addTex.addRenderable(&quad);
 	r_addTex.addDisable(GL_DEPTH_TEST);
@@ -615,9 +613,9 @@ int main()
 			}
 			if (ImGui::TreeNode("Composition"))
 			{
-				ImGui::SliderFloat("min", &weightMin, 0.0f, 1.0f);
-				ImGui::SliderFloat("max", &weightMax, 0.0f, 1.0f);
-				ImGui::Combo("mode", &mode, "const\0cos\0sin\0inverse\0sqrt\0quad\0ln\0x^4\0");
+				ImGui::SliderFloat("min", &Settings.weightMin, 0.0f, 1.0f);
+				ImGui::SliderFloat("max", &Settings.weightMax, 0.0f, 1.0f);
+				ImGui::Combo("mode", &Settings.mode, "const\0cos\0sin\0inverse\0sqrt\0quad\0ln\0x^4\0");
 				ImGui::TreePop();
 			}
 			ImGui::TreePop();
@@ -763,9 +761,9 @@ int main()
 		treeRendering.updateActiveImguiInterfaces();
 
 		// vml composition
-		sh_addTexShader.update("min", weightMin);
-		sh_addTexShader.update("max", weightMax);
-		sh_addTexShader.update("mode", mode);
+		sh_addTexShader.update("min", Settings.weightMin);
+		sh_addTexShader.update("max", Settings.weightMax);
+		sh_addTexShader.update("mode", Settings.mode);
 		
 		sh_grassGeom.update("strength", Settings.grass_size);
 
