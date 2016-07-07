@@ -92,6 +92,8 @@ PostProcessing::DepthOfField::DepthOfField(int width, int height, Quad* quad)
 	, m_focusPlaneDepths(2.0,4.0,7.0,10.0)
 	, m_focusPlaneRadi(10.0f, -5.0f)
 	, m_farRadiusRescale(2.0f)
+	, m_disable_near_field(false)
+	, m_disable_far_field(false)
 {
 	if (quad == nullptr){
 		m_quad = new Quad();
@@ -172,17 +174,15 @@ void PostProcessing::DepthOfField::execute(GLuint positionMap, GLuint colorMap)
 	m_quad->draw();
 } 
 
-static bool s_disable_near_field = false;
-static bool s_disable_far_field = false;
 void PostProcessing::DepthOfField::imguiInterfaceEditParameters()
 {
 	// ImGui interface
 	ImGui::DragFloat4("depths", glm::value_ptr(m_focusPlaneDepths),0.1f,0.0f);
-	ImGui::SliderFloat2("near/far radi", glm::value_ptr(m_focusPlaneRadi), -10.0f, 10.0f);
+	// ImGui::SliderFloat2("near/far radi", glm::value_ptr(m_focusPlaneRadi), -10.0f, 10.0f);
 
-	ImGui::SliderFloat("far radius rescale", &m_farRadiusRescale, 0.0f, 5.0f);
-	ImGui::Checkbox("disable near field", &s_disable_near_field);
-	ImGui::Checkbox("disable far field", &s_disable_far_field);
+	// ImGui::SliderFloat("far radius rescale", &m_farRadiusRescale, 0.0f, 5.0f);
+	ImGui::Checkbox("disable near field", &m_disable_near_field);
+	ImGui::Checkbox("disable far field", &m_disable_far_field);
 }
 
 void PostProcessing::DepthOfField::updateUniforms()
@@ -198,8 +198,8 @@ void PostProcessing::DepthOfField::updateUniforms()
 	m_dofCompShader.update("maxCoCRadiusPixels", m_focusPlaneRadi.x);
 	m_dofCompShader.update("farRadiusRescale" , m_farRadiusRescale);
 
-	m_dofCompShader.update("disableNearField", s_disable_near_field);
-	m_dofCompShader.update("disableFarField" , s_disable_far_field);
+	m_dofCompShader.update("disableNearField", m_disable_near_field);
+	m_dofCompShader.update("disableFarField" , m_disable_far_field);
 }
 
 PostProcessing::SkyboxRendering::SkyboxRendering(std::string fShader, std::string vShader, Renderable* skybox)
@@ -225,7 +225,7 @@ PostProcessing::SkyboxRendering::~SkyboxRendering()
 }
 void PostProcessing::SkyboxRendering::render(GLuint cubeMapTexture, FrameBufferObject* target)
 {
-	glEnable(GL_DEPTH_TEST);
+	OPENGLCONTEXT->setEnabled(GL_DEPTH_TEST, true);
 	glDepthFunc(GL_LEQUAL);
 	
 	if(target != nullptr) {target->bind();}
@@ -236,7 +236,7 @@ void PostProcessing::SkyboxRendering::render(GLuint cubeMapTexture, FrameBufferO
 	OPENGLCONTEXT->bindTextureToUnit(cubeMapTexture, GL_TEXTURE0, GL_TEXTURE_CUBE_MAP);
 	m_skybox->draw();
 	glDepthFunc(GL_LESS);
-	glDisable(GL_DEPTH_TEST);
+	OPENGLCONTEXT->setEnabled(GL_DEPTH_TEST, false);
 }
 
 PostProcessing::SunOcclusionQuery::SunOcclusionQuery(GLuint depthTexture, glm::vec2 textureSize, Renderable* sun)

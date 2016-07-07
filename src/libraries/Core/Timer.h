@@ -80,12 +80,16 @@ class OpenGLTimings
 		double lastTiming;
 	};
 
+	bool m_enabled;
+
 public:
+	OpenGLTimings() : m_enabled(true){}
 	std::unordered_map<std::string, Timer> m_timers;
 	void beginTimer(const std::string& timer);
 	void stopTimer(const std::string& timer);
 	void resetTimer(const std::string& timer){}
 	void updateReadyTimings();
+	inline void setEnabled(bool enabled){m_enabled = enabled;};
 };
 
 
