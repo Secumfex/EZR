@@ -98,7 +98,7 @@ int main()
 	//TODO load all (non-material) textures that are needed
 	// Tess
 	//GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_height2.png");
-	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/heightmap.jpg");
+	GLuint distortionTex = TextureTools::loadTexture( RESOURCES_PATH "/heightmap2.jpg");
 	GLuint terrainNormalTex = TextureTools::loadTexture( RESOURCES_PATH "/terrain_normal.png");
 
 	GLuint diffTex = TextureTools::loadTexture( RESOURCES_PATH "/Rocks_Seamless_1_COLOR.png");
@@ -188,7 +188,7 @@ int main()
 	sh_tessellation.update("model", modelTerrain);
 	sh_tessellation.update("view", mainCamera.getViewMatrix());
 	sh_tessellation.update("projection", mainCamera.getProjectionMatrix());
-	sh_tessellation.update("heightZones", glm::vec4(0.1f, 0.2f, 0.5f, 0.6f)); // grassEnd stoneBegin stoneEnd SnowBegin 
+	sh_tessellation.update("heightZones", glm::vec4(0.1f, 0.2f, 0.45f, 0.55f)); // grassEnd stoneBegin stoneEnd SnowBegin 
 	//sh_tessellation.update("b", bezier);
 	//sh_tessellation.update("bt", bezier_transposed);
 	sh_tessellation.bindTextureOnUse("terrain", distortionTex);
@@ -525,6 +525,7 @@ int main()
 	//////////////////////////////// RENDER LOOP /////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 	double elapsedTime = 0.0;
+
 	render(window, [&](double dt)
 	{
 		timings.updateReadyTimings();
@@ -709,6 +710,8 @@ int main()
 		//sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
 		sh_ssr.update("mixV",s_ssrMix);
 
+		sh_gbuffer.update("time", elapsedTime);
+		//std::cout<<"ZEIT: "<< elapsedTime << endl;
 		timings.stopTimer("uniformupdates");
 		//////////////////////////////////////////////////////////////////////////////
 		
