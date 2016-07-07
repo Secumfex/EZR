@@ -508,11 +508,11 @@ int main()
 			ImGui::SetNextWindowSize(ImVec2(500,200));
 			ImGui::SetNextWindowCollapsed(false);
 		 }
- 		 if ( k == GLFW_KEY_M && a == GLFW_PRESS)
-		 {
-			Settings.multithreaded_windfield = !Settings.multithreaded_windfield;
-			 DEBUGLOG->log("multithread: ",Settings.multithreaded_windfield);
-		 }
+ 		//  if ( k == GLFW_KEY_M && a == GLFW_PRESS)
+		 // {
+			// Settings.multithreaded_windfield = !Settings.multithreaded_windfield;
+			//  DEBUGLOG->log("multithread: ",Settings.multithreaded_windfield);
+		 // }
 	 };
 
 	auto windowResizeCB = [&](int width, int height)
@@ -649,14 +649,14 @@ int main()
 		mainCamera.update(dt);
 		updateLightCamera(mainCamera, lightCamera, - glm::vec3(WORLD_LIGHT_DIRECTION) * 15.0f);
 		
-		if( Settings.multithreaded_windfield )
-		{
-			windField.updateVectorTextureThreaded(elapsedTime);
-		}
-		else
-		{
+		// if( Settings.multithreaded_windfield )
+		// {
+		// 	windField.updateVectorTextureThreaded(elapsedTime);
+		// }
+		// else
+		// {
 			windField.updateVectorTexture(elapsedTime);
-		}
+		// }
 
 		glm::mat4 cameraView = mainCamera.getViewMatrix();
 		glm::vec3 cameraPos = mainCamera.getPosition();
