@@ -128,16 +128,16 @@ void VolumetricLighting::imguiInterfaceSimulationProperties()
 {
     ImGui::Checkbox("use anisotropic scatter", &_useAnisotropicScattering);
     ImGui::SliderFloat("phi", &_radiocity, 0.0f, 10000000.0f);
-    ImGui::SliderFloat("tau", &_collisionProbability, 0.0f, 1.0f);
-    ImGui::SliderFloat("albedo", &_scatterProbability, 0.0f, 1.0f);
-    ImGui::SliderFloat("g", &_averageCosine, -1.0f, 1.0f);
-    ImGui::SliderFloat("clamp", &_clamp, 0.0f, 1.0f);
+    // ImGui::SliderFloat("tau", &_collisionProbability, 0.0f, 1.0f);
+    // ImGui::SliderFloat("albedo", &_scatterProbability, 0.0f, 1.0f);
+    // ImGui::SliderFloat("g", &_averageCosine, -1.0f, 1.0f);
+    // ImGui::SliderFloat("clamp", &_clamp, 0.0f, 1.0f);
     ImGui::SliderFloat3("light color", glm::value_ptr(_lightColor), 0.0f, 1.0f);
     _raymarchingShader->update("phi", _radiocity);
-    _raymarchingShader->update("tau", _collisionProbability);
-    _raymarchingShader->update("albedo", _scatterProbability);
-    _raymarchingShader->update("g", _averageCosine);
+    // _raymarchingShader->update("tau", _collisionProbability);
+    // _raymarchingShader->update("albedo", _scatterProbability);
+    // _raymarchingShader->update("g", _averageCosine);
     _raymarchingShader->update("useALS", _useAnisotropicScattering);
-    _raymarchingShader->update("clampMax", _clamp);
+    // _raymarchingShader->update("clampMax", _clamp);
     _raymarchingShader->update("lightColor", _lightColor);
 }

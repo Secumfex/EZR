@@ -25,6 +25,99 @@
 /***********************************************/
 
 /***********************************************/
+struct Settings_s
+{
+	float wind_power;
+	float foliage_size;
+	float grass_size;
+	bool show_debug_views;
+	bool enableLandscape;
+	bool enableTrees;
+	bool enableGrass;
+	bool enableSSR;
+	bool enableVolumetricLighting;
+	bool enableDepthOfField;
+	bool enableLenseflare;
+	bool animate_seasons;
+	bool multithreaded_windfield;
+	bool waterHasNormalTex;
+	bool ssrCubeMap;
+	bool ssrFade;
+	bool ssrGlossy;
+	int ssrLoops;
+	// int ssrRayStep;
+	float ssrMix;
+	bool dynamicDoF;
+	bool queryTime;
+
+	//vml
+	float radiocity;
+	bool useALS;
+	glm::vec3 lightcolor;
+
+	//lensflare
+	float vml_scale;
+	float vml_bias;
+	int vml_num_ghosts;
+	int vml_blur_strength;
+	float vml_ghost_dispersal;
+	float vml_halo_width;
+	float vml_distortion;
+	float vml_strength;
+
+	// postprocessing
+
+ 	Settings_s() { //default initialization
+		wind_power = 0.25f;
+		foliage_size = 0.5f;
+		grass_size = 0.4f;
+		show_debug_views = false;
+		enableLandscape = true;
+		enableTrees = true;
+		enableGrass = true;
+		enableSSR = true;
+		enableVolumetricLighting = true;
+		enableDepthOfField = true;
+		enableLenseflare = true;
+		animate_seasons = false;
+		 multithreaded_windfield = true;
+		waterHasNormalTex = true;
+		ssrCubeMap = true;
+		ssrFade = false;
+		ssrGlossy = true;
+		ssrLoops = 150;
+		 // ssrRayStep = 0.0;
+		ssrMix = 0.8;
+		dynamicDoF = false;
+		queryTime = false;
+
+		//vml defaults
+		radiocity = 10000000.0f;
+		useALS = false;
+		lightcolor = glm::vec3(1.0,0.95,0.74);
+
+		//lensflare defaults
+		vml_scale= (1.1f);
+		vml_bias= (-0.58f);
+		vml_num_ghosts= (3);
+		vml_blur_strength= (3);
+		vml_ghost_dispersal= (0.6f);
+		vml_halo_width= (0.25f);
+		vml_distortion= (5.0f);
+		vml_strength= (2.5f);
+	}
+};
+static const Settings_s Settings_default;
+static Settings_s Settings;
+
+inline void resetSettings()
+{
+	Settings = Settings_default;
+}
+/***********************************************/
+
+
+/***********************************************/
 class ImguiTimings : public OpenGLTimings
 {
 public:
@@ -268,15 +361,14 @@ inline void updateLightCamera(Camera& mainCamera, Camera& lightSourceCamera, glm
 	//TODO move lightSourceCamera according to mainCamera
 }
 
-static bool s_dynamicDoF = false;
 inline void imguiDynamicFieldOfView(PostProcessing::DepthOfField& r_depthOfField)
 {
-	ImGui::Checkbox("dynamic DoF", &s_dynamicDoF);
+	ImGui::Checkbox("dynamic DoF", &Settings.dynamicDoF);
 }
 
 inline void updateDynamicFieldOfView(PostProcessing::DepthOfField& r_depthOfField, FrameBufferObject& gbufferFBO, float dt)
 {
-	if ( s_dynamicDoF )
+	if ( Settings.dynamicDoF )
 	{
 		// read center depth
 		gbufferFBO.bind();

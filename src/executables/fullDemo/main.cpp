@@ -30,31 +30,9 @@ glm::mat4 bezier = glm::mat4(
 
 glm::mat4 bezier_transposed = glm::transpose(bezier);
 
-static float s_wind_power = 0.25f;
-static float s_foliage_size = 0.5f;
-
-static float s_grass_size = 0.4f;
-
+std::unordered_map<aiTextureType, GLuint, AssimpTools::EnumClassHash> textures;
 //////////////////// MISC /////////////////////////////////////
 
-static bool s_show_debug_views = false;
-static bool s_enableLandscape = true;
-static bool s_enableTrees = true;
-static bool s_enableGrass = true;
-static bool s_enableSSR = true;
-static bool s_enableVolumetricLighting = true;
-static bool s_enableDepthOfField = true;
-static bool s_enableLenseflare = true;
-static bool s_animate_seasons = false;
-
-// static bool s_multithreaded_windfield = false;
-static bool s_waterHasNormalTex = true;
-static bool s_ssrCubeMap = true;
-static bool s_ssrFade = false;
-static bool s_ssrGlossy = true;
-static int s_ssrLoops = 150;
-//static int s_ssrRayStep = 0.0;
-static float s_ssrMix = 0.8;
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -188,7 +166,7 @@ int main()
 	sh_tessellation.update("model", modelTerrain);
 	sh_tessellation.update("view", mainCamera.getViewMatrix());
 	sh_tessellation.update("projection", mainCamera.getProjectionMatrix());
-	sh_tessellation.update("heightZones", glm::vec4(0.1f, 0.2f, 0.5f, 0.6f)); // grassEnd stoneBegin stoneEnd SnowBegin 
+	sh_tessellation.update("heightZones", glm::vec4(0.1f, 0.15f, 0.4f, 0.5f)); // grassEnd stoneBegin stoneEnd SnowBegin 
 	//sh_tessellation.update("b", bezier);
 	//sh_tessellation.update("bt", bezier_transposed);
 	sh_tessellation.bindTextureOnUse("terrain", distortionTex);
@@ -269,7 +247,7 @@ int main()
 	sh_grassGeom.update("materialType", 0.0f);
 	sh_grassGeom.update("shininess", 3.0f);
 	sh_grassGeom.update("shininess_strength", 0.1f);
-	sh_grassGeom.update("strength", s_grass_size); // grass size
+	sh_grassGeom.update("strength",Settings.grass_size); // grass size
 	sh_grassGeom.bindTextureOnUse("heightMap", distortionTex);
 	sh_grassGeom.update("heightMapRange", terrainRange); // grass size
 	glAlphaFunc(GL_GREATER, 0);
@@ -304,7 +282,7 @@ int main()
 			//sh_gbuffer.update("color", glm::vec4(0.2f,0.2f,0.7f,1.0f));
 			sh_gbuffer.update("mixTexture", 1.0f);
 			sh_gbuffer.updateAndBindTexture("tex", 1,waterTextureHandle);
-			sh_gbuffer.update("hasNormalTex", s_waterHasNormalTex);
+			sh_gbuffer.update("hasNormalTex",Settings.waterHasNormalTex);
 			sh_gbuffer.updateAndBindTexture("normalTex", 2, terrainNormalTex);
 		}
 	};
@@ -342,14 +320,14 @@ int main()
 	sh_ssr.update("screenHeight",getResolution(window).y);
 	sh_ssr.update("camNearPlane", 0.5f);
 	sh_ssr.update("camFarPlane", 100.0f);
-	//sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
+	//sh_ssr.update("user_pixelStepSize",Settings.ssrRayStep);
 	sh_ssr.update("projection",mainCamera.getProjectionMatrix());
 	sh_ssr.update("view",mainCamera.getViewMatrix());
-	sh_ssr.update("toggleCM",s_ssrCubeMap);
-	sh_ssr.update("toggleFade",s_ssrFade);
-	sh_ssr.update("toggleGlossy",s_ssrGlossy);
-	sh_ssr.update("loops",s_ssrLoops);
-	sh_ssr.update("mixV",s_ssrMix);
+	sh_ssr.update("toggleCM",Settings.ssrCubeMap);
+	sh_ssr.update("toggleFade",Settings.ssrFade);
+	sh_ssr.update("toggleGlossy",Settings.ssrGlossy);
+	sh_ssr.update("loops",Settings.ssrLoops);
+	sh_ssr.update("mixV",Settings.ssrMix);
 	sh_ssr.bindTextureOnUse("vsPositionTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT2));
 	sh_ssr.bindTextureOnUse("vsNormalTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT1));
 	sh_ssr.bindTextureOnUse("ReflectanceTex",fbo_gbuffer.getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT4));
@@ -421,85 +399,120 @@ int main()
 	 {
 		 if ( k == GLFW_KEY_P && a == GLFW_PRESS)
 		 {
-			 s_show_debug_views = !s_show_debug_views;
+			Settings.show_debug_views = !Settings.show_debug_views;
 		 }
 
 		 if ( k == GLFW_KEY_O && a == GLFW_PRESS)
 		 {
-			 s_dynamicDoF = !s_dynamicDoF;
+			Settings.dynamicDoF = !Settings.dynamicDoF;
 		 }
 
 		 if ( k == GLFW_KEY_1 && a == GLFW_PRESS)
 		 {
-			 s_enableLandscape = !s_enableLandscape;
+			Settings.enableLandscape = !Settings.enableLandscape;
 		 }
 
 		 if ( k == GLFW_KEY_2 && a == GLFW_PRESS)
 		 {
-			 s_enableGrass = !s_enableGrass;
+			Settings.enableGrass = !Settings.enableGrass;
 		 }
 
 		 if ( k == GLFW_KEY_3 && a == GLFW_PRESS)
 		 {
-			 s_enableTrees = !s_enableTrees;
+			Settings.enableTrees = !Settings.enableTrees;
 		 }
 
 		 if ( k == GLFW_KEY_4 && a == GLFW_PRESS)
 		 {
-			 s_enableSSR = !s_enableSSR;
+			Settings.enableSSR = !Settings.enableSSR;
 		 }
 
 		 if ( k == GLFW_KEY_5 && a == GLFW_PRESS)
 		 {
-			 s_enableVolumetricLighting = !s_enableVolumetricLighting;
+			Settings.enableVolumetricLighting = !Settings.enableVolumetricLighting;
 		 }
 
 		 if ( k == GLFW_KEY_6 && a == GLFW_PRESS)
 		 {
-			 s_enableDepthOfField = !s_enableDepthOfField;
+			Settings.enableDepthOfField = !Settings.enableDepthOfField;
 		 }
 
 		 if ( k == GLFW_KEY_7 && a == GLFW_PRESS)
 		 {
-			 s_enableLenseflare = !s_enableLenseflare;
+			Settings.enableLenseflare = !Settings.enableLenseflare;
 		 }
 
 		 if ( k == GLFW_KEY_T && a == GLFW_PRESS)
 		 {
-			 s_waterHasNormalTex = !s_waterHasNormalTex;
+			Settings.waterHasNormalTex = !Settings.waterHasNormalTex;
 		 }
 
 		 if ( k == GLFW_KEY_9 && a == GLFW_PRESS)
 		 {
-			 s_enableLandscape = true;
-			 s_enableGrass = true;
-			 s_enableTrees = true;
-			 s_enableSSR = true;
-			 s_enableVolumetricLighting = true;
-			 s_enableDepthOfField = true;
-			 s_enableLenseflare = true;
+			Settings.enableLandscape = true;
+			Settings.enableGrass = true;
+			Settings.enableTrees = true;
+			Settings.enableSSR = true;
+			Settings.enableVolumetricLighting = true;
+			Settings.enableDepthOfField = true;
+			Settings.enableLenseflare = true;
 		 }
 
 		 if ( k == GLFW_KEY_0 && a == GLFW_PRESS)
 		 {
-			 s_enableLandscape = false;
-			 s_enableGrass = false;
-			 s_enableTrees = false;
-			 s_enableSSR = false;
-			 s_enableVolumetricLighting = false;
-			 s_enableDepthOfField = false;
-			 s_enableLenseflare = false;
+			Settings.enableLandscape = false;
+			Settings.enableGrass = false;
+			Settings.enableTrees = false;
+			Settings.enableSSR = false;
+			Settings.enableVolumetricLighting = false;
+			Settings.enableDepthOfField = false;
+			Settings.enableLenseflare = false;
 		 }
 
 		 if ( k == GLFW_KEY_I && a == GLFW_PRESS )
 		 {
-			s_animate_seasons = !s_animate_seasons;
+			Settings.animate_seasons = !Settings.animate_seasons;
 		 }
- 		//  if ( k == GLFW_KEY_M && a == GLFW_PRESS)
-		 // {
-			//  s_multithreaded_windfield = !s_multithreaded_windfield;
-			//  DEBUGLOG->log("multithread: ",s_multithreaded_windfield);
-		 // }
+ 		 if ( k == GLFW_KEY_R && a == GLFW_PRESS)
+		 {
+			resetSettings();
+
+			// reset VML
+			r_volumetricLighting._lightColor = Settings.lightcolor;
+			r_volumetricLighting._radiocity = Settings.radiocity;
+			r_volumetricLighting._useAnisotropicScattering = Settings.useALS;
+		    r_volumetricLighting._raymarchingShader->update("lightColor", Settings.lightcolor);
+		   	r_volumetricLighting._raymarchingShader->update("phi", 		  Settings.radiocity);
+		   	r_volumetricLighting._raymarchingShader->update("useALS", 	  Settings.useALS);
+
+		   	// reset Lens Flare
+	   		r_lensFlare.m_scale  = Settings.vml_scale;
+			r_lensFlare.m_bias = Settings.vml_bias;
+			r_lensFlare.m_num_ghosts = Settings.vml_num_ghosts;
+			r_lensFlare.m_blur_strength = Settings.vml_blur_strength;
+			r_lensFlare.m_ghost_dispersal = Settings.vml_ghost_dispersal;
+			r_lensFlare.m_halo_width = Settings.vml_halo_width;
+			r_lensFlare.m_distortion = Settings.vml_distortion;
+			r_lensFlare.m_strength = Settings.vml_strength;
+			r_lensFlare.updateUniforms();
+
+			//reset DoF
+			r_depthOfField.m_focusPlaneDepths  = glm::vec4(2.0,4.0,7.0,10.0);
+			// r_depthOfField.m_focusPlaneRadi = glm::vec2(10.0f, -5.0f);
+			// r_depthOfField.m_farRadiusRescale = 2.0f;
+			r_depthOfField.m_disable_near_field = false;
+			r_depthOfField.m_disable_far_field = false;
+			r_depthOfField.updateUniforms();
+
+			ImGui::SetNextWindowPos(ImVec2(50,50));
+			ImGui::SetNextWindowSize(ImVec2(500,200));
+			ImGui::SetNextWindowCollapsed(false);
+		 }
+ 		 if ( k == GLFW_KEY_M && a == GLFW_PRESS)
+		 {
+			Settings.multithreaded_windfield = !Settings.multithreaded_windfield;
+			 DEBUGLOG->log("multithread: ",Settings.multithreaded_windfield);
+		 }
 	 };
 
 	auto windowResizeCB = [&](int width, int height)
@@ -543,25 +556,25 @@ int main()
 		// Landscape
 		if (ImGui::TreeNode("Tesselation"))
 		{
-			ImGui::Checkbox("enable", &s_enableLandscape);
+			ImGui::Checkbox("enable", &Settings.enableLandscape);
 			ImGui::TreePop();
 		}
 
 		// Tree Rendering
 		if (ImGui::TreeNode("Tree Rendering"))
 		{
-			ImGui::Checkbox("enable", &s_enableTrees);
-			treeRendering.imguiInterfaceSimulationProperties();
+			ImGui::Checkbox("enable", &Settings.enableTrees);
+			// treeRendering.imguiInterfaceSimulationProperties();
 
-			ImGui::SliderFloat("foliage size", &s_foliage_size, 0.0f, 3.0f);
-			ImGui::SliderFloat("wind power", &s_wind_power, 0.0f, 3.0f);
+			ImGui::SliderFloat("foliage size", &Settings.foliage_size, 0.0f, 3.0f);
+			ImGui::SliderFloat("wind power", &Settings.wind_power, 0.0f, 3.0f);
 			ImGui::TreePop();
 		}
 		
 		// Volumetric Light
 		if (ImGui::TreeNode("Volumetric Lighting"))
 		{
-			ImGui::Checkbox("enable", &s_enableVolumetricLighting);
+			ImGui::Checkbox("enable", &Settings.enableVolumetricLighting);
 			if (ImGui::TreeNode("Simulation"))
 			{
 				r_volumetricLighting.imguiInterfaceSimulationProperties();
@@ -580,21 +593,21 @@ int main()
 		// Grass
 		if ( ImGui::TreeNode("Grass"))
 		{
-			ImGui::Checkbox("enable", &s_enableGrass);
-			ImGui::SliderFloat("grass size", &s_grass_size, 0.0f, 1.5f);
+			ImGui::Checkbox("enable", &Settings.enableGrass);
+			ImGui::SliderFloat("grass size", &Settings.grass_size, 0.0f, 1.5f);
 			ImGui::TreePop();
 		}
 
 		//SSR
 		if ( ImGui::TreeNode("SSR"))
 		{
-			ImGui::Checkbox("enable", &s_enableSSR);
-			ImGui::SliderInt("Loops",&s_ssrLoops, 25, 250);
-			//ImGui::SliderInt("PixelStepSize",&s_ssrRayStep,0,20);
-			ImGui::Checkbox("toggle CubeMap", &s_ssrCubeMap);
-			ImGui::SliderFloat("mix water",&s_ssrMix, 0.0, 1.0);
-			ImGui::Checkbox("fade to edges", &s_ssrFade);
-			ImGui::Checkbox("toggle glossy", &s_ssrGlossy);
+			ImGui::Checkbox("enable", &Settings.enableSSR);
+			ImGui::SliderInt("Loops",&Settings.ssrLoops, 25, 250);
+			//ImGui::SliderInt("PixelStepSize",&Settings.ssrRayStep,0,20);
+			ImGui::Checkbox("toggle CubeMap", &Settings.ssrCubeMap);
+			ImGui::SliderFloat("mix water",&Settings.ssrMix, 0.0, 1.0);
+			ImGui::Checkbox("fade to edges", &Settings.ssrFade);
+			ImGui::Checkbox("toggle glossy", &Settings.ssrGlossy);
 			ImGui::TreePop();
 		}
 
@@ -603,13 +616,13 @@ int main()
 		{	
 			if (ImGui::TreeNode("Lens-Flare"))
 			{
-				ImGui::Checkbox("enable", &s_enableLenseflare);
+				ImGui::Checkbox("enable", &Settings.enableLenseflare);
 				r_lensFlare.imguiInterfaceEditParameters();
 				r_lensFlare.updateUniforms();
 			 	ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Depth-Of-Field")){
-				ImGui::Checkbox("enable", &s_enableDepthOfField);
+				ImGui::Checkbox("enable", &Settings.enableDepthOfField);
 				r_depthOfField.imguiInterfaceEditParameters();
 				r_depthOfField.updateUniforms();
 				imguiDynamicFieldOfView(r_depthOfField);
@@ -620,9 +633,11 @@ int main()
 
 		if ( ImGui::TreeNode("Timings"))
 		{
+			timings.setEnabled(true);
 			timings.imguiTimings();
 			ImGui::TreePop();
 		}
+		else {timings.setEnabled(false);}
 		//TODO what you want to be able to modify, use multiple windows, collapsing headers, whatever
 		//timings.stopTimer("gui");
         //////////////////////////////////////////////////////////////////////////////
@@ -634,14 +649,14 @@ int main()
 		mainCamera.update(dt);
 		updateLightCamera(mainCamera, lightCamera, - glm::vec3(WORLD_LIGHT_DIRECTION) * 15.0f);
 		
-		// if( s_multithreaded_windfield )
-		// {
+		if( Settings.multithreaded_windfield )
+		{
 			windField.updateVectorTextureThreaded(elapsedTime);
-		// }
-		// else
-		// {
-		// 	windField.updateVectorTexture(elapsedTime);
-		// }
+		}
+		else
+		{
+			windField.updateVectorTexture(elapsedTime);
+		}
 
 		glm::mat4 cameraView = mainCamera.getViewMatrix();
 		glm::vec3 cameraPos = mainCamera.getPosition();
@@ -649,9 +664,9 @@ int main()
 		glm::mat4 lightProjection = lightCamera.getProjectionMatrix();
 		r_volumetricLighting.update(cameraView, cameraPos, lightView, lightProjection);
 		
-		if ( s_animate_seasons )
+		if ( Settings.animate_seasons )
 		{
-			animateSeasons(treeRendering, sh_grassGeom, elapsedTime / 2.0f, s_grass_size, s_wind_power, s_foliage_size, sh_tessellation);
+			animateSeasons(treeRendering, sh_grassGeom, elapsedTime / 2.0f, Settings.grass_size, Settings.wind_power, Settings.foliage_size, sh_tessellation);
 		}
 		
 		timings.stopTimer("varupdates");
@@ -683,13 +698,13 @@ int main()
 		treeRendering.foliageShadowMapShader->update("view", lightCamera.getViewMatrix());
 
 		// wind related uniforms
-		treeRendering.branchShader->update( "windPower", s_wind_power);
-		treeRendering.foliageShader->update("windPower", s_wind_power);
-		treeRendering.branchShadowMapShader->update("windPower", s_wind_power);
-		treeRendering.foliageShadowMapShader->update("windPower", s_wind_power);
+		treeRendering.branchShader->update( "windPower", Settings.wind_power);
+		treeRendering.foliageShader->update("windPower", Settings.wind_power);
+		treeRendering.branchShadowMapShader->update("windPower", Settings.wind_power);
+		treeRendering.foliageShadowMapShader->update("windPower", Settings.wind_power);
 
-		treeRendering.foliageShader->update("foliageSize", s_foliage_size);
-		treeRendering.foliageShadowMapShader->update("foliageSize", s_foliage_size);
+		treeRendering.foliageShader->update("foliageSize", Settings.foliage_size);
+		treeRendering.foliageShadowMapShader->update("foliageSize", Settings.foliage_size);
 		
 		treeRendering.updateActiveImguiInterfaces();
 
@@ -698,16 +713,16 @@ int main()
 		sh_addTexShader.update("max", weightMax);
 		sh_addTexShader.update("mode", mode);
 		
-		sh_grassGeom.update("strength", s_grass_size);
+		sh_grassGeom.update("strength", Settings.grass_size);
 
 		updateDynamicFieldOfView(r_depthOfField, fbo_gbuffer, dt);
 
-		sh_ssr.update("toggleCM",s_ssrCubeMap);
-		sh_ssr.update("toggleFade",s_ssrFade);
-		sh_ssr.update("toggleGlossy",s_ssrGlossy);
-		sh_ssr.update("loops",s_ssrLoops);
-		//sh_ssr.update("user_pixelStepSize",s_ssrRayStep);
-		sh_ssr.update("mixV",s_ssrMix);
+		sh_ssr.update("toggleCM",Settings.ssrCubeMap);
+		sh_ssr.update("toggleFade",Settings.ssrFade);
+		sh_ssr.update("toggleGlossy",Settings.ssrGlossy);
+		sh_ssr.update("loops",Settings.ssrLoops);
+		//sh_ssr.update("user_pixelStepSize",Settings.ssrRayStep);
+		sh_ssr.update("mixV",Settings.ssrMix);
 
 		timings.stopTimer("uniformupdates");
 		//////////////////////////////////////////////////////////////////////////////
@@ -727,7 +742,7 @@ int main()
 		
 		// render trees
 		timings.resetTimer("trees");
-		if (s_enableTrees)
+		if (Settings.enableTrees)
 		{
 			timings.beginTimer("trees");
 			for( unsigned int i = 0; i < treeRendering.branchRenderpasses.size(); i++){
@@ -746,7 +761,7 @@ int main()
 		//TODO render tesselated mountains
 		
 		timings.resetTimer("landscape");
-		if (s_enableLandscape)
+		if (Settings.enableLandscape)
 		{
 			timings.beginTimer("landscape");
 			r_terrain.render();
@@ -763,14 +778,14 @@ int main()
 		timings.resetTimer("shadowmap");
 		timings.beginTimer("shadowmap");
 		shadowMapRenderpass.render();
-		if (s_enableLandscape)
+		if (Settings.enableLandscape)
 		{
 			r_terrainShadowMap.render();
 		}
 		timings.stopTimer("shadowmap");
 
 		timings.resetTimer("treesShadow");
-		if (s_enableTrees)
+		if (Settings.enableTrees)
 		{
 		timings.beginTimer("treesShadow");
 		for(unsigned int i = 0; i < treeRendering.foliageShadowMapRenderpasses.size(); i++)
@@ -787,7 +802,7 @@ int main()
 		}
 		// render grass
 		timings.resetTimer("grass");
-		if (s_enableGrass) {
+		if (Settings.enableGrass) {
 			timings.beginTimer("grass");
 			r_grassGeom.render();
 			timings.stopTimer("grass");
@@ -801,7 +816,7 @@ int main()
 
 		// ssr
 		timings.resetTimer("ssr");
-		if (s_enableSSR) {
+		if (Settings.enableSSR) {
 			timings.beginTimer("ssr");
 			r_ssr.render();
 			copyFBOContent(&fbo_ssr, &fbo_gbufferComp, GL_COLOR_BUFFER_BIT);
@@ -810,7 +825,7 @@ int main()
 		
 		// volumetric lighting
 		timings.resetTimer("vml");
-		if (s_enableVolumetricLighting) {
+		if (Settings.enableVolumetricLighting) {
 			timings.beginTimer("vml");
 			r_volumetricLighting._raymarchingRenderPass->render();
 
@@ -824,7 +839,7 @@ int main()
 
 		// Depth of Field and Lens Flare
 		timings.resetTimer("dof");
-		if (s_enableDepthOfField)
+		if (Settings.enableDepthOfField)
 		{
 			timings.beginTimer("dof");
 
@@ -835,7 +850,7 @@ int main()
 		}
 
 		timings.resetTimer("lensflare");
-		if(s_enableLenseflare)
+		if(Settings.enableLenseflare)
 		{
 			timings.beginTimer("lensflare");
 			r_lensFlare.renderLensFlare( fbo_gbufferComp.getBuffer("fragmentColor"), &fbo_gbufferComp );
@@ -847,7 +862,7 @@ int main()
 		sh_showTex.updateAndBindTexture("tex", 0, fbo_gbufferComp.getBuffer("fragmentColor"));
 		r_showTex.render();
 		
-		if (s_show_debug_views)
+		if (Settings.show_debug_views)
 		{
 
 		// show / debug view of some texture
@@ -865,7 +880,7 @@ int main()
 		r_showTex.render();
 
 		// raymarching
-		if (s_enableVolumetricLighting)
+		if (Settings.enableVolumetricLighting)
 		{
 			r_showTex.setViewport(3 * WINDOW_RESOLUTION.x / 4,0,WINDOW_RESOLUTION.x / 4, WINDOW_RESOLUTION.y / 4);
 			sh_showTex.updateAndBindTexture("tex", 0, r_volumetricLighting._raymarchingFBO->getColorAttachmentTextureHandle(GL_COLOR_ATTACHMENT0));

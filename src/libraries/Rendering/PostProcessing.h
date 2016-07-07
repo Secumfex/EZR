@@ -51,6 +51,9 @@ namespace PostProcessing
 		glm::vec2 m_focusPlaneRadi;
 		float m_farRadiusRescale;
 
+		bool m_disable_near_field;
+		bool m_disable_far_field;
+
 		// Imgui
 		void imguiInterfaceEditParameters();
 		void updateUniforms(); // update uniforms with current member variables values
