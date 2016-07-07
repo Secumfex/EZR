@@ -98,7 +98,7 @@ int main()
 	
 	//positions
 	DEBUGLOG->log("Setup: model matrices"); DEBUGLOG->indent();
-	std::map<Renderable*, glm::mat4> modelMatrices;
+	std::unordered_map<Renderable*, glm::mat4> modelMatrices;
 	modelMatrices[objects[0].renderable] = glm::translate(glm::vec3(randFloat(-3.0f,-2.0f), 0.0f, randFloat(-3,-2.0f)));
 	modelMatrices[objects[1].renderable] = glm::translate(glm::vec3(randFloat(0.0f,1.0f),randFloat(2.0f,3.0f),randFloat(-5.0f,5.0f)));
 	modelMatrices[objects[2].renderable] = glm::translate(glm::vec3(randFloat(-1.0f,1.0f),randFloat(-1.0f,0.0f),randFloat(0.0f,5.0f)));
@@ -109,7 +109,7 @@ int main()
 
 	//colors
 	srand(time(NULL));
-	std::map<Renderable*, glm::vec4> colors;
+	std::unordered_map<Renderable*, glm::vec4> colors;
 	colors[objects[0].renderable] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
 	colors[objects[1].renderable] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
 	colors[objects[2].renderable] = glm::vec4(randFloat(0.2f,1.0f), randFloat(0.2f,1.0f), randFloat(0.2f,1.0f),1.0f);
@@ -126,7 +126,7 @@ int main()
 	}
 
 	// upload textures used by mesh
-	std::map<aiTextureType, GLuint> textures;
+	std::unordered_map<aiTextureType, GLuint,AssimpTools::EnumClassHash> textures;
 	for (int i = 0; i < scene->mNumMaterials; i++)
 	{
 		auto matInfo = AssimpTools::getMaterialInfo(scene, i);

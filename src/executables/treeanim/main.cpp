@@ -61,9 +61,9 @@ static float s_eye_distance = 10.0f;
 static float s_strength = 1.0f;
 static int s_num_levels = 1;
 
-static std::map<Renderable*, glm::vec4*> s_renderable_color_map;
-static std::map<Renderable*, int> s_renderable_material_map; //!< mapping a renderable to a material index
-static std::vector<std::map<aiTextureType, GLuint>> s_material_texture_handles; //!< mapping material texture types to texture handles
+static std::unordered_map<Renderable*, glm::vec4*> s_renderable_color_map;
+static std::unordered_map<Renderable*, int> s_renderable_material_map; //!< mapping a renderable to a material index
+static std::vector<std::unordered_map<aiTextureType, GLuint,AssimpTools::EnumClassHash>> s_material_texture_handles; //!< mapping material texture types to texture handles
 
 //////////////////// MISC /////////////////////////////////////
 float randFloat(float min, float max) //!< returns a random number between min and max
@@ -97,7 +97,7 @@ int main()
 	std::string branchModel = "branch_simple.dae";
 	
 	const aiScene* scene = AssimpTools::importAssetFromResourceFolder(branchModel, importer);
-	std::map<aiTextureType, AssimpTools::MaterialTextureInfo> branchTexturesInfo;
+	std::unordered_map<aiTextureType, AssimpTools::MaterialTextureInfo, AssimpTools::EnumClassHash> branchTexturesInfo;
 	if (scene != NULL) branchTexturesInfo = AssimpTools::getMaterialTexturesInfo(scene, 0);
 	AssimpTools::printMaterialInfo(AssimpTools::getMaterialInfo(scene,0));
 	if (scene != NULL) s_material_texture_handles.resize(scene->mNumMaterials);
@@ -111,7 +111,7 @@ int main()
 	// also add a dummy material info for the foliage
 	std::string foliageTexture = "foliage_texture.png";
 	auto foliageTexHandle = TextureTools::loadTextureFromResourceFolder(foliageTexture);
-	std::map<aiTextureType, GLuint > foliageMatTextures;
+	std::unordered_map<aiTextureType, GLuint,AssimpTools::EnumClassHash > foliageMatTextures;
 	foliageMatTextures[aiTextureType_DIFFUSE] = foliageTexHandle;
 	s_material_texture_handles.push_back(foliageMatTextures);
 	OPENGLCONTEXT->bindTexture(foliageTexHandle);

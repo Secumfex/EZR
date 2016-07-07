@@ -455,9 +455,9 @@ const aiScene* AssimpTools::importAssetFromResourceFolder(std::string filename, 
 	return scene;
 }
 
-std::map<aiTextureType, AssimpTools::MaterialTextureInfo> AssimpTools::getMaterialTexturesInfo(const aiScene* scene, int matIdx)
+std::unordered_map<aiTextureType, AssimpTools::MaterialTextureInfo, AssimpTools::EnumClassHash> AssimpTools::getMaterialTexturesInfo(const aiScene* scene, int matIdx)
 {
-	std::map<aiTextureType, AssimpTools::MaterialTextureInfo> result;
+	std::unordered_map<aiTextureType, AssimpTools::MaterialTextureInfo, AssimpTools::EnumClassHash> result;
 	
 	if (matIdx >= scene->mNumMaterials)
 	{

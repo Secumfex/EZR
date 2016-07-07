@@ -31,9 +31,9 @@ static glm::vec4 s_lightPos = glm::vec4(0.0,50.0f,0.0,1.0);
 static float s_strength = 1.0f;
 static bool  s_isRotating = false;
 
-static std::map<Renderable*, glm::vec4*> s_renderable_color_map;
-static std::map<Renderable*, int> s_renderable_material_map; //!< mapping a renderable to a material index
-static std::vector<std::map<aiTextureType, GLuint>> s_material_texture_handles; //!< mapping material texture types to texture handles
+static std::unordered_map<Renderable*, glm::vec4*> s_renderable_color_map;
+static std::unordered_map<Renderable*, int> s_renderable_material_map; //!< mapping a renderable to a material index
+static std::vector<std::unordered_map<aiTextureType, GLuint,AssimpTools::EnumClassHash>> s_material_texture_handles; //!< mapping material texture types to texture handles
 
 //////////////////// MISC /////////////////////////////////////
 float randFloat(float min, float max) //!< returns a random number between min and max
@@ -82,7 +82,7 @@ int main()
 	
 	const aiScene* scene = AssimpTools::importAssetFromResourceFolder(modelFile, importer);
 	auto renderable = AssimpTools::createSimpleRenderablesFromScene(scene);
-	std::map<aiTextureType, AssimpTools::MaterialTextureInfo> texturesInfo;
+	std::unordered_map<aiTextureType, AssimpTools::MaterialTextureInfo, AssimpTools::EnumClassHash> texturesInfo;
 	if (renderable.empty()) { DEBUGLOG->log("ERROR: no renderable. Going to Exit."); float wait; cin >> wait; exit(-1);}
 	if (scene != NULL) texturesInfo = AssimpTools::getMaterialTexturesInfo(scene, 0);
 	if (scene != NULL) s_material_texture_handles.resize(scene->mNumMaterials);

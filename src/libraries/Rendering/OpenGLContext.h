@@ -2,7 +2,7 @@
 #define OPENGLCONTEXT_H
 
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -18,9 +18,9 @@ private:
 	OpenGLContext();
 	~OpenGLContext();
 public:
-	//std::map<GLint, GLint> cacheInt;
-	//std::map<GLint, GLfloat> cacheFloat;
-	std::map<GLint, GLuint> cacheTextures; // currently bound textures to texture units GL_TEXTURE0..31
+	//std::unordered_map<GLint, GLint> cacheInt;
+	//std::unordered_map<GLint, GLfloat> cacheFloat;
+	std::unordered_map<GLint, GLuint> cacheTextures; // currently bound textures to texture units GL_TEXTURE0..31
 	GLuint cacheVAO; // currently bound VAO
 	GLuint cacheReadFBO; // currently bound FBO
 	GLuint cacheDrawFBO; // currently bound FBO

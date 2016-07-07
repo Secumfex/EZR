@@ -148,7 +148,7 @@ int main()
 	//}
 	
 	// upload textures used by mesh
-	std::map<aiTextureType, GLuint> textures;
+	std::unordered_map<aiTextureType, GLuint, AssimpTools::EnumClassHash> textures;
 	for (int i = 0; i < scene->mNumMaterials; i++)
 	{
 		auto matInfo = AssimpTools::getMaterialInfo(scene, i);

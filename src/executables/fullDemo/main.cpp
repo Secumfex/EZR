@@ -36,7 +36,6 @@ static float s_foliage_size = 0.5f;
 static float s_grass_size = 0.4f;
 
 //////////////////// MISC /////////////////////////////////////
-std::map<aiTextureType, GLuint> textures;
 
 static bool s_show_debug_views = false;
 static bool s_enableLandscape = true;

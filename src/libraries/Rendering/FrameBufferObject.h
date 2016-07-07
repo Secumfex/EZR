@@ -3,7 +3,7 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include <string>
 
@@ -22,8 +22,8 @@ protected:
 
 	GLuint m_depthTextureHandle;
 
-	std::map< GLenum, GLuint > m_colorAttachments;
-	std::map<std::string, GLuint> m_textureMap;
+	std::unordered_map< GLenum, GLuint > m_colorAttachments;
+	std::unordered_map<std::string, GLuint> m_textureMap;
 	std::vector<GLenum > m_drawBuffers;
 public:
 
@@ -38,7 +38,7 @@ public:
 	* @details the outputmap should contain pairs of an output name and layout location of fragment shader outputs.
 	* Using this, the corresponding texture handles may be retrieved using getBuffer() in addition to getColorAttachmentTextureHandle().
 	*/
-	FrameBufferObject(std::map<std::string, ShaderProgram::Info>* outputMap, int width, int height);
+	FrameBufferObject(std::unordered_map<std::string, ShaderProgram::Info>* outputMap, int width, int height);
 	~FrameBufferObject();
 
 	void createDepthTexture();
@@ -54,8 +54,8 @@ public:
 	int getWidth();
 	int getHeight();
 
-	const std::map<GLenum, GLuint>& getColorAttachments() const;
-	void setColorAttachments(const std::map<GLenum, GLuint>& colorAttachments);
+	const std::unordered_map<GLenum, GLuint>& getColorAttachments() const;
+	void setColorAttachments(const std::unordered_map<GLenum, GLuint>& colorAttachments);
 	GLuint getDepthTextureHandle() const;
 	void setDepthTextureHandle(GLuint depthTextureHandle);
 	const std::vector<GLenum>& getDrawBuffers() const;
@@ -72,7 +72,7 @@ public:
 	void mapColorAttachmentToBufferName(GLenum colorAttachment, std::string bufferName);
 	GLuint getBuffer(std::string name); //!< Get the texture handle corresponding to a certain buffer name.
 
-	void setFrameBufferObject(const GLuint& frameBufferObjectHandle, const int& width, const int& height, const std::map<std::string, GLuint>& textureMap, GLuint depthTexture);
+	void setFrameBufferObject(const GLuint& frameBufferObjectHandle, const int& width, const int& height, const std::unordered_map<std::string, GLuint>& textureMap, GLuint depthTexture);
 };
 
 #endif

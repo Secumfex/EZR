@@ -146,12 +146,12 @@ int FrameBufferObject::getWidth()
 	return m_width;
 }
 
-const std::map<GLenum, GLuint>& FrameBufferObject::getColorAttachments() const {
+const std::unordered_map<GLenum, GLuint>& FrameBufferObject::getColorAttachments() const {
 	return m_colorAttachments;
 }
 
 void FrameBufferObject::setColorAttachments(
-		const std::map<GLenum, GLuint>& colorAttachments) {
+		const std::unordered_map<GLenum, GLuint>& colorAttachments) {
 	m_colorAttachments = colorAttachments;
 }
 
@@ -203,7 +203,7 @@ int FrameBufferObject::getHeight()
 	return m_height;
 }
 
-FrameBufferObject::FrameBufferObject(std::map<std::string, ShaderProgram::Info>* outputMap, int width, int height) 
+FrameBufferObject::FrameBufferObject(std::unordered_map<std::string, ShaderProgram::Info>* outputMap, int width, int height) 
 	: m_width(width), m_height(height)
 {
 	//Generate FBO
@@ -318,7 +318,7 @@ GLuint FrameBufferObject::getBuffer(std::string name) {
 	return 0; // buffer does not exist
 }
 
-void FrameBufferObject::setFrameBufferObject( const GLuint& frameBufferHandle, const int& width, const int& height, const std::map<std::string, GLuint>& textureMap, GLuint depthTexture ) 
+void FrameBufferObject::setFrameBufferObject( const GLuint& frameBufferHandle, const int& width, const int& height, const std::unordered_map<std::string, GLuint>& textureMap, GLuint depthTexture ) 
 {
 	this->m_frameBufferHandle = frameBufferHandle;
 	m_width = width;

@@ -130,7 +130,6 @@ static const int NUM_TREES_PER_VARIANT = 20;
 static const int NUM_FOLIAGE_QUADS_PER_BRANCH = 5;
 static Assimp::Importer branchImporter;
 static Assimp::Importer trunkImporter;
-static std::vector<std::map<aiTextureType, GLuint>> s_tree_materials_textures; //!< mapping material texture types to texture handles
 static std::vector<AssimpTools::MaterialInfo> s_tree_material_infos; //!< mapping material texture types to texture handles
 static const glm::vec4 FORESTED_AREA = glm::vec4(-20.0f,-20.0f, 20.0f,20.0f);
 inline void loadBranchModel()
@@ -139,7 +138,6 @@ inline void loadBranchModel()
 	std::string branchModel = "branch_simple.dae";
 	const aiScene* trunkScene = AssimpTools::importAssetFromResourceFolder(trunkModel, trunkImporter);
 	const aiScene* branchScene = AssimpTools::importAssetFromResourceFolder(branchModel, branchImporter);
-	std::map<aiTextureType, AssimpTools::MaterialTextureInfo> branchTexturesInfo;
 	AssimpTools::MaterialInfo branchMaterialInfo = AssimpTools::getMaterialInfo(trunkScene, 0);
 	s_tree_material_infos.push_back(branchMaterialInfo);
 	if (trunkScene != NULL) branchTexturesInfo = AssimpTools::getMaterialTexturesInfo(trunkScene, 0);
@@ -156,7 +154,6 @@ inline void loadFoliageMaterial()
 {
 	std::string foliageTexture = "foliage_texture.png";
 	auto foliageTexHandle = TextureTools::loadTextureFromResourceFolder(foliageTexture);
-	std::map<aiTextureType, GLuint > foliageMatTextures;
 	foliageMatTextures[aiTextureType_DIFFUSE] = foliageTexHandle;
 	s_tree_materials_textures.push_back(foliageMatTextures);
 	OPENGLCONTEXT->bindTexture(foliageTexHandle);

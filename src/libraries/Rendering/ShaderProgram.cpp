@@ -260,7 +260,7 @@ GLuint ShaderProgram::uniform(const std::string &uniform)
 	//
 	// But we're not doing that. Explanation in the attribute() method above
 	// Create an iterator to look through our uniform map and try to find the named uniform
-	std::map<std::string, Info>::iterator it = m_uniformMap.find(uniform);
+	std::unordered_map<std::string, Info>::iterator it = m_uniformMap.find(uniform);
 	// Found it? Great - pass it back! Didn't find it? Alert user and halt.
 	if ( it != m_uniformMap.end() )
 	{
@@ -281,7 +281,7 @@ GLuint ShaderProgram::buffer(const std::string &buffer)
 	//
 	// But we're not doing that. Explanation in the attribute() method above
 	// Create an iterator to look through our uniform map and try to find the named uniform
-	std::map<std::string, Info>::iterator it = m_outputMap.find(buffer);
+	std::unordered_map<std::string, Info>::iterator it = m_outputMap.find(buffer);
 	// Found it? Great - pass it back! Didn't find it? Alert user and halt.
 	if ( it != m_outputMap.end() )
 	{
@@ -302,7 +302,7 @@ GLuint ShaderProgram::texture(const std::string &texture)
 	//
 	// But we're not doing that. Explanation in the attribute() method above
 	// Create an iterator to look through our uniform map and try to find the named uniform
-	std::map<std::string, GLuint>::iterator it = m_textureMap.find(texture);
+	std::unordered_map<std::string, GLuint>::iterator it = m_textureMap.find(texture);
 	// Found it? Great - pass it back! Didn't find it? Alert user and halt.
 	if ( it != m_textureMap.end() )
 	{
@@ -542,7 +542,7 @@ void ShaderProgram::disable()
 	OPENGLCONTEXT->useShader(0);
 }
 
-void ShaderProgram::mapShaderProperties(GLenum interface, std::map<std::string, Info>* map) {
+void ShaderProgram::mapShaderProperties(GLenum interface, std::unordered_map<std::string, Info>* map) {
 	GLint numAttrib = 0;
 	glGetProgramInterfaceiv(m_shaderProgramHandle, interface, GL_ACTIVE_RESOURCES, &numAttrib);
 
@@ -593,7 +593,7 @@ void ShaderProgram::printOutputInfo() {
 	DEBUGLOG->outdent();
 }
 
-void ShaderProgram::printInfo(std::map<std::string, Info>* map) {
+void ShaderProgram::printInfo(std::unordered_map<std::string, Info>* map) {
 	for(auto e : *map) {
 		DEBUGLOG->log( "name: " + e.first ); 
 		DEBUGLOG->indent();
@@ -642,9 +642,9 @@ std::string ShaderProgram::getTypeString(GLenum type) {
 	//std::to_string(type);
 }
 
-std::map<std::string, ShaderProgram::UniformBlockInfo> ShaderProgram::getAllUniformBlockInfo(ShaderProgram& shaderProgram)
+std::unordered_map<std::string, ShaderProgram::UniformBlockInfo> ShaderProgram::getAllUniformBlockInfo(ShaderProgram& shaderProgram)
 {
-	std::map<std::string, UniformBlockInfo> result;
+	std::unordered_map<std::string, UniformBlockInfo> result;
 	GLint numBlocks = 0;
 	glGetProgramInterfaceiv(shaderProgram.getShaderProgramHandle(), GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &numBlocks);
 	
@@ -718,7 +718,7 @@ std::map<std::string, ShaderProgram::UniformBlockInfo> ShaderProgram::getAllUnif
 	return result;
 }
 
-void ShaderProgram::printUniformBlockInfo(std::map<std::string, ShaderProgram::UniformBlockInfo>& map)
+void ShaderProgram::printUniformBlockInfo(std::unordered_map<std::string, ShaderProgram::UniformBlockInfo>& map)
 {
 	for ( auto b : map)
 	{

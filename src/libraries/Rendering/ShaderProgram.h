@@ -3,7 +3,7 @@
 
 #include "Shader.h"
 
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include <string>
 #include <glm/glm.hpp>
@@ -13,11 +13,11 @@
 */
 struct UniformCache
 {
-	std::map<std::string, float> floats;
-	std::map<std::string, glm::vec4> vecs;
-	std::map<std::string, glm::ivec4> ivecs;
-	std::map<std::string, glm::mat4> mats;
-	std::map<std::string, int> ints;
+	std::unordered_map<std::string, float> floats;
+	std::unordered_map<std::string, glm::vec4> vecs;
+	std::unordered_map<std::string, glm::ivec4> ivecs;
+	std::unordered_map<std::string, glm::mat4> mats;
+	std::unordered_map<std::string, int> ints;
 	void clearCache(){ floats.clear(); vecs.clear(); ivecs.clear(); mats.clear(); ints.clear(); }
 };
 
@@ -258,10 +258,10 @@ public:
 		GLuint location;
 	};
 
-	inline std::map<std::string, Info>* getUniformInfoMap(){return &m_uniformMap;} //!< returns the Texturemap
-	inline std::map<std::string, Info>* getOutputInfoMap(){return &m_outputMap;} //!< returns the Texturemap
-	inline std::map<std::string, Info>* getInputInfoMap(){return &m_inputMap;} //!< returns the Texturemap
-	inline std::map<std::string, GLuint>* getTextureMap()	{return &m_textureMap;} //!< returns the Texturemap
+	inline std::unordered_map<std::string, Info>* getUniformInfoMap(){return &m_uniformMap;} //!< returns the Texturemap
+	inline std::unordered_map<std::string, Info>* getOutputInfoMap(){return &m_outputMap;} //!< returns the Texturemap
+	inline std::unordered_map<std::string, Info>* getInputInfoMap(){return &m_inputMap;} //!< returns the Texturemap
+	inline std::unordered_map<std::string, GLuint>* getTextureMap()	{return &m_textureMap;} //!< returns the Texturemap
 	inline UniformCache* uniformCache(){return &m_uniformCache;}; // returns the Uniform Cache
 	inline void clearCache(){ m_uniformCache.clearCache(); };
 	/**
@@ -277,7 +277,7 @@ public:
 	 */
 	void printOutputInfo();
 
-	void printInfo(std::map<std::string, Info>* map);
+	void printInfo(std::unordered_map<std::string, Info>* map);
 
 	/**
 	 * @brief Prints informations of the shader programs compile and link status
@@ -319,7 +319,7 @@ protected:
 	 * @param interface GL_UNIFORM, GL_PROGRAM_INPUT or GL_PROGRAM_OUTPUT
 	 * @param map target to write retrieved information to
 	 */
-	void mapShaderProperties(GLenum interface, std::map<std::string, Info>* map);
+	void mapShaderProperties(GLenum interface, std::unordered_map<std::string, Info>* map);
 
 	/**
 	 * @brief Method to attach a shader to the shader program
@@ -346,18 +346,18 @@ protected:
 	/**
 	 * @brief Maintains all used and bound uniform locations
 	 */
-	std::map<std::string, Info> m_uniformMap;
+	std::unordered_map<std::string, Info> m_uniformMap;
 	/**
 	 * @brief Maintains all used input buffers
 	 */
-	std::map<std::string, Info> m_inputMap;
+	std::unordered_map<std::string, Info> m_inputMap;
 	/**
 	 * @brief Maintains all used output buffers
 	 */
-	std::map<std::string, Info> m_outputMap;
+	std::unordered_map<std::string, Info> m_outputMap;
 
 	// Map of texture handles that will be bound to the associated (sampler-) name when use() is called
-	std::map<std::string, GLuint> m_textureMap;
+	std::unordered_map<std::string, GLuint> m_textureMap;
 
 	// contains maps to check for old uniforms before issuing OpenGL commands
 	UniformCache m_uniformCache;
@@ -377,10 +377,10 @@ public:
 		GLint index; //!< index in the shader program
 		GLint byteSize;
 		GLint numActiveUniforms; //!< amount of active uniforms in this uniform block
-		std::map<std::string, BlockUniformInfo> uniforms; //!< uniform locations in the shader
+		std::unordered_map<std::string, BlockUniformInfo> uniforms; //!< uniform locations in the shader
 	};
-	static std::map<std::string, UniformBlockInfo> getAllUniformBlockInfo(ShaderProgram& shaderProgram);
-	static void printUniformBlockInfo(std::map<std::string, ShaderProgram::UniformBlockInfo>& map);
+	static std::unordered_map<std::string, UniformBlockInfo> getAllUniformBlockInfo(ShaderProgram& shaderProgram);
+	static void printUniformBlockInfo(std::unordered_map<std::string, ShaderProgram::UniformBlockInfo>& map);
 
 	static std::vector<float> createUniformBlockDataVector(ShaderProgram::UniformBlockInfo& uniformBlock); //!< creates a std::vector equal to the byte size of the uniform block
 	static GLuint createUniformBlockBuffer(std::vector<float>& data, GLuint bindingPoint); //!< generates a buffer, fills it with data and binds it to bindingPoint

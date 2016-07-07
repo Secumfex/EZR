@@ -33,8 +33,8 @@ float cameraFar = 200.0f;	//200
 int rayStep = 0.0f;
 //bool fadeEdges = true;	//in shader festgelegt
 
-static std::map<Renderable*, int> rendMatMap; 						//mapping a renderable to a material index
-static std::vector<std::map<aiTextureType, GLuint>> matTexHandles; 	//mapping material texture types to texture handles
+static std::unordered_map<Renderable*, int> rendMatMap; 						//mapping a renderable to a material index
+static std::vector<std::unordered_map<aiTextureType, GLuint,AssimpTools::EnumClassHash>> matTexHandles; 	//mapping material texture types to texture handles
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -124,7 +124,7 @@ int main(){
 
 	//pro mesh
 	for(int j = 0; j < scene->mNumMeshes; j++){
-		std::map<aiTextureType, GLuint> textures;
+		std::unordered_map<aiTextureType, GLuint,AssimpTools::EnumClassHash> textures;
 		auto matInfo = AssimpTools::getMaterialInfo(scene, j);
 		DEBUGLOG->indent();
 		AssimpTools::printMaterialInfo(matInfo);

@@ -6,12 +6,21 @@
 #include <assimp/postprocess.h>
 #include <glm/glm.hpp>
 #include <vector>
-#include <map>
+#include <unordered_map>
+#include <string>
 
 class Renderable;
 namespace Assimp{ class Importer; }
 
 namespace AssimpTools {
+	struct EnumClassHash
+	{
+	    template <typename T>
+	    std::size_t operator()(T t) const
+	    {
+	        return static_cast<std::size_t>(t);
+	    }
+	};
 
 	struct BoundingBox // Bounding Box in local coordinates
 	{
@@ -74,12 +83,12 @@ namespace AssimpTools {
 	struct MaterialInfo
 	{
 		int matIdx; //!< material index in the corresponding aiScene object
-		std::map< ColorType, glm::vec4> color; //!< all color properties that have been defined for this material
-		std::map< ScalarType, float> scalar; //!< all scalar properties that have been defined for this material
-		std::map<aiTextureType, MaterialTextureInfo> texture; //!< all texture information that have been defined for this material
+		std::unordered_map< ColorType, glm::vec4, EnumClassHash> color; //!< all color properties that have been defined for this material
+		std::unordered_map< ScalarType, float, EnumClassHash> scalar; //!< all scalar properties that have been defined for this material
+		std::unordered_map<aiTextureType, MaterialTextureInfo, EnumClassHash> texture; //!< all texture information that have been defined for this material
 	};
 
-	std::map<aiTextureType, MaterialTextureInfo> getMaterialTexturesInfo(const aiScene* scene, int matIdx); //!< retrieve properties of every texture used by this material
+	std::unordered_map<aiTextureType, MaterialTextureInfo, EnumClassHash> getMaterialTexturesInfo(const aiScene* scene, int matIdx); //!< retrieve properties of every texture used by this material
 	MaterialInfo getMaterialInfo(const aiScene* scene, int matIdx); //!< retrieve properties of a certain material of the corresponding aiScene
 
 	std::string decodeColorType(ColorType type); //!< get a readable string for the provided color type

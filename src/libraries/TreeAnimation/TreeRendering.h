@@ -89,10 +89,10 @@ public:
 
 	ShaderProgram::UniformBlockInfo treeUniformBlockInfo;
 	ShaderProgram::UniformBlockInfo simulationUniformBlockInfo;
-	std::map<std::string, ShaderProgram::UniformBlockInfo> branchShaderUniformBlockInfoMap;
-	std::map<std::string, ShaderProgram::UniformBlockInfo> foliageShaderUniformBlockInfoMap;
-	std::map<std::string, ShaderProgram::UniformBlockInfo> foliageShadowMapShaderUniformBlockInfoMap;
-	std::map<std::string, ShaderProgram::UniformBlockInfo> branchShadowMapShaderUniformBlockInfoMap;
+	std::unordered_map<std::string, ShaderProgram::UniformBlockInfo> branchShaderUniformBlockInfoMap;
+	std::unordered_map<std::string, ShaderProgram::UniformBlockInfo> foliageShaderUniformBlockInfoMap;
+	std::unordered_map<std::string, ShaderProgram::UniformBlockInfo> foliageShadowMapShaderUniformBlockInfoMap;
+	std::unordered_map<std::string, ShaderProgram::UniformBlockInfo> branchShadowMapShaderUniformBlockInfoMap;
 
 	std::vector<GLuint> treeUniformBlockBuffers;
 	GLuint simulationUniformBlockBuffer;
