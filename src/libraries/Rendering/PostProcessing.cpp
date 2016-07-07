@@ -65,8 +65,8 @@ void PostProcessing::BoxBlur::pull()
 void PostProcessing::BoxBlur::push(int numLevels, int beginLevel)
 {
 	// check boundaries
-	GLboolean depthTestEnableState = glIsEnabled(GL_DEPTH_TEST);
-	if (depthTestEnableState) {glDisable(GL_DEPTH_TEST);}
+	GLboolean depthTestEnableState = OPENGLCONTEXT->isEnabled(GL_DEPTH_TEST);
+	if (depthTestEnableState) {OPENGLCONTEXT->setEnabled(GL_DEPTH_TEST, false);}
 	m_pushShaderProgram.use();
 	for (int level = std::min( (int) m_mipmapFBOHandles.size()-2, beginLevel+numLevels-1); level >= beginLevel; level--)
 	{
@@ -75,7 +75,7 @@ void PostProcessing::BoxBlur::push(int numLevels, int beginLevel)
 		m_quad->draw();
 	}
 	OPENGLCONTEXT->bindFBO(0);
-	if (depthTestEnableState){glEnable(GL_DEPTH_TEST);}
+	if (depthTestEnableState){OPENGLCONTEXT->setEnabled(GL_DEPTH_TEST, true);}
 }
 
 PostProcessing::BoxBlur::~BoxBlur()

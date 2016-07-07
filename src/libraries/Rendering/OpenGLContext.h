@@ -18,7 +18,7 @@ private:
 	OpenGLContext();
 	~OpenGLContext();
 public:
-	//std::unordered_map<GLint, GLint> cacheInt;
+	std::unordered_map<GLint, GLint> cacheInt;
 	//std::unordered_map<GLint, GLfloat> cacheFloat;
 	std::unordered_map<GLint, GLuint> cacheTextures; // currently bound textures to texture units GL_TEXTURE0..31
 	GLuint cacheVAO; // currently bound VAO
@@ -51,6 +51,9 @@ public:
 	void setWindowSize(GLFWwindow* window, int width, int height);
 	void setWindowSize(GLFWwindow* window, glm::vec2 windowSize);
 	void setWindowSize(GLFWwindow* window, glm::ivec2 windowSize);
+	void setEnabled(GLenum target, bool value);
+
+	bool isEnabled(GLenum target);
 };
 
 // for convenient access

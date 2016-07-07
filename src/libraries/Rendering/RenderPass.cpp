@@ -201,24 +201,18 @@ void RenderPass::enableStates()
 {
 	for (unsigned int i = 0; i < m_enable.size(); i++)
 	{
-		m_enableTEMP[i] = ( glIsEnabled( m_enable [i] ) == 1 );
-		if ( !m_enableTEMP[i] )	// is not enabled but should be
-		{
-			glEnable( m_enable[i] );
-		}
+		m_enableTEMP[i] = OPENGLCONTEXT->isEnabled(i);	
+		OPENGLCONTEXT->setEnabled(m_enable[i], true);
 	}
 }
 
 void RenderPass::disableStates()
 {
 	for (unsigned int i = 0; i < m_disable.size(); i++)
-		{
-			m_disableTEMP[i] = ( glIsEnabled( m_disable [i] ) == 1 );
-			if ( m_disableTEMP[i] )	// is enabled but should not be
-			{
-				glDisable( m_disable[i] );
-			}
-		}
+	{
+		m_disableTEMP[i] = OPENGLCONTEXT->isEnabled(i);
+		OPENGLCONTEXT->setEnabled(m_disable[i], false);
+	}
 }
 
 void RenderPass::restoreStates()
@@ -227,14 +221,14 @@ void RenderPass::restoreStates()
 	{
 		if ( !m_enableTEMP[i] )	// was not enabled but got enabled
 		{
-			glDisable(m_enable[i]);
+			OPENGLCONTEXT->setEnabled(m_enable[i],false);
 		}
 	}
 	for (unsigned int i = 0; i < m_disableTEMP.size(); i++)
 	{
 		if ( m_disableTEMP[i] )	// was enabled but got disabled
 		{
-			glEnable(m_disable[i]);
+			OPENGLCONTEXT->setEnabled(m_disable[i], true);	
 		}
 	}
 }

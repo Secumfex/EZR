@@ -14,6 +14,7 @@ OpenGLContext::~OpenGLContext()
 
 void OpenGLContext::clearCache()
 {
+	cacheInt.clear();
 	cacheTextures.clear();
 	cacheVAO = -1;
 	cacheDrawFBO = -1;
@@ -189,6 +190,34 @@ void OpenGLContext::bindTextureToUnit(GLuint texture, GLenum unit, GLenum type)
 		cacheTextures[unit] = texture;
 	}
 }
+
+void OpenGLContext::setEnabled(GLenum target, bool value)
+{
+	auto it = cacheInt.find(target);
+	if (  it == cacheInt.end() || (*it).second != (int) value)
+	{
+		if ( value )
+		{
+			glEnable(target);
+		}
+		else
+		{
+			glDisable(target);
+
+		}
+		cacheInt[target] = (int) value;
+	}
+}
+
+bool OpenGLContext::isEnabled(GLenum target)
+ {
+ 	auto it = cacheInt.find(target);
+ 	if (it == cacheInt.end()) //don't know lol
+ 	{
+ 		cacheInt[target] = glIsEnabled(target);
+ 	}
+	return (bool) cacheInt[target];
+ }
 
 void OpenGLContext::setViewport(int x, int y, int width, int height)
 {
