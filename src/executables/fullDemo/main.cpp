@@ -101,7 +101,15 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 2);
 
 	GLuint waterTextureHandle = TextureTools::loadTextureFromResourceFolder("water/07_DIFFUSE.jpg");
+	OPENGLCONTEXT->bindTexture(waterTextureHandle);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
 	GLuint waterNormalTextureHandle = TextureTools::loadTextureFromResourceFolder("water/07_NORMAL.jpg");
+	OPENGLCONTEXT->bindTexture(waterNormalTextureHandle);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
 
 	/////////////////////    Import Stuff (Misc)    //////////////////////////
 
@@ -150,7 +158,7 @@ int main()
 	DEBUGLOG->outdent(); DEBUGLOG->log("Rendering Setup: 'Geometry' Rendering"); DEBUGLOG->indent();
 
 	// regular GBuffer
-	ShaderProgram sh_gbuffer("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer_mat.frag");
+	ShaderProgram sh_gbuffer("/modelSpace/GBuffer.vert", "/modelSpace/GBuffer_mat.frag"); // vs. not working: waterGBuffer_mat.frag
 	sh_gbuffer.update("view",       mainCamera.getViewMatrix());
 	sh_gbuffer.update("projection", mainCamera.getProjectionMatrix());
 	FrameBufferObject::s_internalFormat  = GL_RGBA32F; // to allow arbitrary values in G-Buffer
@@ -738,6 +746,7 @@ int main()
 		sh_ssr.update("mixV",Settings.ssrMix);
 
 		sh_gbuffer.update("time", elapsedTime);
+
 		//std::cout<<"ZEIT: "<< elapsedTime << endl;
 		timings.stopTimer("uniformupdates");
 		//////////////////////////////////////////////////////////////////////////////
