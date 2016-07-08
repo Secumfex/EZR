@@ -421,7 +421,7 @@ int main()
 
 	 CallbackHelper::keyboardFunc = [&](int k, int s, int a, int m)
 	 {
-		 if ( k == GLFW_KEY_P && a == GLFW_PRESS)
+		 if ( k == GLFW_KEY_T && a == GLFW_PRESS)
 		 {
 			Settings.show_debug_views = !Settings.show_debug_views;
 		 }
@@ -466,7 +466,7 @@ int main()
 			Settings.enableLenseflare = !Settings.enableLenseflare;
 		 }
 
-		 if ( k == GLFW_KEY_T && a == GLFW_PRESS)
+		 if ( k == GLFW_KEY_P && a == GLFW_PRESS)
 		 {
 			Settings.waterHasNormalTex = !Settings.waterHasNormalTex;
 		 }
@@ -493,7 +493,7 @@ int main()
 			Settings.enableLenseflare = false;
 		 }
 
-		 if ( k == GLFW_KEY_I && a == GLFW_PRESS )
+		 if ( k == GLFW_KEY_SPACE && a == GLFW_PRESS )
 		 {
 			Settings.animate_seasons = !Settings.animate_seasons;
 		 }
