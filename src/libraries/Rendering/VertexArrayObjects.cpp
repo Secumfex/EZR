@@ -570,7 +570,7 @@ Terrain::~Terrain()
 void Terrain::draw()
 {
     OPENGLCONTEXT->bindVAO(m_vao);
-    glDrawArrays(GL_PATCHES, 0, 34000);
+    glDrawArrays(GL_PATCHES, 0, 34000 * 0.45 );
 }
 
 

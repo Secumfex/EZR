@@ -33,6 +33,11 @@ glm::mat4 bezier_transposed = glm::transpose(bezier);
 std::unordered_map<aiTextureType, GLuint, AssimpTools::EnumClassHash> textures;
 //////////////////// MISC /////////////////////////////////////
 
+static Timer s_idle_ui_timer(true);
+static Timer s_idle_movement_timer(true);
+static const double IDLE_ANIMATION_TIME_LIMIT = 20.0;
+static bool s_idle_animation_active = false;
+static glm::mat4 s_idle_animation_rotation_matrix;
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -144,7 +149,7 @@ int main()
 	Renderable* waterGrid = new Grid(32,32,2.0f,2.0f,true);
 	glm::mat4 modelWater = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
 	// grid resembling grass spawning area
-	Renderable* grassGrid = new Grid(128,128,0.75f,0.75f,true);
+	Renderable* grassGrid = new Grid(300,300,0.3f,0.3f,true);
 	glm::mat4 modelGrass = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f,0.0,0.0));
 
 	// sound loop
@@ -367,13 +372,11 @@ int main()
 	r_showTex.setViewport(0,0,WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y);
 
 	// arbitrary texture display shader
-	float weightMin = 0.6f;
-	float weightMax = 0.7f;
-	int mode = 7;
+
 	ShaderProgram sh_addTexShader("/screenSpace/fullscreen.vert", "/screenSpace/postProcessVolumetricLighting.frag");
-	sh_addTexShader.update("min", weightMin);
-	sh_addTexShader.update("max", weightMax);
-	sh_addTexShader.update("mode", mode);
+	sh_addTexShader.update("min", Settings.weightMin);
+	sh_addTexShader.update("max", Settings.weightMax);
+	sh_addTexShader.update("mode", Settings.mode);
 	RenderPass r_addTex(&sh_addTexShader, &fbo_gbufferComp);
 	r_addTex.addRenderable(&quad);
 	r_addTex.addDisable(GL_DEPTH_TEST);
@@ -396,11 +399,24 @@ int main()
 	CallbackHelper::cursorPosFunc = [&](double x, double y)
 	{
 	 	//TODO what you want to happen
+
+	 	if ( CallbackHelper::active_mouse_control )
+	 	{
+	 		s_idle_movement_timer.reset();
+	 		s_idle_animation_active = false;
+	 	}
 	};
 
 	CallbackHelper::mouseButtonFunc = [&](int b, int a, int m)
 	{
 	 	//TODO what you want to happen
+
+		ImGuiIO& io = ImGui::GetIO();
+	 	if (io.WantCaptureMouse && a == GLFW_PRESS && b == GLFW_MOUSE_BUTTON_LEFT)
+	 	{
+	 		s_idle_ui_timer.reset();
+	 	}
+
 	};
 
 	 CallbackHelper::keyboardFunc = [&](int k, int s, int a, int m)
@@ -521,6 +537,11 @@ int main()
 			// Settings.multithreaded_windfield = !Settings.multithreaded_windfield;
 			//  DEBUGLOG->log("multithread: ",Settings.multithreaded_windfield);
 		 // }
+		if (k == GLFW_KEY_W || k == GLFW_KEY_S || k == GLFW_KEY_A || k == GLFW_KEY_D)
+		{
+			s_idle_movement_timer.reset();
+			s_idle_animation_active = false;
+		}
 	 };
 
 	auto windowResizeCB = [&](int width, int height)
@@ -549,6 +570,15 @@ int main()
 
 	render(window, [&](double dt)
 	{
+		// update timers
+		s_idle_movement_timer.update(dt);
+		s_idle_ui_timer.update(dt);
+
+		if ( s_idle_ui_timer.getElapsedTime() > IDLE_ANIMATION_TIME_LIMIT && s_idle_movement_timer.getElapsedTime() > IDLE_ANIMATION_TIME_LIMIT)
+		{
+			s_idle_animation_active = true;
+		}
+
 		timings.updateReadyTimings();
 		
 		elapsedTime += dt;
@@ -591,9 +621,9 @@ int main()
 			}
 			if (ImGui::TreeNode("Composition"))
 			{
-				ImGui::SliderFloat("min", &weightMin, 0.0f, 1.0f);
-				ImGui::SliderFloat("max", &weightMax, 0.0f, 1.0f);
-				ImGui::Combo("mode", &mode, "const\0cos\0sin\0inverse\0sqrt\0quad\0ln\0x^4\0");
+				ImGui::SliderFloat("min", &Settings.weightMin, 0.0f, 1.0f);
+				ImGui::SliderFloat("max", &Settings.weightMax, 0.0f, 1.0f);
+				ImGui::Combo("mode", &Settings.mode, "const\0cos\0sin\0inverse\0sqrt\0quad\0ln\0x^4\0");
 				ImGui::TreePop();
 			}
 			ImGui::TreePop();
@@ -617,6 +647,7 @@ int main()
 			ImGui::SliderFloat("mix water",&Settings.ssrMix, 0.0, 1.0);
 			ImGui::Checkbox("fade to edges", &Settings.ssrFade);
 			ImGui::Checkbox("toggle glossy", &Settings.ssrGlossy);
+			ImGui::Checkbox("toggle normalmap", &Settings.waterHasNormalTex);
 			ImGui::TreePop();
 		}
 
@@ -666,6 +697,14 @@ int main()
 		///////////////////////////// VARIABLE UPDATING ///////////////////////////////
 		timings.resetTimer("varupdates");
 		timings.beginTimer("varupdates");
+
+		if (s_idle_animation_active) // update rotation matrix
+		{
+			s_idle_animation_rotation_matrix = glm::rotate(glm::mat4(1.0f), (float) elapsedTime / 10.0f, glm::vec3(0.0f, 1.0f, 0.0f) );
+
+			mainCamera.setPosition(glm::vec3( s_idle_animation_rotation_matrix * glm::vec4(7.0f,1.25f,0.0f,1.0f) ) + glm::vec3(0.f,0.0f,5.0f));
+			mainCamera.setCenter(glm::vec3(0.0f,1.75f,5.0f));
+		}
 
 		mainCamera.update(dt);
 		updateLightCamera(mainCamera, lightCamera, - glm::vec3(WORLD_LIGHT_DIRECTION) * 15.0f);
@@ -730,9 +769,9 @@ int main()
 		treeRendering.updateActiveImguiInterfaces();
 
 		// vml composition
-		sh_addTexShader.update("min", weightMin);
-		sh_addTexShader.update("max", weightMax);
-		sh_addTexShader.update("mode", mode);
+		sh_addTexShader.update("min", Settings.weightMin);
+		sh_addTexShader.update("max", Settings.weightMax);
+		sh_addTexShader.update("mode", Settings.mode);
 		
 		sh_grassGeom.update("strength", Settings.grass_size);
 
